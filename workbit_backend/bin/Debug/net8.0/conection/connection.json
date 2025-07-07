@@ -1,0 +1,11 @@
+﻿{
+  "ConnectionStrings": {
+    "SqlServer": {
+      "Server": "ALDOYAMIL\\SQLEXPRESS",
+      "Database": "workbit"
+    }
+  },
+  "Paths": {
+    "Domain": "http://localhost/workbit/"
+  }
+}
