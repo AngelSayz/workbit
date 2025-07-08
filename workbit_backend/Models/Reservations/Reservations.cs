@@ -159,5 +159,67 @@ namespace workbit.Models.Reservations
             return null;
         }
 
+        public static (List<string> hours, List<int> totals) GetHourlyTotals(DateTime date)
+        {
+            string query = @"
+        SELECT 
+            DATEPART(HOUR, start_time) AS hour,
+            COUNT(*) AS total
+        FROM reservations
+        WHERE CAST(start_time AS DATE) = @date
+        GROUP BY DATEPART(HOUR, start_time)
+        ORDER BY hour;";
+
+            SqlCommand cmd = new SqlCommand(query);
+            cmd.Parameters.AddWithValue("@date", date.Date);
+
+            DataTable table = SqlServerConnection.EjecutarQuery(cmd);
+
+            List<string> hours = new List<string>();
+            List<int> totals = new List<int>();
+
+            foreach (DataRow row in table.Rows)
+            {
+                int hour = Convert.ToInt32(row["hour"]);
+                hours.Add(hour.ToString("D2")); // formato 09, 10, 11...
+                totals.Add(Convert.ToInt32(row["total"]));
+            }
+
+            return (hours, totals);
+        }
+
+        public static object GetHourlyData(DateTime date)
+        {
+            string query = @"
+        SELECT DATEPART(HOUR, start_time) AS hour, COUNT(*) AS total
+        FROM reservations
+        WHERE CAST(start_time AS DATE) = @date
+        GROUP BY DATEPART(HOUR, start_time)
+        ORDER BY hour";
+
+            SqlCommand cmd = new SqlCommand(query);
+            cmd.Parameters.AddWithValue("@date", date.Date);
+            DataTable table = SqlServerConnection.EjecutarQuery(cmd);
+
+            var hours = new List<string>();
+            var totals = new List<int>();
+
+            for (int h = 6; h <= 20; h++)
+            {
+                hours.Add($"{h:00}:00");
+
+                DataRow? row = table.Rows
+                    .Cast<DataRow>()
+                    .FirstOrDefault(r => Convert.ToInt32(r["hour"]) == h);
+
+                if (row != null)
+                    totals.Add(Convert.ToInt32(row["total"]));
+                else
+                    totals.Add(0);
+            }
+
+            return new { date = date.ToString("yyyy-MM-dd"), hour = hours, totals };
+        }
+
     }
 }

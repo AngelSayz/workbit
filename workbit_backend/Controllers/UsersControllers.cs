@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Mvc;
+using workbit.MessagesTypes;
+using workbit.Models.Reservations;
+using workbit.Models.Reservations.DTO;
+using workbit.Models.Roles;
 using workbit.Models.Users;
 using workbit.Models.Users.DTO;
-using workbit.Models.Roles;
 using workbit.ViewModels;
-using workbit.MessagesTypes;
-using workbit.Models.Roles;
 
 namespace workbit.Controllers
 {
@@ -45,6 +46,35 @@ namespace workbit.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error al buscar usuario con id {id}: {ex.Message}");
+            }
+        }
+
+        [HttpGet("role/{name}")]
+        public ActionResult GetByRole(string name)
+        {
+            try
+            {
+                List<Users> users = Users.GetByRole(name);
+
+                if (users == null || users.Count == 0)
+                {
+                    return StatusCode(404, MessageResponse.Respuesta(1, "No users found for the specified role", MessageUsers.Error));
+                }
+                var user = users.Select(u => new UserResponseByRoleDto
+                {
+                    Name = u.Name,
+                    Lastname = u.Lastname,
+                    Username = u.Username,
+                    Email = u.Email,
+                    Password = u.Password,
+                    RoleName = u.Roles?.Name ?? "",
+                }).ToList();
+
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al obtener usuarios por rol: {ex.Message}");
             }
         }
 

@@ -149,5 +149,23 @@ namespace workbit.Models.Users
             return list;
         }
 
-    }
+        public static List<Users> GetByRole(string name)
+        {
+            string usersbyrole = @"
+            SELECT u.id as ID, u.name as Name, u.lastname as Lastname, u.username as Username, u.email as Email, u.password as Password, u.role_id AS RoleId, r.name as RoleName
+            FROM users u
+            INNER JOIN roles r ON u.role_id = r.id
+            WHERE r.name = @name";
+            SqlCommand ejecutar = new SqlCommand(usersbyrole);
+            ejecutar.Parameters.AddWithValue("@name", name);
+            DataTable table = SqlServerConnection.EjecutarQuery(ejecutar);
+            List<Users> usersList = new List<Users>();
+            foreach (DataRow row in table.Rows)
+            {
+                usersList.Add(UsersMapper.ConvertirAObjeto(row));
+            }
+            return usersList;
+        }
+
+     }
 }

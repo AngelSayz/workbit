@@ -1,5 +1,53 @@
 [
   {
+    "ContainingType": "workbit.Controllers.AccessLogController",
+    "Method": "Post",
+    "RelativePath": "api/AccessLog",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "workbit.Models.AccessLogs.DTO.AccessLogDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "workbit.Controllers.AccessLogController",
+    "Method": "GetAccessStats",
+    "RelativePath": "api/AccessLog/accesslog/hourly/{date}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "date",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "workbit.Controllers.AccessLogController",
+    "Method": "GetHourlyAccess",
+    "RelativePath": "api/AccessLog/hourly/{date}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "date",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "workbit.Controllers.AvailableSpacesController",
     "Method": "GetAvailableSpacesByDate",
     "RelativePath": "api/AvailableSpaces/{date}",
@@ -105,6 +153,70 @@
   },
   {
     "ContainingType": "workbit.Controllers.ReservationsController",
+    "Method": "GetHourlyReservations",
+    "RelativePath": "api/Reservations/hourly/{date}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "date",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "workbit.Controllers.ReservationsController",
+    "Method": "GetReservationStats",
+    "RelativePath": "api/Reservations/reservations/hourly/{date}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "date",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "workbit.Controllers.ReservationsController",
+    "Method": "SimulateReservation",
+    "RelativePath": "api/Reservations/simulate",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "workbit.Models.Reservations.DTO.ReservationRegisterDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "workbit.Controllers.ReservationsController",
+    "Method": "GetTotals",
+    "RelativePath": "api/Reservations/totals/{date}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "date",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "workbit.Controllers.ReservationsController",
     "Method": "UpdateStatus",
     "RelativePath": "api/Reservations/update",
     "HttpMethod": "POST",
@@ -187,6 +299,22 @@
         "Name": "RoleName",
         "Type": "System.String",
         "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "workbit.Controllers.UsersController",
+    "Method": "GetByRole",
+    "RelativePath": "api/Users/role/{name}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "name",
+        "Type": "System.String",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []

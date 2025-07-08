@@ -3,24 +3,28 @@
   "WorkspaceRootPath": "C:\\Users\\aldoy\\source\\repos\\workbit\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|c:\\users\\aldoy\\source\\repos\\workbit\\controllers\\reservationscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|solutionrelative:controllers\\reservationscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|c:\\users\\aldoy\\source\\repos\\workbit\\models\\reservations\\reservations.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|solutionrelative:models\\reservations\\reservations.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|c:\\users\\aldoy\\source\\repos\\workbit\\models\\reservations\\dto\\reservationsresponsedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|solutionrelative:models\\reservations\\dto\\reservationsresponsedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|c:\\users\\aldoy\\source\\repos\\workbit\\models\\accesslogs\\accesslog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|solutionrelative:models\\accesslogs\\accesslog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|c:\\users\\aldoy\\source\\repos\\workbit\\models\\reservations\\reservationslistresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|solutionrelative:models\\reservations\\reservationslistresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|c:\\users\\aldoy\\source\\repos\\workbit\\controllers\\accesslogcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|solutionrelative:controllers\\accesslogcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|c:\\users\\aldoy\\source\\repos\\workbit\\models\\reservations\\reservationsmapper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|solutionrelative:models\\reservations\\reservationsmapper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|c:\\users\\aldoy\\source\\repos\\workbit\\models\\accesslogs\\dto\\accesslogdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|solutionrelative:models\\accesslogs\\dto\\accesslogdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|c:\\users\\aldoy\\source\\repos\\workbit\\controllers\\reservationscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|solutionrelative:controllers\\reservationscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|c:\\users\\aldoy\\source\\repos\\workbit\\models\\reservations\\dto\\reservationregisterdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C04A49B0-D418-43DF-94C5-9852ACE07223}|workbit.csproj|solutionrelative:models\\reservations\\dto\\reservationregisterdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -30,7 +34,7 @@
       "DocumentGroups": [
         {
           "DockedHeight": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
@@ -46,68 +50,80 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ReservationsResponseDto.cs",
-              "DocumentMoniker": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\Reservations\\DTO\\ReservationsResponseDto.cs",
-              "RelativeDocumentMoniker": "Models\\Reservations\\DTO\\ReservationsResponseDto.cs",
-              "ToolTip": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\Reservations\\DTO\\ReservationsResponseDto.cs",
-              "RelativeToolTip": "Models\\Reservations\\DTO\\ReservationsResponseDto.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAA/AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-07-06T07:30:21.661Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "ReservationsMapper.cs",
-              "DocumentMoniker": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\Reservations\\ReservationsMapper.cs",
-              "RelativeDocumentMoniker": "Models\\Reservations\\ReservationsMapper.cs",
-              "ToolTip": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\Reservations\\ReservationsMapper.cs",
-              "RelativeToolTip": "Models\\Reservations\\ReservationsMapper.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACkAAAA1AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-07-05T21:13:33.105Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "ReservationsController.cs",
-              "DocumentMoniker": "C:\\Users\\aldoy\\source\\repos\\workbit\\Controllers\\ReservationsController.cs",
-              "RelativeDocumentMoniker": "Controllers\\ReservationsController.cs",
-              "ToolTip": "C:\\Users\\aldoy\\source\\repos\\workbit\\Controllers\\ReservationsController.cs",
-              "RelativeToolTip": "Controllers\\ReservationsController.cs",
-              "ViewState": "AgIAAC4AAAAAAAAAAAAiwEIAAAARAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-07-05T01:12:07.599Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "ReservationsListResponse.cs",
-              "DocumentMoniker": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\Reservations\\ReservationsListResponse.cs",
-              "RelativeDocumentMoniker": "Models\\Reservations\\ReservationsListResponse.cs",
-              "ToolTip": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\Reservations\\ReservationsListResponse.cs",
-              "RelativeToolTip": "Models\\Reservations\\ReservationsListResponse.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-07-05T02:32:11.37Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
               "Title": "Reservations.cs",
               "DocumentMoniker": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\Reservations\\Reservations.cs",
               "RelativeDocumentMoniker": "Models\\Reservations\\Reservations.cs",
               "ToolTip": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\Reservations\\Reservations.cs",
               "RelativeToolTip": "Models\\Reservations\\Reservations.cs",
-              "ViewState": "AgIAAH8AAAAAAAAAAAAuwI4AAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAMUAAAAAAAAAAADwv9oAAAANAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-07-05T01:11:44.222Z",
+              "WhenOpened": "2025-07-08T00:02:36.033Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "AccessLogDto.cs",
+              "DocumentMoniker": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\AccessLogs\\DTO\\AccessLogDto.cs",
+              "RelativeDocumentMoniker": "Models\\AccessLogs\\DTO\\AccessLogDto.cs",
+              "ToolTip": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\AccessLogs\\DTO\\AccessLogDto.cs",
+              "RelativeToolTip": "Models\\AccessLogs\\DTO\\AccessLogDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-07T02:03:24.985Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "AccessLogController.cs",
+              "DocumentMoniker": "C:\\Users\\aldoy\\source\\repos\\workbit\\Controllers\\AccessLogController.cs",
+              "RelativeDocumentMoniker": "Controllers\\AccessLogController.cs",
+              "ToolTip": "C:\\Users\\aldoy\\source\\repos\\workbit\\Controllers\\AccessLogController.cs",
+              "RelativeToolTip": "Controllers\\AccessLogController.cs",
+              "ViewState": "AgIAADAAAAAAAAAAAAAYwDUAAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-07T00:46:49.945Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "AccessLog.cs",
+              "DocumentMoniker": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\AccessLogs\\AccessLog.cs",
+              "RelativeDocumentMoniker": "Models\\AccessLogs\\AccessLog.cs",
+              "ToolTip": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\AccessLogs\\AccessLog.cs",
+              "RelativeToolTip": "Models\\AccessLogs\\AccessLog.cs",
+              "ViewState": "AgIAAEwAAAAAAAAAAADwv2EAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-07T00:44:02.778Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "ReservationsController.cs",
+              "DocumentMoniker": "C:\\Users\\aldoy\\source\\repos\\workbit\\Controllers\\ReservationsController.cs",
+              "RelativeDocumentMoniker": "Controllers\\ReservationsController.cs",
+              "ToolTip": "C:\\Users\\aldoy\\source\\repos\\workbit\\Controllers\\ReservationsController.cs",
+              "RelativeToolTip": "Controllers\\ReservationsController.cs",
+              "ViewState": "AgIAAOsAAAAAAAAAAAAswPYAAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-06T22:24:18.316Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "ReservationRegisterDto.cs",
+              "DocumentMoniker": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\Reservations\\DTO\\ReservationRegisterDto.cs",
+              "RelativeDocumentMoniker": "Models\\Reservations\\DTO\\ReservationRegisterDto.cs",
+              "ToolTip": "C:\\Users\\aldoy\\source\\repos\\workbit\\Models\\Reservations\\DTO\\ReservationRegisterDto.cs",
+              "RelativeToolTip": "Models\\Reservations\\DTO\\ReservationRegisterDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAABCAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-06T22:22:11.801Z"
             }
           ]
         }
