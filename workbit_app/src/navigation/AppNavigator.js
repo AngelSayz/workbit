@@ -6,6 +6,7 @@ import { Text } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import LoadingScreen from '../components/LoadingScreen';
 import LoginScreen from '../screens/LoginScreen';
+import SignUpScreen from '../screens/SignUpScreen';
 import HomeScreen from '../screens/HomeScreen';
 import SpacesScreen from '../screens/SpacesScreen';
 import ReservationsScreen from '../screens/ReservationsScreen';
@@ -72,6 +73,20 @@ const TabNavigator = () => {
   );
 };
 
+const AuthStack = () => {
+  return (
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'slide_from_right' 
+      }}
+    >
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={SignUpScreen} />
+    </Stack.Navigator>
+  );
+};
+
 const AppNavigator = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -85,7 +100,7 @@ const AppNavigator = () => {
         {isAuthenticated ? (
           <Stack.Screen name="Main" component={TabNavigator} />
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Auth" component={AuthStack} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

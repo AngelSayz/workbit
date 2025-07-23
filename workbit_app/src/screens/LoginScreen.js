@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import Input from '../components/Input';
 
-const LoginScreen = () => {
-  const [username, setUsername] = useState('');
+const LoginScreen = ({ navigation }) => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const { login, isLoading } = useAuth();
@@ -14,8 +14,10 @@ const LoginScreen = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!username.trim()) {
-      newErrors.username = 'El usuario es obligatorio';
+    if (!email.trim()) {
+      newErrors.email = 'El email es obligatorio';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Ingresa un email válido';
     }
     
     if (!password.trim()) {
@@ -29,15 +31,19 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     if (!validateForm()) return;
     
-    const result = await login(username.trim(), password);
+    const result = await login(email.trim().toLowerCase(), password);
     
     if (!result.success) {
       Alert.alert(
         'Error de Autenticación',
-        result.error || 'Credenciales inválidas. Verifica tu usuario y contraseña.',
+        result.error || 'Credenciales inválidas. Verifica tu email y contraseña.',
         [{ text: 'OK' }]
       );
     }
+  };
+
+  const handleRegister = () => {
+    navigation.navigate('Register');
   };
 
   return (
@@ -64,13 +70,14 @@ const LoginScreen = () => {
           {/* Login Form */}
           <View style={styles.form}>
             <Input
-              label="Usuario"
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Ingresa tu usuario"
-              error={errors.username}
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Ingresa tu email"
+              error={errors.email}
               autoCapitalize="none"
               autoCorrect={false}
+              keyboardType="email-address"
             />
             
             <Input
@@ -92,6 +99,18 @@ const LoginScreen = () => {
               disabled={isLoading}
               style={styles.loginButton}
             />
+          </View>
+
+          {/* Registration Link */}
+          <View style={styles.registerSection}>
+            <Text style={styles.registerText}>
+              ¿No tienes una cuenta?
+            </Text>
+            <TouchableOpacity onPress={handleRegister}>
+              <Text style={styles.registerLink}>
+                Regístrate aquí
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Footer */}
@@ -158,6 +177,22 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginTop: 32,
+  },
+  registerSection: {
+    marginTop: 32,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  registerText: {
+    color: '#6B7280',
+    fontSize: 16,
+  },
+  registerLink: {
+    color: '#3b82f6',
+    fontSize: 16,
+    fontWeight: '600',
   },
   footer: {
     marginTop: 48,

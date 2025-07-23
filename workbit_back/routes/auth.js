@@ -143,9 +143,12 @@ router.post('/register', [
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('cardCode').optional().trim()
 ], async (req, res) => {
+  console.log('Registration request received:', req.body);
+  
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({
         error: 'Validation failed',
         details: errors.array()
@@ -153,20 +156,32 @@ router.post('/register', [
     }
 
     const { name, lastname, username, email, password, cardCode } = req.body;
+    console.log('Processing registration for:', { name, lastname, username, email });
 
     if (!supabase) {
+      console.error('Supabase not configured');
       return res.status(500).json({
         error: 'Database connection failed'
       });
     }
 
     // Check if username already exists in our users table
-    const { data: existingUsers } = await supabase
+    console.log('Checking for existing username...');
+    const { data: existingUsers, error: usernameCheckError } = await supabase
       .from('users')
       .select('username')
       .eq('username', username);
 
+    if (usernameCheckError) {
+      console.error('Username check error:', usernameCheckError);
+      return res.status(500).json({
+        error: 'Database error during username check',
+        message: usernameCheckError.message
+      });
+    }
+
     if (existingUsers && existingUsers.length > 0) {
+      console.log('Username already exists:', username);
       return res.status(409).json({
         error: 'Username already exists',
         message: 'Username is already taken'
@@ -174,12 +189,14 @@ router.post('/register', [
     }
 
     // Create user in Supabase Auth
+    console.log('Creating user in Supabase Auth...');
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password
     });
 
     if (authError) {
+      console.error('Supabase auth error:', authError);
       return res.status(400).json({
         error: 'Registration failed',
         message: authError.message
@@ -187,40 +204,125 @@ router.post('/register', [
     }
 
     if (!authData.user) {
+      console.error('No user data returned from Supabase');
       return res.status(400).json({
         error: 'Registration failed',
         message: 'Failed to create user account'
       });
     }
 
+    console.log('User created in Supabase Auth:', authData.user.id);
+
     // Get default role (user)
-    const { data: roles } = await supabase
+    console.log('Getting default role...');
+    const { data: roles, error: roleError } = await supabase
       .from('roles')
       .select('id')
       .eq('name', 'user')
       .single();
 
+    if (roleError) {
+      console.error('Role lookup error:', roleError);
+      return res.status(500).json({
+        error: 'Default role lookup failed',
+        message: roleError.message
+      });
+    }
+
     if (!roles) {
+      console.error('Default role not found');
       return res.status(500).json({
         error: 'Default role not found'
       });
     }
 
-    // Handle card code
+    console.log('Default role found:', roles.id);
+
+    // Handle card code - auto-generate if not provided
     let cardId = null;
-    if (cardCode) {
-      const { data: card } = await supabase
+    let finalCardCode = cardCode;
+    
+    if (!cardCode) {
+      console.log('Auto-generating card code...');
+      // Auto-generate a unique card code
+      const generateCardCode = () => {
+        const prefix = 'WB';
+        const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+        return `${prefix}${randomPart}`;
+      };
+
+      let attempts = 0;
+      let isUnique = false;
+      
+      while (!isUnique && attempts < 10) {
+        finalCardCode = generateCardCode();
+        console.log(`Checking card code uniqueness (attempt ${attempts + 1}):`, finalCardCode);
+        
+        // Check if this code already exists
+        const { data: existingCard, error: cardCheckError } = await supabase
+          .from('codecards')
+          .select('id')
+          .eq('code', finalCardCode)
+          .single();
+        
+        if (cardCheckError && cardCheckError.code === 'PGRST116') {
+          // No rows returned - code is unique
+          isUnique = true;
+        } else if (cardCheckError) {
+          console.error('Card check error:', cardCheckError);
+          break;
+        } else if (!existingCard) {
+          isUnique = true;
+        }
+        attempts++;
+      }
+      
+      if (!isUnique) {
+        console.error('Could not generate unique card code after 10 attempts');
+        return res.status(500).json({
+          error: 'Could not generate unique card code'
+        });
+      }
+      
+      console.log('Generated unique card code:', finalCardCode);
+    }
+
+    // Create or find card
+    if (finalCardCode) {
+      console.log('Creating/finding card with code:', finalCardCode);
+      // Try to find existing card first
+      const { data: existingCard, error: existingCardError } = await supabase
         .from('codecards')
         .select('id')
-        .eq('code', cardCode)
+        .eq('code', finalCardCode)
         .single();
       
-      if (card) {
-        cardId = card.id;
+      if (existingCardError && existingCardError.code !== 'PGRST116') {
+        console.error('Error checking existing card:', existingCardError);
+      } else if (existingCard) {
+        console.log('Using existing card:', existingCard.id);
+        cardId = existingCard.id;
+      } else {
+        console.log('Creating new card...');
+        // Create new card
+        const { data: newCard, error: cardError } = await supabase
+          .from('codecards')
+          .insert({ code: finalCardCode })
+          .select('id')
+          .single();
+        
+        if (cardError) {
+          console.error('Error creating card:', cardError);
+          // Continue without card if creation fails
+        } else {
+          console.log('Card created:', newCard.id);
+          cardId = newCard.id;
+        }
       }
     }
 
     // Create user profile in our users table
+    console.log('Creating user profile...');
     const { data: newUser, error: userError } = await supabase
       .from('users')
       .insert({
@@ -238,7 +340,12 @@ router.post('/register', [
       console.error('User profile creation error:', userError);
       
       // If user profile creation fails, we should clean up the auth user
-      await supabase.auth.admin.deleteUser(authData.user.id);
+      try {
+        await supabase.auth.admin.deleteUser(authData.user.id);
+        console.log('Cleaned up auth user after profile creation failure');
+      } catch (cleanupError) {
+        console.error('Failed to cleanup auth user:', cleanupError);
+      }
       
       return res.status(500).json({
         error: 'Registration failed',
@@ -246,16 +353,22 @@ router.post('/register', [
       });
     }
 
-    res.status(201).json({
+    console.log('User profile created successfully:', newUser.id);
+
+    const responseData = {
       message: 'User registered successfully',
       user: {
         id: newUser.id,
         name: newUser.name,
         lastname: newUser.lastname,
         username: newUser.username,
-        email: authData.user.email
+        email: authData.user.email,
+        cardCode: finalCardCode
       }
-    });
+    };
+
+    console.log('Sending successful response:', responseData);
+    res.status(201).json(responseData);
 
   } catch (error) {
     console.error('Registration error:', error);

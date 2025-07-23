@@ -80,16 +80,16 @@ const ProfileScreen = () => {
 
         <MenuSection title="Información de la App">
           <ProfileItem icon="📱" title="Versión de la App" value="2.0.0" />
-          <ProfileItem icon="🌐" title="Servidor" value="Azure Cloud" />
+          <ProfileItem icon="🌐" title="Servidor" value="Render Cloud" />
           <ProfileItem 
             icon="📊" 
             title="Estado del Servidor" 
             value="Conectado" 
-            onPress={() => Alert.alert('Estado del Servidor', 'Conexión estable con el servidor de WorkBit')} 
+            onPress={() => Alert.alert('Estado del Servidor', 'Conexión estable con el servidor de WorkBit en Render')} 
           />
         </MenuSection>
 
-        <MenuSection title="Ayuda y Soporte">
+        <MenuSection title="Soporte">
           <ProfileItem 
             icon="❓" 
             title="Centro de Ayuda" 

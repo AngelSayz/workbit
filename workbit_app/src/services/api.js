@@ -1,6 +1,10 @@
-const API_BASE_URL = 'https://workbit-api.azurewebsites.net';
+const API_BASE_URL = 'https://workbit.onrender.com';
 
 class ApiService {
+  constructor() {
+    this.token = null;
+  }
+
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     
@@ -11,6 +15,11 @@ class ApiService {
       },
       ...options,
     };
+
+    // Add Authorization header if token exists
+    if (this.token) {
+      config.headers['Authorization'] = `Bearer ${this.token}`;
+    }
 
     try {
       const response = await fetch(url, config);
@@ -27,31 +36,51 @@ class ApiService {
     }
   }
 
-  // Auth endpoints
-  async login(username, password) {
-    const formData = new FormData();
-    formData.append('Username', username);
-    formData.append('Password', password);
+  setAuthToken(token) {
+    this.token = token;
+  }
 
+  clearAuthToken() {
+    this.token = null;
+  }
+
+  // Auth endpoints
+  async login(email, password) {
     return this.request('/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        Username: username,
-        Password: password,
+      body: JSON.stringify({
+        email,
+        password,
       }),
     });
   }
 
+  async register(userData) {
+    return this.request('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async logout() {
+    const result = await this.request('/api/auth/logout', {
+      method: 'POST',
+    });
+    this.clearAuthToken();
+    return result;
+  }
+
   // User endpoints
   async getUser(id) {
-    return this.request(`/api/Users/${id}`);
+    return this.request(`/api/users/${id}`);
   }
 
   async getAllUsers() {
-    return this.request('/api/Users');
+    return this.request('/api/users');
+  }
+
+  async getUserProfile() {
+    return this.request('/api/users/profile');
   }
 
   // Space endpoints
@@ -60,45 +89,54 @@ class ApiService {
     const formattedDate = date instanceof Date 
       ? date.toISOString().split('T')[0] 
       : date;
-    return this.request(`/api/AvailableSpaces/${formattedDate}`);
+    return this.request(`/api/spaces/available/${formattedDate}`);
+  }
+
+  async getAllSpaces() {
+    return this.request('/api/spaces');
   }
 
   // Reservation endpoints
   async getAllReservations() {
-    return this.request('/api/Reservations');
+    return this.request('/api/reservations');
   }
 
   async getReservationById(id) {
-    return this.request(`/api/Reservations/${id}`);
+    return this.request(`/api/reservations/${id}`);
   }
 
   async getReservationsByDate(date) {
     const formattedDate = date instanceof Date 
       ? date.toISOString().split('T')[0] 
       : date;
-    return this.request(`/api/Reservations/${formattedDate}`);
+    return this.request(`/api/reservations/by-date/${formattedDate}`);
   }
 
   async createReservation(reservationData) {
-    return this.request('/api/Reservations/createResevation', {
+    return this.request('/api/reservations', {
       method: 'POST',
       body: JSON.stringify(reservationData),
     });
   }
 
   async updateReservationStatus(id, status) {
-    return this.request('/api/Reservations/update', {
-      method: 'POST',
-      body: JSON.stringify({ Id: id, Status: status }),
+    return this.request(`/api/reservations/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
     });
   }
 
   // Access log endpoints  
   async createAccessLog(accessLogData) {
-    return this.request('/api/AccessLog', {
+    return this.request('/api/access-logs', {
       method: 'POST',
       body: JSON.stringify(accessLogData),
     });
+  }
+
+  async getAccessLogs(filters = {}) {
+    const queryParams = new URLSearchParams(filters).toString();
+    return this.request(`/api/access-logs${queryParams ? `?${queryParams}` : ''}`);
   }
 }
 
