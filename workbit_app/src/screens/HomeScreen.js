@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import ApiService from '../services/api';
 import Button from '../components/Button';
@@ -23,18 +25,18 @@ const HomeScreen = ({ navigation }) => {
       
       // Load today's available spaces
       const spaces = await ApiService.getAvailableSpaces(today);
-      setTodaySpaces(spaces.slice(0, 3)); // Show only first 3
+      setTodaySpaces(Array.isArray(spaces) ? spaces.slice(0, 3) : []); // Show only first 3
       
       // Load user's reservations
       const allReservations = await ApiService.getAllReservations();
-      const userReservations = allReservations.filter(
+      const userReservations = Array.isArray(allReservations) ? allReservations.filter(
         reservation => reservation.OwnerName === user?.fullname?.split(' ')[0]
-      );
+      ) : [];
       setMyReservations(userReservations.slice(0, 3)); // Show only recent 3
       
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      Alert.alert('Error', 'No se pudo cargar la información del dashboard');
+      // Don't show alert for now as we're transitioning
     } finally {
       setLoading(false);
     }
@@ -76,125 +78,132 @@ const HomeScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
+    <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.greeting}>
-          ¡Hola, {user?.fullname?.split(' ')[0] || 'Usuario'}!
-        </Text>
-        <Text style={styles.date}>
-          {new Date().toLocaleDateString('es-ES', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
-        </Text>
-      </View>
-
-      <View style={styles.content}>
-        {/* Quick Actions */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>
-            Acciones Rápidas
-          </Text>
-          <View style={styles.buttonRow}>
-            <Button
-              title="Ver Espacios"
-              onPress={() => navigation.navigate('Spaces')}
-              size="sm"
-              style={styles.flexButton}
-            />
-            <Button
-              title="Mis Reservas"
-              onPress={() => navigation.navigate('Reservations')}
-              variant="outline"
-              size="sm"
-              style={styles.flexButton}
-            />
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.welcomeContainer}>
+            <Text style={styles.greeting}>
+              ¡Hola, {user?.fullname?.split(' ')[0] || 'Usuario'}!
+            </Text>
+            <Text style={styles.date}>
+              {new Date().toLocaleDateString('es-ES', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </Text>
           </View>
         </View>
 
-        {/* Available Spaces Today */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>
-              Espacios Disponibles Hoy
-            </Text>
-            <Button
-              title="Ver Todos"
-              variant="ghost"
-              size="sm"
-              onPress={() => navigation.navigate('Spaces')}
-            />
+        <View style={styles.content}>
+          {/* Quick Actions */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="flash-outline" size={20} color="#3b82f6" />
+              <Text style={styles.cardTitle}>Acciones Rápidas</Text>
+            </View>
+            <View style={styles.buttonRow}>
+              <Button
+                title="Ver Espacios"
+                onPress={() => navigation.navigate('Spaces')}
+                size="sm"
+                style={styles.flexButton}
+              />
+              <Button
+                title="Mis Reservas"
+                onPress={() => navigation.navigate('Reservations')}
+                variant="outline"
+                size="sm"
+                style={styles.flexButton}
+              />
+            </View>
           </View>
-          {loading ? (
-            <Text style={styles.loadingText}>Cargando...</Text>
-          ) : todaySpaces.length > 0 ? (
-            todaySpaces.map((space, index) => (
-              <View key={index} style={[styles.listItem, index === todaySpaces.length - 1 && styles.lastListItem]}>
-                <Text style={styles.itemTitle}>{space.Name}</Text>
-                <Text style={styles.itemSubtitle}>
-                  📍 {space.Location} • 👥 Capacidad: {space.Capacity}
-                </Text>
+
+          {/* Available Spaces Today */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="grid-outline" size={20} color="#3b82f6" />
+              <Text style={styles.cardTitle}>Espacios Disponibles Hoy</Text>
+              <Button
+                title="Ver Todos"
+                variant="ghost"
+                size="sm"
+                onPress={() => navigation.navigate('Spaces')}
+              />
+            </View>
+            {loading ? (
+              <Text style={styles.loadingText}>Cargando...</Text>
+            ) : todaySpaces.length > 0 ? (
+              todaySpaces.map((space, index) => (
+                <View key={index} style={[styles.listItem, index === todaySpaces.length - 1 && styles.lastListItem]}>
+                  <View style={styles.listItemHeader}>
+                    <Ionicons name="location-outline" size={16} color="#6b7280" />
+                    <Text style={styles.itemTitle}>{space.Name}</Text>
+                  </View>
+                  <View style={styles.itemDetails}>
+                    <Ionicons name="people-outline" size={14} color="#9ca3af" />
+                    <Text style={styles.itemSubtitle}>Capacidad: {space.Capacity}</Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="calendar-outline" size={24} color="#9ca3af" />
+                <Text style={styles.emptyText}>No hay espacios disponibles</Text>
               </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>
-              No hay espacios disponibles
-            </Text>
-          )}
-        </View>
-
-        {/* My Recent Reservations */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>
-              Mis Reservas Recientes
-            </Text>
-            <Button
-              title="Ver Todas"
-              variant="ghost"
-              size="sm"
-              onPress={() => navigation.navigate('Reservations')}
-            />
+            )}
           </View>
-          {loading ? (
-            <Text style={styles.loadingText}>Cargando...</Text>
-          ) : myReservations.length > 0 ? (
-            myReservations.map((reservation, index) => (
-              <View key={index} style={[styles.listItem, index === myReservations.length - 1 && styles.lastListItem]}>
-                <Text style={styles.itemTitle}>{reservation.Reason}</Text>
-                <Text style={styles.itemSubtitle}>
-                  🏢 {reservation.SpaceName}
-                </Text>
-                <Text style={styles.itemDate}>
-                  📅 {formatDate(reservation.StartTime)}
-                </Text>
-                <View style={styles.statusContainer}>
-                  <View style={getStatusBadgeStyle(reservation.Status)}>
-                    <Text style={styles.statusText}>
-                      {getStatusText(reservation.Status)}
+
+          {/* My Recent Reservations */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="calendar-outline" size={20} color="#3b82f6" />
+              <Text style={styles.cardTitle}>Mis Reservas Recientes</Text>
+              <Button
+                title="Ver Todas"
+                variant="ghost"
+                size="sm"
+                onPress={() => navigation.navigate('Reservations')}
+              />
+            </View>
+            {loading ? (
+              <Text style={styles.loadingText}>Cargando...</Text>
+            ) : myReservations.length > 0 ? (
+              myReservations.map((reservation, index) => (
+                <View key={index} style={[styles.listItem, index === myReservations.length - 1 && styles.lastListItem]}>
+                  <View style={styles.listItemHeader}>
+                    <Text style={styles.itemTitle}>{reservation.Reason}</Text>
+                    <View style={getStatusBadgeStyle(reservation.Status)}>
+                      <Text style={styles.statusText}>{getStatusText(reservation.Status)}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.itemDetails}>
+                    <Ionicons name="time-outline" size={14} color="#9ca3af" />
+                    <Text style={styles.itemSubtitle}>
+                      {formatDate(reservation.StartTime)}
                     </Text>
                   </View>
                 </View>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="calendar-outline" size={24} color="#9ca3af" />
+                <Text style={styles.emptyText}>No tienes reservas recientes</Text>
               </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>
-              No tienes reservas recientes
-            </Text>
-          )}
+            )}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -203,11 +212,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
+  scrollView: {
+    flex: 1,
+  },
   header: {
     backgroundColor: 'white',
     paddingHorizontal: 24,
     paddingTop: 48,
     paddingBottom: 24,
+  },
+  welcomeContainer: {
+    marginBottom: 16,
   },
   greeting: {
     fontSize: 24,
@@ -234,17 +249,17 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
-  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginLeft: 8,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -271,20 +286,26 @@ const styles = StyleSheet.create({
   lastListItem: {
     borderBottomWidth: 0,
   },
+  listItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   itemTitle: {
     fontWeight: '500',
     color: '#111827',
     fontSize: 16,
+    marginLeft: 8,
+  },
+  itemDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
   itemSubtitle: {
     color: '#6B7280',
     fontSize: 14,
-    marginTop: 2,
-  },
-  itemDate: {
-    color: '#9CA3AF',
-    fontSize: 12,
-    marginTop: 2,
+    marginLeft: 8,
   },
   statusContainer: {
     marginTop: 4,
@@ -307,6 +328,10 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 24,
   },
 });
 

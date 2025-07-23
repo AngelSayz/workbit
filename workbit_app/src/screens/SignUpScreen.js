@@ -125,24 +125,26 @@ const SignUpScreen = ({ navigation }) => {
           {/* Registration Form */}
           <View style={styles.form}>
             <View style={styles.nameRow}>
-              <Input
-                label="Nombre"
-                value={formData.name}
-                onChangeText={(value) => updateField('name', value)}
-                placeholder="Tu nombre"
-                error={errors.name}
-                autoCapitalize="words"
-                style={[styles.nameInput, styles.nameInputFirst]}
-              />
-              <Input
-                label="Apellido"
-                value={formData.lastname}
-                onChangeText={(value) => updateField('lastname', value)}
-                placeholder="Tu apellido"
-                error={errors.lastname}
-                autoCapitalize="words"
-                style={[styles.nameInput, styles.nameInputSecond]}
-              />
+              <View style={styles.nameInputContainer}>
+                <Input
+                  label="Nombre"
+                  value={formData.name}
+                  onChangeText={(value) => updateField('name', value)}
+                  placeholder="Tu nombre"
+                  error={errors.name}
+                  autoCapitalize="words"
+                />
+              </View>
+              <View style={styles.nameInputContainer}>
+                <Input
+                  label="Apellido"
+                  value={formData.lastname}
+                  onChangeText={(value) => updateField('lastname', value)}
+                  placeholder="Tu apellido"
+                  error={errors.lastname}
+                  autoCapitalize="words"
+                />
+              </View>
             </View>
             
             <Input
@@ -270,16 +272,10 @@ const styles = StyleSheet.create({
   },
   nameRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
   },
-  nameInput: {
+  nameInputContainer: {
     flex: 1,
-  },
-  nameInputFirst: {
-    marginRight: 4,
-  },
-  nameInputSecond: {
-    marginLeft: 4,
   },
   registerButton: {
     marginTop: 24,

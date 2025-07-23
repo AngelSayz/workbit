@@ -9,6 +9,7 @@ const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const { login, isLoading } = useAuth();
 
   const validateForm = () => {
@@ -31,9 +32,15 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = async () => {
     if (!validateForm()) return;
     
+    setShowEmailConfirmation(false);
     const result = await login(email.trim().toLowerCase(), password);
     
     if (!result.success) {
+      // Check if error is related to email confirmation
+      if (result.error && (result.error.includes('email') || result.error.includes('confirm'))) {
+        setShowEmailConfirmation(true);
+      }
+      
       Alert.alert(
         'Error de Autenticación',
         result.error || 'Credenciales inválidas. Verifica tu email y contraseña.',
@@ -69,6 +76,16 @@ const LoginScreen = ({ navigation }) => {
 
           {/* Login Form */}
           <View style={styles.form}>
+            {showEmailConfirmation && (
+              <View style={styles.confirmationMessage}>
+                <Text style={styles.confirmationTitle}>Confirma tu email</Text>
+                <Text style={styles.confirmationText}>
+                  Hemos enviado un enlace de confirmación a tu email. 
+                  Por favor revisa tu bandeja de entrada (y spam) y haz clic en el enlace para activar tu cuenta.
+                </Text>
+              </View>
+            )}
+            
             <Input
               label="Email"
               value={email}
@@ -171,6 +188,25 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 24,
+  },
+  confirmationMessage: {
+    backgroundColor: '#e0f2fe',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  confirmationTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  confirmationText: {
+    color: '#4b5563',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   passwordInput: {
     marginTop: 8,

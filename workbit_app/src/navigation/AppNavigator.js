@@ -2,7 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import LoadingScreen from '../components/LoadingScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -24,8 +25,16 @@ const TabNavigator = () => {
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           paddingTop: 8,
-          paddingBottom: 8,
-          height: 60,
+          paddingBottom: 24,
+          height: 88,
+          backgroundColor: 'white',
+          borderTopWidth: 1,
+          borderTopColor: '#E5E7EB',
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginTop: 4,
         },
       }}
     >
@@ -34,8 +43,8 @@ const TabNavigator = () => {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Inicio',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 20 }}>🏠</Text>
+          tabBarIcon: ({ color, size = 24 }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />
@@ -44,8 +53,8 @@ const TabNavigator = () => {
         component={SpacesScreen}
         options={{
           tabBarLabel: 'Espacios',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 20 }}>🏢</Text>
+          tabBarIcon: ({ color, size = 24 }) => (
+            <Ionicons name="grid-outline" size={size} color={color} />
           ),
         }}
       />
@@ -53,9 +62,9 @@ const TabNavigator = () => {
         name="Reservations" 
         component={ReservationsScreen}
         options={{
-          tabBarLabel: 'Reservas',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 20 }}>📅</Text>
+          tabBarLabel: 'Mis Reservas',
+          tabBarIcon: ({ color, size = 24 }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
           ),
         }}
       />
@@ -64,8 +73,8 @@ const TabNavigator = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Perfil',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 20 }}>👤</Text>
+          tabBarIcon: ({ color, size = 24 }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />
@@ -95,15 +104,17 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
-          <Stack.Screen name="Main" component={TabNavigator} />
-        ) : (
-          <Stack.Screen name="Auth" component={AuthStack} />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {isAuthenticated ? (
+            <Stack.Screen name="Main" component={TabNavigator} />
+          ) : (
+            <Stack.Screen name="Auth" component={AuthStack} />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 };
 
