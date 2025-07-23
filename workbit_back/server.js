@@ -32,11 +32,16 @@ app.use(helmet());
 app.use(compression());
 
 // CORS configuration
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:3000'],
-  credentials: true,
-  optionsSuccessStatus: 200
-};
+let corsOptions;
+if (process.env.CORS_ORIGIN === '*' || !process.env.CORS_ORIGIN) {
+  corsOptions = { origin: '*', credentials: true, optionsSuccessStatus: 200 };
+} else {
+  corsOptions = {
+    origin: process.env.CORS_ORIGIN.split(','),
+    credentials: true,
+    optionsSuccessStatus: 200
+  };
+}
 app.use(cors(corsOptions));
 
 // Rate limiting
