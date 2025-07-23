@@ -6,7 +6,7 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const { logActivity } = require('../utils/helpers');
 
 // Get current grid layout
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { data: gridSettings, error } = await supabase
       .from('grid_settings')

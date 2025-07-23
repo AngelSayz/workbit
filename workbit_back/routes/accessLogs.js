@@ -6,8 +6,8 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const { publishAccessEvent } = require('../config/mqtt');
 const router = express.Router();
 
-// GET /api/access-logs - Get all access logs (admin/technician only)
-router.get('/', authenticateToken, requireRole(['admin', 'technician']), async (req, res) => {
+// GET /api/access-logs - Get all access logs
+router.get('/', async (req, res) => {
   try {
     const { user_id, space_id, date, limit = 100 } = req.query;
 
@@ -98,7 +98,7 @@ router.get('/', authenticateToken, requireRole(['admin', 'technician']), async (
 });
 
 // GET /api/access-logs/user/:userId - Get access logs for specific user
-router.get('/user/:userId', authenticateToken, async (req, res) => {
+router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const { limit = 50 } = req.query;
@@ -169,7 +169,7 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
 });
 
 // GET /api/access-logs/space/:spaceId - Get access logs for specific space
-router.get('/space/:spaceId', authenticateToken, requireRole(['admin', 'technician']), async (req, res) => {
+router.get('/space/:spaceId', async (req, res) => {
   try {
     const { spaceId } = req.params;
     const { date, limit = 100 } = req.query;
@@ -248,13 +248,6 @@ router.get('/space/:spaceId', authenticateToken, requireRole(['admin', 'technici
 
 // POST /api/access-logs - Create new access log (entry)
 router.post('/', 
-  authenticateToken,
-  [
-    body('space_id').isInt({ min: 1 }).withMessage('Valid space ID is required'),
-    body('user_id').optional().isInt({ min: 1 }).withMessage('Valid user ID required'),
-    body('reservation_id').optional().isInt({ min: 1 }).withMessage('Valid reservation ID required'),
-    body('cardCode').optional().isString().withMessage('Card code must be a string')
-  ],
   async (req, res) => {
     try {
       const errors = validationResult(req);
@@ -378,7 +371,7 @@ router.post('/',
 );
 
 // PUT /api/access-logs/:id/exit - Record exit time
-router.put('/:id/exit', authenticateToken, async (req, res) => {
+router.put('/:id/exit', async (req, res) => {
   try {
     const { id } = req.params;
     const userRole = req.user.roles?.name || req.user.role;
@@ -477,7 +470,7 @@ router.put('/:id/exit', authenticateToken, async (req, res) => {
 });
 
 // GET /api/access-logs/active - Get active sessions (no exit time)
-router.get('/active', authenticateToken, requireRole(['admin', 'technician']), async (req, res) => {
+router.get('/active', async (req, res) => {
   try {
     if (!supabase) {
       return res.status(500).json({

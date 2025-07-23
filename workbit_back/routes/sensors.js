@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const supabase = require('../config/supabase');
-const { authenticateToken, requireRole } = require('../middleware/auth');
 const { logActivity } = require('../utils/helpers');
 const mongoose = require('mongoose');
 
@@ -59,10 +58,7 @@ const Device = mongoose.model('Device', new mongoose.Schema({
 }, { timestamps: true }));
 
 // Get sensor readings for a space
-router.get('/readings/:spaceId', [
-  authenticateToken,
-  requireRole(['admin', 'technician', 'user'])
-], async (req, res) => {
+router.get('/readings/:spaceId', async (req, res) => {
   try {
     const spaceId = parseInt(req.params.spaceId);
     const { sensor_type, hours = 24, limit = 100 } = req.query;
@@ -256,10 +252,7 @@ router.post('/readings', [
 });
 
 // Get environmental alerts
-router.get('/alerts', [
-  authenticateToken,
-  requireRole(['admin', 'technician'])
-], async (req, res) => {
+router.get('/alerts', async (req, res) => {
   try {
     const { 
       space_id, 
@@ -350,10 +343,7 @@ router.get('/alerts', [
 });
 
 // Resolve alert
-router.put('/alerts/:id/resolve', [
-  authenticateToken,
-  requireRole(['admin', 'technician'])
-], async (req, res) => {
+router.put('/alerts/:id/resolve', async (req, res) => {
   try {
     const alertId = req.params.id;
 
@@ -398,10 +388,7 @@ router.put('/alerts/:id/resolve', [
 });
 
 // Get devices
-router.get('/devices', [
-  authenticateToken,
-  requireRole(['admin', 'technician'])
-], async (req, res) => {
+router.get('/devices', async (req, res) => {
   try {
     const { space_id, status, device_type } = req.query;
 
@@ -460,21 +447,8 @@ router.get('/devices', [
 });
 
 // Update device status
-router.put('/devices/:deviceId/status', [
-  authenticateToken,
-  requireRole(['admin', 'technician']),
-  body('status').isIn(['online', 'offline', 'maintenance']).withMessage('Invalid status')
-], async (req, res) => {
+router.put('/devices/:deviceId/status', async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation errors',
-        errors: errors.array()
-      });
-    }
-
     const deviceId = req.params.deviceId;
     const { status } = req.body;
 
@@ -519,10 +493,7 @@ router.put('/devices/:deviceId/status', [
 });
 
 // Get sensor data summary for dashboard
-router.get('/summary', [
-  authenticateToken,
-  requireRole(['admin', 'technician', 'user'])
-], async (req, res) => {
+router.get('/summary', async (req, res) => {
   try {
     const { space_id } = req.query;
 

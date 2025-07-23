@@ -7,10 +7,9 @@ const { publishReservationUpdate } = require('../config/mqtt');
 const router = express.Router();
 
 // GET /api/reservations - Get all reservations (admin/technician) or user's reservations
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { status, date, user_id } = req.query;
-    const userRole = req.user.roles?.name || req.user.role;
 
     if (!supabase) {
       return res.status(500).json({
@@ -31,10 +30,8 @@ router.get('/', authenticateToken, async (req, res) => {
         users!reservations_owner_id_fkey(id, name, lastname, username)
       `);
 
-    // Filter by user if not admin/technician
-    if (!['admin', 'technician'].includes(userRole)) {
-      query = query.eq('owner_id', req.user.id);
-    } else if (user_id) {
+    // Filter by user if provided
+    if (user_id) {
       query = query.eq('owner_id', user_id);
     }
 
@@ -62,31 +59,9 @@ router.get('/', authenticateToken, async (req, res) => {
       });
     }
 
-    // Format response to match C# backend
-    const formattedReservations = reservations.map(reservation => ({
-      id: reservation.id,
-      reason: reservation.reason,
-      start_time: reservation.start_time,
-      end_time: reservation.end_time,
-      status: reservation.status,
-      created_at: reservation.created_at,
-      space: {
-        id: reservation.spaces.id,
-        name: reservation.spaces.name,
-        capacity: reservation.spaces.capacity
-      },
-      owner: {
-        id: reservation.users.id,
-        name: reservation.users.name,
-        lastname: reservation.users.lastname,
-        username: reservation.users.username
-      }
-    }));
-
     res.json({
-      reservations: formattedReservations,
-      total: formattedReservations.length,
-      filters: { status, date, user_id }
+      reservations: reservations || [],
+      total: reservations ? reservations.length : 0
     });
 
   } catch (error) {
@@ -99,7 +74,6 @@ router.get('/', authenticateToken, async (req, res) => {
 
 // GET /api/reservations/by-date/:date - Get reservations by date
 router.get('/by-date/:date', 
-  authenticateToken,
   [
     param('date').custom((value) => {
       const date = parseISO(value);
@@ -191,10 +165,9 @@ router.get('/by-date/:date',
 );
 
 // GET /api/reservations/:id - Get specific reservation
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const userRole = req.user.roles?.name || req.user.role;
 
     if (!supabase) {
       return res.status(500).json({
@@ -215,11 +188,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
         users!reservations_owner_id_fkey(id, name, lastname, username)
       `)
       .eq('id', id);
-
-    // Filter by user if not admin/technician
-    if (!['admin', 'technician'].includes(userRole)) {
-      query = query.eq('owner_id', req.user.id);
-    }
 
     const { data: reservation, error } = await query.single();
 
@@ -269,7 +237,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
 // POST /api/reservations - Create new reservation (matches C# createResevation endpoint)
 router.post('/', 
-  authenticateToken,
   [
     body('reason').trim().isLength({ min: 1 }).withMessage('Reason is required'),
     body('start_time').isISO8601().withMessage('Valid start time is required'),
@@ -433,7 +400,6 @@ router.post('/',
 
 // PUT /api/reservations/:id/status - Update reservation status (matches C# update endpoint)
 router.put('/:id/status', 
-  authenticateToken,
   [
     body('status').isIn(['pending', 'confirmed', 'cancelled']).withMessage('Invalid status')
   ],
@@ -449,7 +415,6 @@ router.put('/:id/status',
 
       const { id } = req.params;
       const { status } = req.body;
-      const userRole = req.user.roles?.name || req.user.role;
 
       if (!supabase) {
         return res.status(500).json({
@@ -462,11 +427,6 @@ router.put('/:id/status',
         .from('reservations')
         .select('id, owner_id, status, space_id')
         .eq('id', id);
-
-      // Users can only update their own reservations (unless admin/technician)
-      if (!['admin', 'technician'].includes(userRole)) {
-        query = query.eq('owner_id', req.user.id);
-      }
 
       const { data: currentReservation, error: fetchError } = await query.single();
 
@@ -539,10 +499,9 @@ router.put('/:id/status',
 );
 
 // DELETE /api/reservations/:id - Cancel/delete reservation
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const userRole = req.user.roles?.name || req.user.role;
 
     if (!supabase) {
       return res.status(500).json({
@@ -555,11 +514,6 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       .from('reservations')
       .select('id, owner_id, status, space_id, start_time')
       .eq('id', id);
-
-    // Users can only delete their own reservations (unless admin/technician)
-    if (!['admin', 'technician'].includes(userRole)) {
-      query = query.eq('owner_id', req.user.id);
-    }
 
     const { data: reservation, error: fetchError } = await query.single();
 

@@ -6,10 +6,7 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const { logActivity } = require('../utils/helpers');
 
 // Get all access cards
-router.get('/', [
-  authenticateToken,
-  requireRole(['admin', 'technician'])
-], async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { data: cards, error } = await supabase
       .from('codecards')

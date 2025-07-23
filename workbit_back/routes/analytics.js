@@ -8,10 +8,7 @@ const mongoose = require('mongoose');
 const { SpaceUsage, UserActivity, SystemMetrics, EventLog, PerformanceMetrics } = require('../models/Analytics');
 
 // Get space usage analytics
-router.get('/spaces', [
-  authenticateToken,
-  requireRole(['admin', 'technician'])
-], async (req, res) => {
+router.get('/spaces', async (req, res) => {
   try {
     const { date, period = '7d', space_id } = req.query;
     
@@ -103,10 +100,7 @@ router.get('/spaces', [
 });
 
 // Get user activity analytics
-router.get('/users', [
-  authenticateToken,
-  requireRole(['admin'])
-], async (req, res) => {
+router.get('/users', async (req, res) => {
   try {
     const { date, period = '7d', user_id } = req.query;
     
@@ -188,10 +182,7 @@ router.get('/users', [
 });
 
 // Get system metrics
-router.get('/system', [
-  authenticateToken,
-  requireRole(['admin', 'technician'])
-], async (req, res) => {
+router.get('/system', async (req, res) => {
   try {
     const { date, period = '7d' } = req.query;
     
@@ -250,10 +241,7 @@ router.get('/system', [
 });
 
 // Get event logs with analytics
-router.get('/events', [
-  authenticateToken,
-  requireRole(['admin', 'technician'])
-], async (req, res) => {
+router.get('/events', async (req, res) => {
   try {
     const { 
       event_type, 
@@ -346,10 +334,7 @@ router.get('/events', [
 });
 
 // Generate occupancy report
-router.get('/reports/occupancy', [
-  authenticateToken,
-  requireRole(['admin', 'technician'])
-], async (req, res) => {
+router.get('/reports/occupancy', async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
 
@@ -492,10 +477,7 @@ router.get('/reports/occupancy', [
 });
 
 // Get dashboard overview
-router.get('/dashboard/overview', [
-  authenticateToken,
-  requireRole(['admin', 'technician'])
-], async (req, res) => {
+router.get('/dashboard/overview', async (req, res) => {
   try {
     // Get current system status from SQL
     const { data: spaces, error: spacesError } = await supabase

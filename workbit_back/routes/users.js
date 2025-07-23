@@ -5,7 +5,7 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
 // GET /api/users - Get all users (admin only)
-router.get('/', authenticateToken, requireRole(['admin']), async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     if (!supabase) {
       return res.status(500).json({
@@ -60,7 +60,7 @@ router.get('/', authenticateToken, requireRole(['admin']), async (req, res) => {
 });
 
 // GET /api/users/by-role/:role - Get users by role
-router.get('/by-role/:role', authenticateToken, requireRole(['admin', 'technician']), async (req, res) => {
+router.get('/by-role/:role', async (req, res) => {
   try {
     const { role } = req.params;
 
@@ -118,7 +118,7 @@ router.get('/by-role/:role', authenticateToken, requireRole(['admin', 'technicia
 });
 
 // GET /api/users/profile - Get current user profile
-router.get('/profile', authenticateToken, async (req, res) => {
+router.get('/profile', async (req, res) => {
   try {
     if (!supabase) {
       return res.status(500).json({
@@ -126,36 +126,9 @@ router.get('/profile', authenticateToken, async (req, res) => {
       });
     }
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        name,
-        lastname,
-        username,
-        email,
-        created_at,
-        roles(id, name),
-        codecards(id, code)
-      `)
-      .eq('id', req.user.id)
-      .single();
-
-    if (error || !user) {
-      return res.status(404).json({
-        error: 'User not found'
-      });
-    }
-
-    res.json({
-      id: user.id,
-      name: user.name,
-      lastname: user.lastname,
-      username: user.username,
-      email: user.email,
-      role: user.roles?.name || 'user',
-      cardCode: user.codecards?.code || null,
-      created_at: user.created_at
+    // No hay usuario autenticado, así que solo retorna error o un mensaje genérico
+    return res.status(400).json({
+      error: 'No user context in public mode.'
     });
 
   } catch (error) {
@@ -167,7 +140,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 });
 
 // GET /api/users/:id - Get specific user (admin only)
-router.get('/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -219,8 +192,6 @@ router.get('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
 
 // PUT /api/users/:id - Update user (admin only)
 router.put('/:id', 
-  authenticateToken, 
-  requireRole(['admin']),
   [
     body('name').optional().trim().isLength({ min: 1 }).withMessage('Name cannot be empty'),
     body('lastname').optional().trim().isLength({ min: 1 }).withMessage('Last name cannot be empty'),
@@ -314,7 +285,7 @@ router.put('/:id',
 );
 
 // DELETE /api/users/:id - Delete user (admin only)
-router.delete('/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 

@@ -6,10 +6,7 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const { logActivity } = require('../utils/helpers');
 
 // Get all roles
-router.get('/', [
-  authenticateToken,
-  requireRole(['admin'])
-], async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { data: roles, error } = await supabase
       .from('roles')

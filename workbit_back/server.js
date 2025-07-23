@@ -5,6 +5,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 
 // Import database connections
 const { connectMongoDB } = require('./config/mongodb');
@@ -25,6 +27,7 @@ const analyticsRoutes = require('./routes/analytics');
 const sensorRoutes = require('./routes/sensors');
 
 const app = express();
+app.set('trust proxy', 1); // Para Render y proxies
 const PORT = process.env.PORT || 3000;
 
 // Security middleware
@@ -85,6 +88,28 @@ app.use('/api/Users', userRoutes);
 app.use('/api/AvailableSpaces', spaceRoutes);
 app.use('/api/Reservations', reservationRoutes);
 app.use('/api/AccessLog', accessLogRoutes);
+
+// Swagger UI
+const swaggerDefinition = {
+  openapi: '3.0.0',
+  info: {
+    title: 'WorkBit API',
+    version: '1.0.0',
+    description: 'Documentación interactiva de la API WorkBit (sin autenticación)'
+  },
+  servers: [
+    { url: 'http://localhost:3000', description: 'Local' },
+    { url: 'https://TU-URL-RENDER.onrender.com', description: 'Render' }
+  ]
+};
+
+const options = {
+  swaggerDefinition,
+  apis: ['./routes/*.js'],
+};
+
+const swaggerSpec = swaggerJsdoc(options);
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Root endpoint
 app.get('/', (req, res) => {

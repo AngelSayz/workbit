@@ -9,6 +9,8 @@
     "test": "jest"
   },
   "dependencies": {
+    "swagger-ui-express": "^4.7.1",
+    "swagger-jsdoc": "^6.2.8",
     "express": "^4.19.2",
     "cors": "^2.8.5",
     "helmet": "^7.1.0",

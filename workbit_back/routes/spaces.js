@@ -7,7 +7,7 @@ const { publishSpaceStatus } = require('../config/mqtt');
 const router = express.Router();
 
 // GET /api/spaces - Get all spaces
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     if (!supabase) {
       return res.status(500).json({
@@ -42,7 +42,6 @@ router.get('/', authenticateToken, async (req, res) => {
 
 // GET /api/spaces/available/:date - Get available spaces for a specific date (matches C# backend)
 router.get('/available/:date', 
-  authenticateToken,
   [
     param('date').custom((value) => {
       const date = parseISO(value);
@@ -149,7 +148,6 @@ router.get('/available/:date',
 
 // GET /api/AvailableSpaces/:date - Legacy endpoint compatibility (matches C# backend exactly)
 router.get('/AvailableSpaces/:date', 
-  authenticateToken,
   [
     param('date').custom((value) => {
       const date = parseISO(value);
@@ -167,7 +165,7 @@ router.get('/AvailableSpaces/:date',
 );
 
 // GET /api/spaces/:id - Get specific space details
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -220,8 +218,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
 // PUT /api/spaces/:id/status - Update space status (admin/technician only)
 router.put('/:id/status', 
-  authenticateToken, 
-  requireRole(['admin', 'technician']),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -279,7 +275,7 @@ router.put('/:id/status',
 );
 
 // GET /api/spaces/status/summary - Get spaces status summary (admin/technician only)
-router.get('/status/summary', authenticateToken, requireRole(['admin', 'technician']), async (req, res) => {
+router.get('/status/summary', async (req, res) => {
   try {
     if (!supabase) {
       return res.status(500).json({
