@@ -1,22 +1,20 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const supabase = require('../config/supabase');
 const router = express.Router();
 
-// Login validation rules
+// Login validation rules for Supabase Auth
 const loginValidation = [
-  body('username')
-    .trim()
-    .isLength({ min: 1 })
-    .withMessage('Username is required'),
+  body('email')
+    .isEmail()
+    .withMessage('Valid email is required'),
   body('password')
     .isLength({ min: 1 })
     .withMessage('Password is required')
 ];
 
-// POST /login - Main login endpoint (matches C# backend)
+// POST /login - Main login endpoint using Supabase Auth
 router.post('/', loginValidation, async (req, res) => {
   try {
     // Check validation errors
@@ -28,27 +26,52 @@ router.post('/', loginValidation, async (req, res) => {
       });
     }
 
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
     if (!supabase) {
       return res.status(500).json({
         error: 'Database connection failed',
-        message: 'Unable to connect to user database'
+        message: 'Unable to connect to authentication service'
       });
     }
 
-    // Get user with role and card information
-    const { data: users, error } = await supabase
+    // Authenticate with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (authError) {
+      return res.status(401).json({
+        error: 'Invalid credentials',
+        message: 'Email or password is incorrect'
+      });
+    }
+
+    if (!authData.user) {
+      return res.status(401).json({
+        error: 'Authentication failed',
+        message: 'Unable to authenticate user'
+      });
+    }
+
+    // Get user profile data from our users table using the auth user_id
+    const { data: users, error: userError } = await supabase
       .from('users')
       .select(`
-        *,
+        id,
+        name,
+        lastname,
+        username,
+        user_id,
+        created_at,
         roles(id, name),
         codecards(id, code)
       `)
-      .eq('username', username);
+      .eq('user_id', authData.user.id);
 
-    if (error) {
-      console.error('Database error:', error);
+    if (userError) {
+      console.error('Database error:', userError);
       return res.status(500).json({
         error: 'Database error',
         message: 'Failed to query user database'
@@ -57,50 +80,32 @@ router.post('/', loginValidation, async (req, res) => {
 
     if (!users || users.length === 0) {
       return res.status(401).json({
-        error: 'Invalid credentials',
-        message: 'Username or password is incorrect'
+        error: 'User not found',
+        message: 'User profile not found in system'
       });
     }
 
     const user = users[0];
 
-    // Check password (assuming passwords are hashed with bcrypt)
-    // Note: If your current passwords are plain text, you'll need to hash them first
-    let passwordValid = false;
-    
-    if (user.password.startsWith('$2')) {
-      // Password is already hashed
-      passwordValid = await bcrypt.compare(password, user.password);
-    } else {
-      // Plain text password (for migration period)
-      passwordValid = password === user.password;
-    }
-
-    if (!passwordValid) {
-      return res.status(401).json({
-        error: 'Invalid credentials',
-        message: 'Username or password is incorrect'
-      });
-    }
-
-    // Generate JWT token
+    // Generate JWT token for our internal API
     const token = jwt.sign(
       { 
         userId: user.id,
         username: user.username,
-        role: user.roles?.name || 'user'
+        role: user.roles?.name || 'user',
+        supabaseUserId: authData.user.id
       },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    // Prepare user response (match C# backend format)
+    // Prepare user response
     const userResponse = {
       id: user.id,
       name: user.name,
       lastname: user.lastname,
       username: user.username,
-      email: user.email,
+      email: authData.user.email,
       role: user.roles?.name || 'user',
       cardCode: user.codecards?.code || null,
       created_at: user.created_at
@@ -129,7 +134,7 @@ router.post('/login', loginValidation, async (req, res) => {
   return router.handle(req, res);
 });
 
-// POST /api/auth/register - User registration (if needed)
+// POST /api/auth/register - User registration with Supabase Auth
 router.post('/register', [
   body('name').trim().isLength({ min: 1 }).withMessage('Name is required'),
   body('lastname').trim().isLength({ min: 1 }).withMessage('Last name is required'),
@@ -155,21 +160,38 @@ router.post('/register', [
       });
     }
 
-    // Check if username or email already exists
+    // Check if username already exists in our users table
     const { data: existingUsers } = await supabase
       .from('users')
-      .select('username, email')
-      .or(`username.eq.${username},email.eq.${email}`);
+      .select('username')
+      .eq('username', username);
 
     if (existingUsers && existingUsers.length > 0) {
       return res.status(409).json({
-        error: 'User already exists',
-        message: 'Username or email is already registered'
+        error: 'Username already exists',
+        message: 'Username is already taken'
       });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Create user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password
+    });
+
+    if (authError) {
+      return res.status(400).json({
+        error: 'Registration failed',
+        message: authError.message
+      });
+    }
+
+    if (!authData.user) {
+      return res.status(400).json({
+        error: 'Registration failed',
+        message: 'Failed to create user account'
+      });
+    }
 
     // Get default role (user)
     const { data: roles } = await supabase
@@ -198,26 +220,29 @@ router.post('/register', [
       }
     }
 
-    // Create user
-    const { data: newUser, error } = await supabase
+    // Create user profile in our users table
+    const { data: newUser, error: userError } = await supabase
       .from('users')
       .insert({
         name,
         lastname,
         username,
-        email,
-        password: hashedPassword,
+        user_id: authData.user.id,
         role_id: roles.id,
         card_id: cardId
       })
       .select()
       .single();
 
-    if (error) {
-      console.error('Registration error:', error);
+    if (userError) {
+      console.error('User profile creation error:', userError);
+      
+      // If user profile creation fails, we should clean up the auth user
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      
       return res.status(500).json({
         error: 'Registration failed',
-        message: 'Failed to create user account'
+        message: 'Failed to create user profile'
       });
     }
 
@@ -228,7 +253,7 @@ router.post('/register', [
         name: newUser.name,
         lastname: newUser.lastname,
         username: newUser.username,
-        email: newUser.email
+        email: authData.user.email
       }
     });
 
@@ -242,12 +267,28 @@ router.post('/register', [
 });
 
 // POST /api/auth/logout - Logout endpoint
-router.post('/logout', (req, res) => {
-  // With JWT, logout is handled client-side by removing the token
-  res.json({
-    message: 'Logout successful',
-    instruction: 'Please remove the token from client storage'
-  });
+router.post('/logout', async (req, res) => {
+  try {
+    // If user is authenticated with Supabase, sign them out
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (token && supabase) {
+      // We could add additional logout logic here if needed
+      // For now, just return success since JWT tokens are stateless
+    }
+
+    res.json({
+      message: 'Logout successful'
+    });
+
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      error: 'Logout failed',
+      message: 'Internal server error during logout'
+    });
+  }
 });
 
 module.exports = router; 

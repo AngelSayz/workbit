@@ -86,7 +86,6 @@ const userSessionSchema = new mongoose.Schema({
     name: String,
     lastname: String,
     username: String,
-    email: String,
     role: String,
     cardCode: String
   },

@@ -18,8 +18,7 @@ router.get('/', async (req, res) => {
           id,
           name,
           lastname,
-          username,
-          email
+          username
         )
       `)
       .order('created_at', { ascending: false });
@@ -36,8 +35,7 @@ router.get('/', async (req, res) => {
         id: card.users.id,
         name: card.users.name,
         lastname: card.users.lastname,
-        username: card.users.username,
-        email: card.users.email
+        username: card.users.username
       } : null
     }));
 

@@ -21,7 +21,12 @@ const authenticateToken = async (req, res, next) => {
       const { data: user, error } = await supabase
         .from('users')
         .select(`
-          *,
+          id,
+          name,
+          lastname,
+          username,
+          user_id,
+          created_at,
           roles(name),
           codecards(code)
         `)

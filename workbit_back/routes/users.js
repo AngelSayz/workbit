@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
         name,
         lastname,
         username,
-        email,
+        user_id,
         created_at,
         roles(id, name),
         codecards(id, code)
@@ -34,13 +34,12 @@ router.get('/', async (req, res) => {
       });
     }
 
-    // Format response to match C# backend
+    // Format response to match expected format
     const formattedUsers = users.map(user => ({
       id: user.id,
       name: user.name,
       lastname: user.lastname,
       username: user.username,
-      email: user.email,
       role: user.roles?.name || 'user',
       cardCode: user.codecards?.code || null,
       created_at: user.created_at
@@ -77,7 +76,7 @@ router.get('/by-role/:role', async (req, res) => {
         name,
         lastname,
         username,
-        email,
+        user_id,
         created_at,
         roles!inner(id, name),
         codecards(id, code)
@@ -97,7 +96,6 @@ router.get('/by-role/:role', async (req, res) => {
       name: user.name,
       lastname: user.lastname,
       username: user.username,
-      email: user.email,
       role: user.roles?.name || 'user',
       cardCode: user.codecards?.code || null,
       created_at: user.created_at
@@ -118,7 +116,7 @@ router.get('/by-role/:role', async (req, res) => {
 });
 
 // GET /api/users/profile - Get current user profile
-router.get('/profile', async (req, res) => {
+router.get('/profile', authenticateToken, async (req, res) => {
   try {
     if (!supabase) {
       return res.status(500).json({
@@ -126,9 +124,35 @@ router.get('/profile', async (req, res) => {
       });
     }
 
-    // No hay usuario autenticado, así que solo retorna error o un mensaje genérico
-    return res.status(400).json({
-      error: 'No user context in public mode.'
+    const { data: user, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        name,
+        lastname,
+        username,
+        user_id,
+        created_at,
+        roles(id, name),
+        codecards(id, code)
+      `)
+      .eq('id', req.user.id)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({
+        error: 'User profile not found'
+      });
+    }
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      lastname: user.lastname,
+      username: user.username,
+      role: user.roles?.name || 'user',
+      cardCode: user.codecards?.code || null,
+      created_at: user.created_at
     });
 
   } catch (error) {
@@ -157,7 +181,7 @@ router.get('/:id', async (req, res) => {
         name,
         lastname,
         username,
-        email,
+        user_id,
         created_at,
         roles(id, name),
         codecards(id, code)
@@ -176,7 +200,6 @@ router.get('/:id', async (req, res) => {
       name: user.name,
       lastname: user.lastname,
       username: user.username,
-      email: user.email,
       role: user.roles?.name || 'user',
       cardCode: user.codecards?.code || null,
       created_at: user.created_at
@@ -195,7 +218,7 @@ router.put('/:id',
   [
     body('name').optional().trim().isLength({ min: 1 }).withMessage('Name cannot be empty'),
     body('lastname').optional().trim().isLength({ min: 1 }).withMessage('Last name cannot be empty'),
-    body('email').optional().isEmail().withMessage('Valid email required'),
+    body('username').optional().trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
     body('role').optional().isIn(['user', 'admin', 'technician']).withMessage('Invalid role')
   ],
   async (req, res) => {
@@ -224,6 +247,23 @@ router.put('/:id',
         }
       });
 
+      // Check if username is being updated and if it's unique
+      if (updates.username) {
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('username', updates.username)
+          .neq('id', id)
+          .single();
+
+        if (existingUser) {
+          return res.status(409).json({
+            error: 'Username already exists',
+            message: 'Username is already taken by another user'
+          });
+        }
+      }
+
       // Handle role update
       if (updates.role) {
         const { data: role } = await supabase
@@ -247,7 +287,7 @@ router.put('/:id',
           name,
           lastname,
           username,
-          email,
+          user_id,
           created_at,
           roles(id, name),
           codecards(id, code)
@@ -261,6 +301,12 @@ router.put('/:id',
         });
       }
 
+      if (!updatedUser) {
+        return res.status(404).json({
+          error: 'User not found'
+        });
+      }
+
       res.json({
         message: 'User updated successfully',
         user: {
@@ -268,7 +314,6 @@ router.put('/:id',
           name: updatedUser.name,
           lastname: updatedUser.lastname,
           username: updatedUser.username,
-          email: updatedUser.email,
           role: updatedUser.roles?.name || 'user',
           cardCode: updatedUser.codecards?.code || null,
           created_at: updatedUser.created_at
@@ -295,10 +340,10 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    // Check if user exists
+    // Check if user exists and get user_id for Supabase Auth cleanup
     const { data: existingUser } = await supabase
       .from('users')
-      .select('id, username')
+      .select('id, username, user_id')
       .eq('id', id)
       .single();
 
@@ -308,7 +353,7 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    // Delete user
+    // Delete user from our users table
     const { error } = await supabase
       .from('users')
       .delete()
@@ -319,6 +364,17 @@ router.delete('/:id', async (req, res) => {
       return res.status(500).json({
         error: 'Failed to delete user'
       });
+    }
+
+    // Optionally delete from Supabase Auth as well
+    // Note: This requires service role key
+    if (existingUser.user_id) {
+      try {
+        await supabase.auth.admin.deleteUser(existingUser.user_id);
+      } catch (authError) {
+        console.warn('Failed to delete user from Supabase Auth:', authError);
+        // Continue even if auth deletion fails
+      }
     }
 
     res.json({
