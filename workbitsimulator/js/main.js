@@ -1,14 +1,10 @@
 import { config } from './config.js';
 import { postReservation, getTotals, logAccess, getHourlyReservations, getHourlyAccess } from './services.js';
 
-
-
 let intervalGenerate = null;
-let intervalChart = setInterval(loadChartData, 30000);
+let intervalChart = setInterval(loadChartData, config.simulator.chartUpdateInterval);
 let currentHour = new Date().getHours();
 let reservationsThisHour = 0;
-const maxReservationsPerHour = 3;
-
 
 window.addEventListener('load', init);
 
@@ -17,45 +13,96 @@ function init() {
     
     document.getElementById('button-start').addEventListener('click', () => {
         console.log('Starting simulator...');
+        updateStatus('Simulación iniciada - Generando reservas en tiempo real', 'success');
+        if (intervalGenerate) {
+            clearInterval(intervalGenerate);
+        }
         generateReservation();
     });
 
     document.getElementById('button-stop').addEventListener('click', () => {
         console.log('Stopping simulator...');
-        clearInterval(intervalGenerate);
+        updateStatus('Simulación detenida', 'warning');
+        if (intervalGenerate) {
+            clearInterval(intervalGenerate);
+            intervalGenerate = null;
+        }
     });
 
-    // Simulación de accesos cada 20 segundos
-    setInterval(simulateAccess, 20000);
+    // Simulación de accesos
+    setInterval(simulateAccess, config.simulator.accessInterval * 1000);
 
     document.getElementById('button-chart').addEventListener('click', () => {
-    // mes 5 = junio (los meses van de 0 a 11)
-    const date = new Date(2025, 6, 7);
-    const dateString = date.getFullYear() + '-' +
-        String(date.getMonth() + 1).padStart(2, '0') + '-' +
-        String(date.getDate()).padStart(2, '0');
-
-    console.log("📊 Fecha fija para gráficas:", dateString);
-
-    getHourlyReservations(dateString).then(data => {
-        drawChart('chart-hour', 'Reservas por Hora', data.hour, data.totals, dateString);
+        const currentDate = getTijuanaDateString();
+        console.log(`Loading charts for current date: ${currentDate}`);
+        updateStatus('Actualizando gráficas...', 'info');
+        loadChartData();
     });
 
-    getHourlyAccess(dateString).then(data => {
-        drawChart('chart-access', 'Accesos por Hora', data.hour, data.totals, dateString);
-    });
-});
+    // Mostrar fecha actual de Tijuana
+    const currentDate = getTijuanaDateString();
+    document.getElementById('current-date').textContent = formatDisplayDate(currentDate);
+    updateStatus(`Sistema listo (${currentDate})`, 'success');
 
+    // Cargar datos iniciales
+    loadChartData();
+}
+
+function updateStatus(message, type = 'info') {
+    const statusElement = document.getElementById('status');
+    if (statusElement) {
+        statusElement.textContent = message;
+        
+        // Actualizar clases CSS según el tipo
+        statusElement.className = 'status-indicator';
+        if (type === 'success') {
+            statusElement.style.backgroundColor = '#d1e7dd';
+            statusElement.style.color = '#0a3622';
+            statusElement.style.borderColor = '#badbcc';
+        } else if (type === 'warning') {
+            statusElement.style.backgroundColor = '#fff3cd';
+            statusElement.style.color = '#664d03';
+            statusElement.style.borderColor = '#ffecb5';
+        } else if (type === 'danger') {
+            statusElement.style.backgroundColor = '#f8d7da';
+            statusElement.style.color = '#58151c';
+            statusElement.style.borderColor = '#f5c2c7';
+        } else {
+            statusElement.style.backgroundColor = '#e3f2fd';
+            statusElement.style.color = '#1976d2';
+            statusElement.style.borderColor = '#bbdefb';
+        }
+    }
+}
+
+function formatDisplayDate(dateString) {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('es-ES', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
 }
 
 // ====================== RESERVAS ======================
 
 function generateReservation() {
-    const now = new Date();
+    // Usar fecha y hora actual de Tijuana
+    const now = getTijuanaDate();
     const hour = now.getHours();
 
+    // No generar reservas en fines de semana
     if (now.getDay() === 0 || now.getDay() === 6) {
-        console.log("Weekend: no reservations.");
+        console.log("Weekend: no reservations generated.");
+        scheduleNextReservation();
+        return;
+    }
+
+    // No generar reservas fuera de horario laboral
+    if (hour < config.simulator.businessHours.start || hour > config.simulator.businessHours.end) {
+        console.log("Outside business hours: no reservations generated.");
+        scheduleNextReservation();
         return;
     }
 
@@ -66,8 +113,9 @@ function generateReservation() {
     }
 
     // Límite de reservas por hora
-    if (reservationsThisHour >= maxReservationsPerHour) {
-        console.log("Límite de reservas alcanzado esta hora.");
+    if (reservationsThisHour >= config.simulator.maxReservationsPerHour) {
+        console.log("Reservation limit reached this hour.");
+        scheduleNextReservation();
         return;
     }
 
@@ -75,86 +123,189 @@ function generateReservation() {
     const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour);
     const endTime = new Date(startTime.getTime() + duration * 60 * 60 * 1000);
 
-    const validSpaces = ["Cubículo A", "Cubículo B", "Sala Oeste", "Laboratorio 1", "Sala de Juntas", "Cubículo C", "Cubículo D", "Auditorio"];
-    const validUsers = ["Ana", "Luis", "María", "Carlos"];
-
     const reservation = {
         reason: "Simulación automática",
         startTime: getTijuanaISODate(startTime),
         endTime: getTijuanaISODate(endTime),
         status: "confirmed",
-        spaceName: validSpaces[Math.floor(Math.random() * validSpaces.length)],
-        ownerName: validUsers[Math.floor(Math.random() * validUsers.length)]
+        spaceName: config.validSpaces[Math.floor(Math.random() * config.validSpaces.length)],
+        ownerName: config.validUsers[Math.floor(Math.random() * config.validUsers.length)]
     };
 
     postReservation(reservation).then(response => {
         if (response) {
-            console.log("Reserva generada:", response);
+            console.log("Reservation generated successfully:", response);
             reservationsThisHour++;
+            updateStatus(`Nueva reserva creada (${reservationsThisHour} esta hora)`, 'success');
+        } else {
+            console.warn("Failed to generate reservation");
+            updateStatus('Error al generar reserva', 'danger');
         }
+        scheduleNextReservation();
+    }).catch(error => {
+        console.error("Error generating reservation:", error);
+        updateStatus('Error de conexión al generar reserva', 'danger');
+        scheduleNextReservation();
     });
+}
 
-    clearInterval(intervalGenerate);
-    intervalGenerate = setInterval(generateReservation, getMilliseconds());
+function scheduleNextReservation() {
+    if (intervalGenerate) {
+        clearInterval(intervalGenerate);
+    }
+    const nextInterval = getMilliseconds();
+    intervalGenerate = setInterval(generateReservation, nextInterval);
 }
 
 function getMilliseconds() {
-    const min = 10 * 60 * 1000; // 10 minutos
-    const max = 20 * 60 * 1000; // 20 minutos
+    const min = config.simulator.reservationInterval.min * 1000; 
+    const max = config.simulator.reservationInterval.max * 1000; 
     const ms = Math.random() * (max - min) + min;
-    console.log(`Próxima reserva en ${(ms / 1000 / 60).toFixed(1)} minutos`);
+    console.log(`Next reservation in ${(ms / 1000 / 60).toFixed(1)} minutes`);
     return ms;
 }
 
 // ====================== GRAFICAR ======================
 
 function loadChartData() {
-    const date = new Date().toISOString().split('T')[0];
+    // Usar la fecha actual de Tijuana (misma zona horaria que las reservas)
+    const date = getTijuanaDateString();
+    console.log(`Loading charts for current date (Tijuana): ${date}`);
+    loadChartDataForDate(date);
+}
+
+function loadChartDataForDate(date) {
+    console.log(`Loading chart data for ${date}`);
 
     // Gráfico 1: reservas por hora
     getHourlyReservations(date).then(data => {
-        drawChart('chart-hour', 'Reservas por Hora', data.hour, data.totals);
+        if (data && data.hour && data.totals) {
+            drawChart('chart-hour', 'Reservas por Hora', data.hour, data.totals, date);
+        } else {
+            // Si no hay datos, mostrar un gráfico vacío
+            drawChart('chart-hour', 'Reservas por Hora', 
+                Array.from({length: 24}, (_, i) => i.toString().padStart(2, '0') + ':00'), 
+                new Array(24).fill(0), date);
+        }
+    }).catch(error => {
+        console.error("Error loading reservation chart:", error);
+        drawChart('chart-hour', 'Reservas por Hora (Sin datos)', [], [], date);
+        updateStatus('Error al cargar gráfica de reservas', 'danger');
     });
 
     // Gráfico 2: accesos por hora
     getHourlyAccess(date).then(data => {
-        drawChart('chart-access', 'Accesos por Hora', data.hour, data.totals);
+        if (data && data.hour && data.totals) {
+            drawChart('chart-access', 'Accesos por Hora', data.hour, data.totals, date);
+        } else {
+            // Si no hay datos, mostrar un gráfico vacío
+            drawChart('chart-access', 'Accesos por Hora', 
+                Array.from({length: 24}, (_, i) => i.toString().padStart(2, '0') + ':00'), 
+                new Array(24).fill(0), date);
+        }
+    }).catch(error => {
+        console.error("Error loading access chart:", error);
+        drawChart('chart-access', 'Accesos por Hora (Sin datos)', [], [], date);
+        updateStatus('Error al cargar gráfica de accesos', 'danger');
     });
+    
+    updateStatus('Gráficas actualizadas correctamente', 'success');
 }
 
 function drawChart(containerId, title, categories, data, dateLabel = "") {
+    // Asegurar que tenemos datos válidos
+    const safeCategories = categories || [];
+    const safeData = data || [];
+    
+    const chartColor = containerId === 'chart-hour' ? '#667eea' : '#43e97b';
+    
     Highcharts.chart(containerId, {
-        chart: { type: 'column' },
-        title: { text: title },
-        subtitle: { text: dateLabel },
-        xAxis: { categories },
+        chart: { 
+            type: 'column',
+            backgroundColor: 'transparent',
+            style: {
+                fontFamily: 'Inter, sans-serif'
+            }
+        },
+        title: { 
+            text: null // No mostrar título ya que está en el card header
+        },
+        subtitle: { 
+            text: dateLabel ? `${dateLabel}` : '',
+            style: {
+                fontSize: '11px',
+                color: '#6c757d'
+            }
+        },
+        xAxis: { 
+            categories: safeCategories,
+            title: {
+                text: 'Hora del día',
+                style: { fontSize: '11px' }
+            },
+            labels: {
+                style: { fontSize: '10px' }
+            }
+        },
         yAxis: {
             min: 0,
-            title: { text: 'Cantidad' }
+            title: { 
+                text: 'Cantidad',
+                style: { fontSize: '11px' }
+            },
+            allowDecimals: false,
+            labels: {
+                style: { fontSize: '10px' }
+            }
+        },
+        tooltip: {
+            pointFormat: '<b>{point.y}</b> eventos',
+            style: { fontSize: '12px' }
+        },
+        plotOptions: {
+            column: {
+                borderRadius: 4,
+                borderWidth: 0
+            }
         },
         series: [{
             name: title,
-            data
-        }]
+            data: safeData,
+            color: chartColor,
+            showInLegend: false
+        }],
+        credits: {
+            enabled: false
+        }
     });
 }
-
-
 
 // ====================== ACCESO SIMULADO ======================
 
 function simulateAccess() {
-    const now = new Date();
-    const userId = getRandomUserId(); // solo del 1 al 4
+    // Usar fecha y hora actual de Tijuana
+    const now = getTijuanaDate();
+    const hour = now.getHours();
+
+    // No simular accesos fuera de horario laboral
+    if (hour < config.simulator.businessHours.start || hour > config.simulator.businessHours.end) {
+        console.log("Outside business hours: no access simulation.");
+        return;
+    }
+
+    const userId = getRandomUserId();
     const allowedRooms = config.accessPermissions[userId] || [];
 
-    if (allowedRooms.length === 0) return;
+    if (allowedRooms.length === 0) {
+        console.log(`No allowed rooms for user ${userId}`);
+        return;
+    }
 
     const spaceId = allowedRooms[Math.floor(Math.random() * allowedRooms.length)];
     const reservationId = getValidReservationId(spaceId, userId);
 
     if (!reservationId) {
-        console.warn(`❗ No hay reserva válida para user ${userId} en espacio ${spaceId}`);
+        console.warn(`No valid reservation for user ${userId} in space ${spaceId}`);
         return;
     }
 
@@ -162,22 +313,35 @@ function simulateAccess() {
         user_id: userId,
         space_id: spaceId,
         reservation_id: reservationId,
-        access_time: getTijuanaISODate(now),
-
+        access_time: getTijuanaISODate(now)
     };
 
     logAccess(accessLog).then(resp => {
         if (resp) {
-            console.log("✔ Ingreso registrado:", resp);
+            console.log("Access logged successfully:", resp);
         } else {
-            console.warn("✖ Registro de ingreso fallido");
+            console.warn("Failed to log access");
         }
+    }).catch(error => {
+        console.error("Error logging access:", error);
     });
 
+    // Programar salida después de un tiempo aleatorio (20 min a 1 hora)
+    const exitTime = 1200000 + Math.random() * (3600000 - 1200000);
     setTimeout(() => {
-        accessLog.exit_time = getTijuanaISODate(new Date());
-        logAccess(accessLog);
-    }, 1200000 + Math.random() * (3600000 - 1200000)) ; // Salida entre 20 minutos y 1 hora después
+        const exitLog = {
+            ...accessLog,
+            exit_time: getTijuanaISODate(new Date())
+        };
+        
+        logAccess(exitLog).then(resp => {
+            if (resp) {
+                console.log("Exit logged successfully");
+            }
+        }).catch(error => {
+            console.error("Error logging exit:", error);
+        });
+    }, exitTime);
 }
 
 function getRandomUserId() {
@@ -191,6 +355,22 @@ function getValidReservationId(spaceId, userId) {
     if (filtered.length === 0) return null;
     const selected = filtered[Math.floor(Math.random() * filtered.length)];
     return selected.id;
+}
+
+function getTijuanaDate() {
+    // Obtener fecha actual en zona horaria de Tijuana
+    const now = new Date();
+    const tijuanaTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Tijuana"}));
+    return tijuanaTime;
+}
+
+function getTijuanaDateString() {
+    // Obtener fecha actual de Tijuana en formato YYYY-MM-DD
+    const tijuanaDate = getTijuanaDate();
+    const year = tijuanaDate.getFullYear();
+    const month = String(tijuanaDate.getMonth() + 1).padStart(2, '0');
+    const day = String(tijuanaDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 function getTijuanaISODate(date = new Date()) {

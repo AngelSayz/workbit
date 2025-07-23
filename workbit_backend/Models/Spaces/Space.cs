@@ -39,7 +39,7 @@ namespace workbit.Models.Spaces
 
             DataTable table = SqlServerConnection.EjecutarQuery(cmd);
             if (table.Rows.Count == 0)
-                throw new Exception("No se encontró el espacio con nombre: " + nombre);
+                return -1; // Devolver -1 en lugar de lanzar excepción
 
             return Convert.ToInt32(table.Rows[0]["id"]);
         }

@@ -14,7 +14,7 @@ const Tab = createBottomTabNavigator();
 /**
  * Main tab navigator with bottom tabs and safe area support
  */
-const TabNavigator = ({ onLogout }) => {
+const TabNavigator = () => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -112,13 +112,15 @@ const TabNavigator = ({ onLogout }) => {
           tabBarAccessibilityLabel: 'Pestaña de mapa de espacios',
         }}
       />
-      <Tab.Screen name="Profile" options={{
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfileTab}
+        options={{
           title: 'Perfil',
           tabBarLabel: 'Perfil',
           tabBarAccessibilityLabel: 'Pestaña de perfil',
-        }}>
-        {(props) => <ProfileTab {...props} onLogout={onLogout} />}
-      </Tab.Screen>
+        }}
+      />
     </Tab.Navigator>
   );
 };

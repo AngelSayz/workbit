@@ -11,8 +11,30 @@ namespace connectionSqlServer
         private static string conexion()
         {
             var config = AppConfigManager.Configuration;
-
-            return "Server=ALDOYAMIL\\SQLEXPRESS;Database=workbit;Integrated Security=True;TrustServerCertificate=True;";
+            
+            // Si tenemos configuración de Azure SQL Database, la usamos
+            if (!string.IsNullOrEmpty(config.ConnectionStrings.SqlServer.Server) && 
+                config.ConnectionStrings.SqlServer.Server.Contains("database.windows.net"))
+            {
+                // Conexión para Azure SQL Database
+                return $"Server=tcp:{config.ConnectionStrings.SqlServer.Server},1433;" +
+                       $"Initial Catalog={config.ConnectionStrings.SqlServer.Database};" +
+                       $"Persist Security Info=False;" +
+                       $"User ID={config.ConnectionStrings.SqlServer.UserId};" +
+                       $"Password={config.ConnectionStrings.SqlServer.Password};" +
+                       $"MultipleActiveResultSets=False;" +
+                       $"Encrypt=True;" +
+                       $"TrustServerCertificate=False;" +
+                       $"Connection Timeout=30;";
+            }
+            else
+            {
+                // Fallback para desarrollo local
+                return $"Server={config.ConnectionStrings.SqlServer.Server};" +
+                       $"Database={config.ConnectionStrings.SqlServer.Database};" +
+                       $"Integrated Security=True;" +
+                       $"TrustServerCertificate=True;";
+            }
         }
 
         public static DataTable EjecutarQuery(SqlCommand connect)

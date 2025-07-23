@@ -10,7 +10,7 @@ const Stack = createNativeStackNavigator();
 /**
  * Profile stack navigator
  */
-const ProfileStack = ({ onLogout }) => {
+const ProfileStack = () => {
   const theme = useTheme();
 
   const screenOptions = {
@@ -34,13 +34,12 @@ const ProfileStack = ({ onLogout }) => {
     >
       <Stack.Screen
         name="ProfileMain"
+        component={ProfileScreen}
         options={{
           title: 'Perfil',
           headerLargeTitle: true,
         }}
-      >
-        {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
-      </Stack.Screen>
+      />
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}

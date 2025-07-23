@@ -136,14 +136,10 @@ const AppNavigator = () => {
         ) : (
           // Main app screens
           <Stack.Group>
-            <Stack.Screen name="MainApp">
-              {(props) => (
-                <TabNavigator
-                  {...props}
-                  onLogout={handleLogout}
-                />
-              )}
-            </Stack.Screen>
+            <Stack.Screen 
+              name="MainApp" 
+              component={TabNavigator}
+            />
           </Stack.Group>
         )}
       </Stack.Navigator>

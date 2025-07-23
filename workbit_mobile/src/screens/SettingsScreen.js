@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView, Switch } from 'react-native';
+import { ScrollView, Switch, Alert } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import styled from 'styled-components/native';
 import { Text, Button } from '../components/atoms';
 import { useTheme } from '../constants/theme';
@@ -46,8 +47,37 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const handleLogout = () => {
-    // API_CALL: logout()
-    console.log('Logout pressed');
+    console.log('SettingsScreen: handleLogout called');
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que quieres cerrar sesión?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: () => {
+            console.log('SettingsScreen: User confirmed logout');
+            try {
+              // Usar CommonActions para reset completo
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: 'Welcome' }],
+                })
+              );
+            } catch (error) {
+              console.error('SettingsScreen: Navigation error:', error);
+              // Fallback simple
+              navigation.navigate('Welcome');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (

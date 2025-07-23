@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\aldoy\\source\\repos\\workbit\\workbit.csproj": {}
+    "C:\\Coding\\workbit_backend\\workbit.csproj": {}
   },
   "projects": {
-    "C:\\Users\\aldoy\\source\\repos\\workbit\\workbit.csproj": {
+    "C:\\Coding\\workbit_backend\\workbit.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\aldoy\\source\\repos\\workbit\\workbit.csproj",
+        "projectUniqueName": "C:\\Coding\\workbit_backend\\workbit.csproj",
         "projectName": "workbit",
-        "projectPath": "C:\\Users\\aldoy\\source\\repos\\workbit\\workbit.csproj",
-        "packagesPath": "C:\\Users\\aldoy\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\aldoy\\source\\repos\\workbit\\obj\\",
+        "projectPath": "C:\\Coding\\workbit_backend\\workbit.csproj",
+        "packagesPath": "C:\\Users\\ZEPHYRUS\\.nuget\\packages\\",
+        "outputPath": "C:\\Coding\\workbit_backend\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\aldoy\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\ZEPHYRUS\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -78,20 +78,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-              "version": "[8.0.17, 8.0.17]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Runtime.win-x64",
-              "version": "[8.0.17, 8.0.17]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
-              "version": "[8.0.17, 8.0.17]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.AspNetCore.App": {
               "privateAssets": "none"
@@ -100,12 +86,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
-        }
-      },
-      "runtimes": {
-        "win-x64": {
-          "#import": []
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

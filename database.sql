@@ -1,6 +1,13 @@
 CREATE DATABASE workbit;
 USE workbit;
 
+CREATE TABLE grid_settings (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    rows INT NOT NULL,
+    cols INT NOT NULL,
+    updated_at DATETIME DEFAULT GETDATE()
+);
+
 CREATE TABLE roles (
     id INT PRIMARY KEY IDENTITY(1,1),
     name VARCHAR(20) UNIQUE NOT NULL 
@@ -29,7 +36,8 @@ CREATE TABLE users (
 CREATE TABLE spaces (
     id INT PRIMARY KEY IDENTITY(1,1),
     name VARCHAR(100) NOT NULL UNIQUE,
-    position_id INT NOT NULL UNIQUE,
+    position_x INT NOT NULL,
+    position_y INT NOT NULL,
     status VARCHAR(15) NOT NULL CHECK (status IN ('available', 'unavailable', 'occupied', 'reserved', 'maintenance')) DEFAULT 'available',
     capacity INT NOT NULL,
     created_at DATETIME DEFAULT GETDATE()

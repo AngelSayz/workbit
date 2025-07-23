@@ -1,0 +1,369 @@
+const express = require('express');
+const { body, query, validationResult } = require('express-validator');
+const supabase = require('../config/supabase');
+const { authenticateToken, requireRole } = require('../middleware/auth');
+const router = express.Router();
+
+// GET /api/users - Get all users (admin only)
+router.get('/', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    const { data: users, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        name,
+        lastname,
+        username,
+        email,
+        created_at,
+        roles(id, name),
+        codecards(id, code)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Database error:', error);
+      return res.status(500).json({
+        error: 'Failed to fetch users'
+      });
+    }
+
+    // Format response to match C# backend
+    const formattedUsers = users.map(user => ({
+      id: user.id,
+      name: user.name,
+      lastname: user.lastname,
+      username: user.username,
+      email: user.email,
+      role: user.roles?.name || 'user',
+      cardCode: user.codecards?.code || null,
+      created_at: user.created_at
+    }));
+
+    res.json({
+      users: formattedUsers,
+      total: formattedUsers.length
+    });
+
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve users'
+    });
+  }
+});
+
+// GET /api/users/by-role/:role - Get users by role
+router.get('/by-role/:role', authenticateToken, requireRole(['admin', 'technician']), async (req, res) => {
+  try {
+    const { role } = req.params;
+
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    const { data: users, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        name,
+        lastname,
+        username,
+        email,
+        created_at,
+        roles!inner(id, name),
+        codecards(id, code)
+      `)
+      .eq('roles.name', role)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Database error:', error);
+      return res.status(500).json({
+        error: 'Failed to fetch users by role'
+      });
+    }
+
+    const formattedUsers = users.map(user => ({
+      id: user.id,
+      name: user.name,
+      lastname: user.lastname,
+      username: user.username,
+      email: user.email,
+      role: user.roles?.name || 'user',
+      cardCode: user.codecards?.code || null,
+      created_at: user.created_at
+    }));
+
+    res.json({
+      users: formattedUsers,
+      role: role,
+      total: formattedUsers.length
+    });
+
+  } catch (error) {
+    console.error('Get users by role error:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve users by role'
+    });
+  }
+});
+
+// GET /api/users/profile - Get current user profile
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        name,
+        lastname,
+        username,
+        email,
+        created_at,
+        roles(id, name),
+        codecards(id, code)
+      `)
+      .eq('id', req.user.id)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      lastname: user.lastname,
+      username: user.username,
+      email: user.email,
+      role: user.roles?.name || 'user',
+      cardCode: user.codecards?.code || null,
+      created_at: user.created_at
+    });
+
+  } catch (error) {
+    console.error('Get user profile error:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve user profile'
+    });
+  }
+});
+
+// GET /api/users/:id - Get specific user (admin only)
+router.get('/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        name,
+        lastname,
+        username,
+        email,
+        created_at,
+        roles(id, name),
+        codecards(id, code)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      lastname: user.lastname,
+      username: user.username,
+      email: user.email,
+      role: user.roles?.name || 'user',
+      cardCode: user.codecards?.code || null,
+      created_at: user.created_at
+    });
+
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve user'
+    });
+  }
+});
+
+// PUT /api/users/:id - Update user (admin only)
+router.put('/:id', 
+  authenticateToken, 
+  requireRole(['admin']),
+  [
+    body('name').optional().trim().isLength({ min: 1 }).withMessage('Name cannot be empty'),
+    body('lastname').optional().trim().isLength({ min: 1 }).withMessage('Last name cannot be empty'),
+    body('email').optional().isEmail().withMessage('Valid email required'),
+    body('role').optional().isIn(['user', 'admin', 'technician']).withMessage('Invalid role')
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+
+      const { id } = req.params;
+      const updates = req.body;
+
+      if (!supabase) {
+        return res.status(500).json({
+          error: 'Database connection failed'
+        });
+      }
+
+      // Remove undefined fields
+      Object.keys(updates).forEach(key => {
+        if (updates[key] === undefined) {
+          delete updates[key];
+        }
+      });
+
+      // Handle role update
+      if (updates.role) {
+        const { data: role } = await supabase
+          .from('roles')
+          .select('id')
+          .eq('name', updates.role)
+          .single();
+
+        if (role) {
+          updates.role_id = role.id;
+        }
+        delete updates.role;
+      }
+
+      const { data: updatedUser, error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', id)
+        .select(`
+          id,
+          name,
+          lastname,
+          username,
+          email,
+          created_at,
+          roles(id, name),
+          codecards(id, code)
+        `)
+        .single();
+
+      if (error) {
+        console.error('Update user error:', error);
+        return res.status(500).json({
+          error: 'Failed to update user'
+        });
+      }
+
+      res.json({
+        message: 'User updated successfully',
+        user: {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          lastname: updatedUser.lastname,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          role: updatedUser.roles?.name || 'user',
+          cardCode: updatedUser.codecards?.code || null,
+          created_at: updatedUser.created_at
+        }
+      });
+
+    } catch (error) {
+      console.error('Update user error:', error);
+      res.status(500).json({
+        error: 'Failed to update user'
+      });
+    }
+  }
+);
+
+// DELETE /api/users/:id - Delete user (admin only)
+router.delete('/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    // Check if user exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id, username')
+      .eq('id', id)
+      .single();
+
+    if (!existingUser) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    // Delete user
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Delete user error:', error);
+      return res.status(500).json({
+        error: 'Failed to delete user'
+      });
+    }
+
+    res.json({
+      message: 'User deleted successfully',
+      deletedUser: {
+        id: existingUser.id,
+        username: existingUser.username
+      }
+    });
+
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      error: 'Failed to delete user'
+    });
+  }
+});
+
+module.exports = router; 

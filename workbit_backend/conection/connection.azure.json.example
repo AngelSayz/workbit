@@ -1,0 +1,13 @@
+{
+  "ConnectionStrings": {
+    "SqlServer": {
+      "Server": "tu-servidor.database.windows.net",
+      "Database": "WorkbitDB",
+      "UserId": "tu-usuario-admin",
+      "Password": "tu-password-seguro"
+    }
+  },
+  "Paths": {
+    "Domain": "https://workbit-api.azurewebsites.net/"
+  }
+} 

@@ -3,26 +3,28 @@
     "name": "Workbit",
     "slug": "workbit_mobile",
     "version": "1.0.0",
+    "sdkVersion": "50.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "jsEngine": "jsc"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.angelsayz.workbit",
-      "versionCode": 1
+      "versionCode": 1,
+      "jsEngine": "jsc"
     },
     "web": {
       "favicon": "./assets/favicon.png"

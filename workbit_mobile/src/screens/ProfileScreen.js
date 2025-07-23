@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CommonActions } from '@react-navigation/native';
 import styled from 'styled-components/native';
 import { Text, Button, Icon } from '../components/atoms';
 
@@ -67,7 +68,7 @@ const MenuItemChevron = styled.View`
 /**
  * Profile screen with iOS-style settings list
  */
-const ProfileScreen = ({ navigation, onLogout }) => {
+const ProfileScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [user, setUser] = useState(null);
 
@@ -87,6 +88,7 @@ const ProfileScreen = ({ navigation, onLogout }) => {
   };
 
   const handleLogout = () => {
+    console.log('ProfileScreen: handleLogout called');
     Alert.alert(
       'Cerrar Sesión',
       '¿Estás seguro de que quieres cerrar sesión?',
@@ -98,7 +100,22 @@ const ProfileScreen = ({ navigation, onLogout }) => {
         {
           text: 'Cerrar Sesión',
           style: 'destructive',
-          onPress: onLogout,
+          onPress: () => {
+            console.log('ProfileScreen: User confirmed logout');
+            try {
+              // Usar CommonActions para reset completo
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: 'Welcome' }],
+                })
+              );
+            } catch (error) {
+              console.error('ProfileScreen: Navigation error:', error);
+              // Fallback simple
+              navigation.navigate('Welcome');
+            }
+          },
         },
       ]
     );

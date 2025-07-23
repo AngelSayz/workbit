@@ -4,12 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
-    <ContainerRuntimeIdentifier>win-x64</ContainerRuntimeIdentifier>
-    <EnableSdkContainerDebugging>True</EnableSdkContainerDebugging>
-    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0-nanoserver-1809</ContainerBaseImage>
     <UserSecretsId>4b0f83fd-2723-4552-bbe7-920d49621144</UserSecretsId>
-    <DockerfileContext>.</DockerfileContext>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,10 +12,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.6" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ContainerPort Include="8081" />
   </ItemGroup>
 
 </Project>

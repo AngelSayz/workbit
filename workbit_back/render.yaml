@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: workbit-backend
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY  
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: MQTT_BROKER_URL
+        value: mqtt://broker.hivemq.com:1883
+      - key: MQTT_CLIENT_ID
+        value: workbit-backend-prod
+      - key: CORS_ORIGIN
+        value: https://workbit-app.onrender.com
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100 

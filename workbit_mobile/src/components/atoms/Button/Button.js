@@ -1,45 +1,8 @@
 import React from 'react';
-import { TouchableOpacity, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import styled from 'styled-components/native';
+import { useTheme } from '../../../constants/theme';
 import Text from '../Text/Text';
-
-const StyledButton = styled(TouchableOpacity)`
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  padding: ${({ theme, size }) => {
-    switch (size) {
-      case 'sm': return `${theme.spacing.sm}px ${theme.spacing.md}px`;
-      case 'lg': return `${theme.spacing.lg}px ${theme.spacing.xl}px`;
-      default: return `${theme.spacing.md}px ${theme.spacing.lg}px`;
-    }
-  }};
-  border-radius: ${({ theme, rounded }) => {
-    if (rounded === 'full') return theme.borderRadius.full;
-    return theme.borderRadius[rounded || 'md'];
-  }}px;
-  background-color: ${({ theme, variant, color }) => {
-    if (variant === 'outline' || variant === 'ghost') return 'transparent';
-    return theme.colors[color] || theme.colors.primary;
-  }};
-  border-width: ${({ variant }) => variant === 'outline' ? 1 : 0}px;
-  border-color: ${({ theme, color, variant }) => 
-    variant === 'outline' ? (theme.colors[color] || theme.colors.primary) : 'transparent'};
-  opacity: ${({ disabled }) => disabled ? 0.6 : 1};
-  ${({ theme, fullWidth }) => fullWidth && 'width: 100%;'}
-  ${({ theme, variant }) => variant === 'ghost' && 'background-color: transparent;'}
-`;
-
-const ButtonText = styled(Text)`
-  color: ${({ theme, variant, color }) => {
-    if (variant === 'outline' || variant === 'ghost') {
-      return theme.colors[color] || theme.colors.primary;
-    }
-    return theme.colors.textOnPrimary;
-  }};
-  font-weight: ${({ theme }) => theme.typography.weights.medium};
-`;
 
 /**
  * Button component with haptic feedback and accessibility features
@@ -75,6 +38,8 @@ const Button = ({
   style,
   ...props
 }) => {
+  const { currentTheme } = useTheme();
+
   const handlePress = async () => {
     if (disabled || loading) return;
     
@@ -99,16 +64,86 @@ const Button = ({
     }
   };
 
+  const getButtonStyles = () => {
+    const styles = [baseStyles.button];
+    
+    // Size styles
+    switch (size) {
+      case 'sm':
+        styles.push({
+          paddingVertical: currentTheme.spacing.sm,
+          paddingHorizontal: currentTheme.spacing.md,
+        });
+        break;
+      case 'lg':
+        styles.push({
+          paddingVertical: currentTheme.spacing.lg,
+          paddingHorizontal: currentTheme.spacing.xl,
+        });
+        break;
+      default:
+        styles.push({
+          paddingVertical: currentTheme.spacing.md,
+          paddingHorizontal: currentTheme.spacing.lg,
+        });
+    }
+
+    // Border radius
+    if (rounded === 'full') {
+      styles.push({ borderRadius: currentTheme.borderRadius.full });
+    } else {
+      styles.push({ borderRadius: currentTheme.borderRadius[rounded] || currentTheme.borderRadius.md });
+    }
+
+    // Variant styles
+    const themeColor = currentTheme.colors[color] || currentTheme.colors.primary;
+    
+    switch (variant) {
+      case 'outline':
+        styles.push({
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderColor: themeColor,
+        });
+        break;
+      case 'ghost':
+        styles.push({
+          backgroundColor: 'transparent',
+          borderWidth: 0,
+        });
+        break;
+      default:
+        styles.push({
+          backgroundColor: themeColor,
+          borderWidth: 0,
+        });
+    }
+
+    // Full width
+    if (fullWidth) {
+      styles.push({ width: '100%' });
+    }
+
+    // Disabled state
+    if (disabled || loading) {
+      styles.push({ opacity: 0.6 });
+    }
+
+    return styles;
+  };
+
+  const getTextColor = () => {
+    if (variant === 'outline' || variant === 'ghost') {
+      return currentTheme.colors[color] || currentTheme.colors.primary;
+    }
+    return currentTheme.colors.textOnPrimary;
+  };
+
   return (
-    <StyledButton
+    <TouchableOpacity
       onPress={handlePress}
-      variant={variant}
-      color={color}
-      size={size}
-      rounded={rounded}
       disabled={disabled || loading}
-      fullWidth={fullWidth}
-      style={style}
+      style={[getButtonStyles(), style]}
       accessibilityLabel={accessibilityLabel || (typeof children === 'string' ? children : undefined)}
       accessibilityHint={accessibilityHint}
       accessibilityRole={accessibilityRole}
@@ -124,16 +159,24 @@ const Button = ({
           color={variant === 'filled' ? 'white' : color} 
         />
       ) : (
-        <ButtonText
-          variant={variant}
-          color={color}
+        <Text
+          color={getTextColor()}
+          weight="medium"
           size={getTextSize()}
         >
           {children}
-        </ButtonText>
+        </Text>
       )}
-    </StyledButton>
+    </TouchableOpacity>
   );
 };
+
+const baseStyles = StyleSheet.create({
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 export default Button; 

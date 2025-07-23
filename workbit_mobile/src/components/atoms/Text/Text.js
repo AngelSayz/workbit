@@ -1,20 +1,6 @@
 import React from 'react';
-import styled from 'styled-components/native';
-import { Text as RNText } from 'react-native';
-
-const StyledText = styled(RNText)`
-  color: ${({ theme, color }) => 
-    color ? theme.colors[color] || color : theme.colors.text};
-  font-size: ${({ theme, size = 'md' }) => theme.typography.sizes[size]}px;
-  font-weight: ${({ theme, weight = 'regular' }) => theme.typography.weights[weight]};
-  font-family: ${({ theme }) => theme.typography.families.default};
-  line-height: ${({ theme, size = 'md' }) => theme.typography.sizes[size] * 1.4}px;
-  text-align: ${({ align = 'left' }) => align};
-  ${({ marginBottom, theme }) => marginBottom && `margin-bottom: ${theme.spacing[marginBottom] || marginBottom}px;`}
-  ${({ marginTop, theme }) => marginTop && `margin-top: ${theme.spacing[marginTop] || marginTop}px;`}
-  ${({ marginHorizontal, theme }) => marginHorizontal && `margin-horizontal: ${theme.spacing[marginHorizontal] || marginHorizontal}px;`}
-  ${({ marginVertical, theme }) => marginVertical && `margin-vertical: ${theme.spacing[marginVertical] || marginVertical}px;`}
-`;
+import { Text as RNText, StyleSheet } from 'react-native';
+import { useTheme } from '../../../constants/theme';
 
 /**
  * Text component that follows design system and accessibility guidelines
@@ -54,19 +40,50 @@ const Text = ({
   accessibilityRole = 'text',
   ...props
 }) => {
+  const { currentTheme } = useTheme();
+
+  const getTextStyles = () => {
+    const styles = [baseStyles.text];
+
+    // Basic typography
+    styles.push({
+      color: color 
+        ? (currentTheme.colors[color] || color) 
+        : currentTheme.colors.text,
+      fontSize: currentTheme.typography.sizes[size] || currentTheme.typography.sizes.md,
+      fontWeight: currentTheme.typography.weights[weight] || currentTheme.typography.weights.regular,
+      fontFamily: currentTheme.typography.families.default,
+      lineHeight: (currentTheme.typography.sizes[size] || currentTheme.typography.sizes.md) * 1.4,
+      textAlign: align,
+    });
+
+    // Margins
+    const marginStyles = {};
+    if (marginBottom) {
+      marginStyles.marginBottom = currentTheme.spacing[marginBottom] || marginBottom;
+    }
+    if (marginTop) {
+      marginStyles.marginTop = currentTheme.spacing[marginTop] || marginTop;
+    }
+    if (marginHorizontal) {
+      marginStyles.marginHorizontal = currentTheme.spacing[marginHorizontal] || marginHorizontal;
+    }
+    if (marginVertical) {
+      marginStyles.marginVertical = currentTheme.spacing[marginVertical] || marginVertical;
+    }
+    
+    if (Object.keys(marginStyles).length > 0) {
+      styles.push(marginStyles);
+    }
+
+    return styles;
+  };
+
   return (
-    <StyledText
-      size={size}
-      weight={weight}
-      color={color}
-      align={align}
-      marginBottom={marginBottom}
-      marginTop={marginTop}
-      marginHorizontal={marginHorizontal}
-      marginVertical={marginVertical}
+    <RNText
+      style={[getTextStyles(), style]}
       numberOfLines={numberOfLines}
       ellipsizeMode={ellipsizeMode}
-      style={style}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel || (typeof children === 'string' ? children : undefined)}
       accessibilityHint={accessibilityHint}
@@ -76,8 +93,14 @@ const Text = ({
       {...props}
     >
       {children}
-    </StyledText>
+    </RNText>
   );
 };
+
+const baseStyles = StyleSheet.create({
+  text: {
+    // Base text styles that don't depend on theme
+  },
+});
 
 export default Text; 
