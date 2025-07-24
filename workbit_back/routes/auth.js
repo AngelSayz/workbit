@@ -521,6 +521,8 @@ router.post('/admin-register', [
         }
       }
     }
+    // Al crear el perfil de usuario, si cardId es null, ponerlo en 0
+    const safeCardId = cardId == null ? 0 : cardId;
     // Create user profile in our users table
     const { data: newUser, error: userError } = await supabase
       .from('users')
@@ -530,7 +532,7 @@ router.post('/admin-register', [
         username,
         user_id: authData.user.id,
         role_id: roleData.id,
-        card_id: cardId
+        card_id: safeCardId
       })
       .select()
       .single();
