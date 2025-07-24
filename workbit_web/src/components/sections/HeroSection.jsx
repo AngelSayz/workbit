@@ -1,31 +1,33 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight, Shield, Zap, Users } from 'lucide-react';
 import { Button } from '../ui';
 
 const HeroSection = () => {
-  const handleRequestDemo = () => {
-    // Scroll to contact form
-    const contactSection = document.querySelector('#contact');
+  const handleGetStarted = () => {
+    window.location.href = '/login';
+  };
+
+  const handleLearnMore = () => {
+    const contactSection = document.querySelector('#features');
     if (contactSection) {
       contactSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
   return (
-    <section className="relative h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-black overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-96 h-96 bg-blue-600 rounded-full mix-blend-screen opacity-10 filter blur-3xl animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-80 h-80 bg-purple-600 rounded-full mix-blend-screen opacity-10 filter blur-3xl animate-pulse delay-300"></div>
-        <div className="absolute bottom-20 left-40 w-72 h-72 bg-indigo-600 rounded-full mix-blend-screen opacity-10 filter blur-3xl animate-pulse delay-700"></div>
-      </div>
+    <section className="relative min-h-screen flex items-center justify-center bg-white overflow-hidden">
+      {/* Subtle blue gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white"></div>
       
-      {/* Grid Pattern Overlay */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+      {/* Grid Pattern - subtle */}
+      <div className="absolute inset-0" style={{
+        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(59, 130, 246, 0.1) 1px, transparent 0)',
+        backgroundSize: '40px 40px'
+      }}></div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           className="space-y-8"
@@ -33,77 +35,96 @@ const HeroSection = () => {
 
           {/* Main Title */}
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-            className="text-5xl md:text-7xl font-bold text-white leading-tight tracking-tight"
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight"
           >
-            Gestiona tus{' '}
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              espacios
+            Gestión Inteligente de{' '}
+            <span className="text-blue-600">
+              Espacios
             </span>
-            <br />
-            de forma inteligente
           </motion.h1>
 
           {/* Subtitle */}
           <motion.p
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-light"
+          >
+            Sistema integrado de monitoreo IoT y gestión de espacios de trabajo 
+            para optimizar la productividad y el uso de recursos.
+          </motion.p>
+
+          {/* Features Icons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.8 }}
-            className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed font-light"
+            className="flex flex-wrap justify-center gap-8 py-8"
           >
-            WorkBit combina sensores IoT, tecnología RFID y una plataforma web intuitiva 
-            para optimizar el uso de espacios de trabajo en tiempo real.
-          </motion.p>
+            <div className="flex items-center space-x-2 text-gray-700">
+              <Shield className="w-6 h-6 text-blue-600" />
+              <span className="font-medium">Seguro</span>
+            </div>
+            <div className="flex items-center space-x-2 text-gray-700">
+              <Zap className="w-6 h-6 text-blue-600" />
+              <span className="font-medium">Tiempo Real</span>
+            </div>
+            <div className="flex items-center space-x-2 text-gray-700">
+              <Users className="w-6 h-6 text-blue-600" />
+              <span className="font-medium">Colaborativo</span>
+            </div>
+          </motion.div>
 
           {/* CTA Buttons */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8, duration: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4"
           >
             <Button
               size="lg"
-              onClick={handleRequestDemo}
+              onClick={handleGetStarted}
               icon={<ArrowRight size={20} />}
               iconPosition="right"
-              className="text-lg px-10 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 border-0 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+              className="text-lg px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
             >
-              Solicitar Demo
+              Acceder al Sistema
             </Button>
             
             <Button
               variant="outline"
               size="lg"
-              icon={<Play size={20} />}
-              className="text-lg px-10 py-4 border-2 border-gray-600 text-white hover:bg-white hover:text-gray-900 transition-all duration-300"
+              onClick={handleLearnMore}
+              className="text-lg px-8 py-4 border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-300"
             >
-              Ver Demo
+              Conocer Más
             </Button>
           </motion.div>
 
-          {/* Trust Indicators */}
+          {/* Stats or Trust Indicators */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2, duration: 0.8 }}
-            className="pt-16 text-center"
+            className="pt-16"
           >
-            <p className="text-sm text-gray-400 mb-8 uppercase tracking-wide font-medium">Confiado por empresas líderes</p>
-            <div className="flex justify-center items-center space-x-12 opacity-50">
-              {['TechCorp', 'InnovateLab', 'FutureSpace', 'SmartWork'].map((company, index) => (
-                <motion.div
-                  key={company}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.4 + (index * 0.1), duration: 0.5 }}
-                  className="text-gray-300 font-medium text-lg tracking-wider hover:text-white transition-colors duration-300"
-                >
-                  {company}
-                </motion.div>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600">24/7</div>
+                <div className="text-sm text-gray-600 font-medium">Monitoreo Continuo</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600">100%</div>
+                <div className="text-sm text-gray-600 font-medium">Tiempo Real</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600">IoT</div>
+                <div className="text-sm text-gray-600 font-medium">Tecnología Avanzada</div>
+              </div>
             </div>
           </motion.div>
         </motion.div>
@@ -113,20 +134,14 @@ const HeroSection = () => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 2, duration: 0.8 }}
+        transition={{ delay: 1.5, duration: 0.8 }}
         className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
       >
         <motion.div
-          animate={{ y: [0, 10, 0] }}
+          animate={{ y: [0, 8, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-6 h-10 border-2 border-gray-500 rounded-full flex justify-center"
-        >
-          <motion.div
-            animate={{ y: [0, 12, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="w-1 h-3 bg-gray-300 rounded-full mt-2"
-          />
-        </motion.div>
+          className="w-1 h-8 bg-blue-600 rounded-full"
+        />
       </motion.div>
     </section>
   );

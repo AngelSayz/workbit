@@ -1,106 +1,164 @@
-import { Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { LoginForm } from '../features/auth';
-import useAuth from '../hooks/useAuth';
+import { LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Button } from '../components/ui';
+import { useAuth } from '../hooks/useAuth';
 
 const LoginPage = () => {
-  const { isAuthenticated } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const { signIn, loading, error, user } = useAuth();
 
-  // Redirigir si ya está autenticado
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard/overview" replace />;
-  }
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      window.location.href = '/dashboard';
+    }
+  }, [user]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (email && password) {
+      await signIn(email, password);
+    }
+  };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Columna Izquierda - Formulario */}
-      <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:flex-none lg:px-20 xl:px-24 relative">
-        {/* Botón de Atrás */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-          className="absolute top-8 left-8"
-        >
-          <Link
-            to="/"
-            className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="w-full max-w-md"
+      >
+        {/* Header */}
+        <div className="text-center mb-8">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="text-3xl font-bold text-blue-600 mb-2"
           >
-            <ArrowLeft size={20} />
-            <span>Atrás</span>
-          </Link>
-        </motion.div>
-
-        <div className="mx-auto w-full max-w-sm lg:w-96">
-          <LoginForm />
+            WorkBit
+          </motion.div>
+          <p className="text-gray-600">
+            Sistema de Gestión de Espacios
+          </p>
         </div>
-      </div>
 
-      {/* Columna Derecha - Imagen de Marca */}
-      <div className="hidden lg:block relative flex-1">
+        {/* Login Card */}
         <motion.div
-          initial={{ opacity: 0, scale: 1.1 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1 }}
-          className="absolute inset-0 h-full w-full object-cover bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.8 }}
+          className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100"
         >
-          {/* Pattern Overlay */}
-          <div className="absolute inset-0 bg-black bg-opacity-20" />
-          
-          {/* Content */}
-          <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-12">
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="text-center max-w-lg"
-            >
-              {/* Logo */}
-              <div className="flex items-center justify-center space-x-3 mb-8">
-                <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center">
-                  <span className="text-blue-600 font-bold text-2xl">W</span>
-                </div>
-                <span className="text-4xl font-bold">WorkBit</span>
-              </div>
-
-              <h2 className="text-4xl font-bold mb-6">
-                Gestión inteligente de espacios
-              </h2>
-              
-              <p className="text-xl opacity-90 mb-8 leading-relaxed">
-                Revoluciona la forma en que tu empresa gestiona y optimiza 
-                sus espacios de trabajo con tecnología IoT de vanguardia.
-              </p>
-
-              <div className="grid grid-cols-1 gap-4 text-left">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-white rounded-full" />
-                  <span>Sensores IoT en tiempo real</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-white rounded-full" />
-                  <span>Control de acceso RFID</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-white rounded-full" />
-                  <span>Analytics y reportes avanzados</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-white rounded-full" />
-                  <span>Aplicación móvil nativa</span>
-                </div>
-              </div>
-            </motion.div>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Iniciar Sesión
+            </h1>
+            <p className="text-gray-600">
+              Accede con tu cuenta de administrador o técnico
+            </p>
           </div>
 
-          {/* Decorative Elements */}
-          <div className="absolute top-20 left-20 w-32 h-32 bg-white bg-opacity-10 rounded-full blur-xl" />
-          <div className="absolute bottom-20 right-20 w-48 h-48 bg-white bg-opacity-5 rounded-full blur-2xl" />
-          <div className="absolute top-1/2 right-10 w-24 h-24 bg-white bg-opacity-10 rounded-full blur-lg" />
+          {/* Error Alert */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3"
+            >
+              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-red-700">
+                {error}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Correo Electrónico
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                placeholder="tu@email.com"
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Contraseña
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                  placeholder="••••••••"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                  disabled={loading}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              icon={<LogIn size={20} />}
+              disabled={loading || !email || !password}
+            >
+              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            </Button>
+          </form>
+
+          {/* Additional Info */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Solo personal autorizado puede acceder al sistema
+            </p>
+          </div>
         </motion.div>
-      </div>
+
+        {/* Back to Home */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.8 }}
+          className="text-center mt-6"
+        >
+          <a
+            href="/"
+            className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
+          >
+            ← Volver al inicio
+          </a>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

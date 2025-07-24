@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 // Configuración base de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Crear instancia de axios
 const apiClient = axios.create({
@@ -41,12 +42,32 @@ apiClient.interceptors.response.use(
 // Funciones de autenticación
 export const authAPI = {
   login: async (email, password) => {
-    const response = await apiClient.post('/account/login', { email, password });
+    const response = await axios.post(`${API_URL}/login`, { email, password });
     return response.data;
   },
   
+  register: async (userData) => {
+    const response = await apiClient.post('/auth/register', userData);
+    return response.data;
+  },
+
+  registerFirstAdmin: async (userData) => {
+    const response = await axios.post(`${API_URL}/api/auth/first-admin`, userData);
+    return response.data;
+  },
+
+  checkAdminExists: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/auth/admin-exists`);
+      return response.data;
+    } catch (error) {
+      console.error('Error checking admin exists:', error);
+      return { hasAdmin: true }; // Fail safe - si hay error, asumir que sí hay admin
+    }
+  },
+  
   getProfile: async () => {
-    const response = await apiClient.get('/account/profile');
+    const response = await apiClient.get('/users/profile');
     return response.data;
   },
   
@@ -64,7 +85,7 @@ export const usersAPI = {
   },
   
   getUsersByRole: async (role) => {
-    const response = await apiClient.get(`/users/role/${role}`);
+    const response = await apiClient.get(`/users/by-role/${role}`);
     return response.data;
   },
   
@@ -92,7 +113,7 @@ export const spacesAPI = {
   },
   
   getAvailableSpacesByDate: async (date) => {
-    const response = await apiClient.get(`/availableSpacesbyDate/${date}`);
+    const response = await apiClient.get(`/spaces/available/${date}`);
     return response.data;
   },
   
@@ -128,7 +149,7 @@ export const reservationsAPI = {
 // Funciones de logs de acceso
 export const accessLogsAPI = {
   getAccessLogs: async () => {
-    const response = await apiClient.get('/accesslog');
+    const response = await apiClient.get('/access-logs');
     return response.data;
   }
 };

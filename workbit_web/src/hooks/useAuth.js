@@ -1,105 +1,127 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import useUserStore from '../store/userStore';
-import { authAPI } from '../api/apiService';
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
+import { authAPI } from '../api/apiService'
 
 export const useAuth = () => {
-  const navigate = useNavigate();
-  const { 
-    user, 
-    token, 
-    isAuthenticated, 
-    isLoading,
-    login: loginStore, 
-    logout: logoutStore, 
-    setLoading,
-    getUserRole,
-    isAdmin,
-    isTechnician,
-    isEmployee
-  } = useUserStore();
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const [error, setError] = useState(null);
-
-  // Verificar token al cargar la aplicación
   useEffect(() => {
-    const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('workbit_token');
-      
-      if (storedToken && !user) {
-        setLoading(true);
-        try {
-          const profileData = await authAPI.getProfile();
-          loginStore(profileData, storedToken);
-        } catch (error) {
-          console.error('Error al verificar token:', error);
-          logoutStore();
-        } finally {
-          setLoading(false);
+    // Get initial session
+    const getSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          await handleAuthUser(session.user)
+        } else {
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error('Error getting session:', err)
+        setError('Error loading authentication')
+        setLoading(false)
+      }
+    }
+
+    getSession()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          await handleAuthUser(session.user)
+        } else {
+          setUser(null)
+          setLoading(false)
+          localStorage.removeItem('workbit_token')
         }
       }
-    };
+    )
 
-    initializeAuth();
-  }, [user, loginStore, logoutStore, setLoading]);
+    return () => subscription.unsubscribe()
+  }, [])
 
-  const login = async (email, password) => {
-    setLoading(true);
-    setError(null);
-    
+  const handleAuthUser = async (authUser) => {
     try {
-      const response = await authAPI.login(email, password);
+      setLoading(true)
       
-      if (response.success && response.token) {
-        loginStore(response.user || response.data, response.token);
-        navigate('/dashboard/overview');
-        return { success: true };
+      // Get JWT token and user data from our backend
+      const response = await authAPI.login(authUser.email, '')
+      
+      if (response.token && response.user) {
+        // Store JWT token for API calls
+        localStorage.setItem('workbit_token', response.token)
+        
+        // Check if user has admin or technician role
+        const allowedRoles = ['admin', 'technician']
+        if (allowedRoles.includes(response.user.role)) {
+          setUser(response.user)
+          setError(null)
+        } else {
+          // User doesn't have required permissions
+          setError('No tienes permisos para acceder a esta aplicación. Solo administradores y técnicos pueden acceder.')
+          await supabase.auth.signOut()
+          setUser(null)
+        }
       } else {
-        throw new Error(response.message || 'Error en el inicio de sesión');
+        setError('Error al obtener los datos del usuario')
+        await supabase.auth.signOut()
+        setUser(null)
       }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Error de conexión';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+    } catch (err) {
+      console.error('Error handling auth user:', err)
+      setError('Error al validar el usuario. Verifica que tu cuenta esté registrada en el sistema.')
+      await supabase.auth.signOut()
+      setUser(null)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const logout = async () => {
-    setLoading(true);
+  const signIn = async (email, password) => {
     try {
-      await authAPI.logout();
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-    } finally {
-      logoutStore();
-      navigate('/login');
-      setLoading(false);
+      setLoading(true)
+      setError(null)
+      
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+      
+      if (authError) {
+        throw authError
+      }
+      
+      // The onAuthStateChange listener will handle the rest
+    } catch (err) {
+      console.error('Sign in error:', err)
+      setError(err.message || 'Error al iniciar sesión')
+      setLoading(false)
     }
-  };
+  }
 
-  const clearError = () => setError(null);
+  const signOut = async () => {
+    try {
+      setLoading(true)
+      await supabase.auth.signOut()
+      localStorage.removeItem('workbit_token')
+      setUser(null)
+      setError(null)
+    } catch (err) {
+      console.error('Sign out error:', err)
+      setError('Error al cerrar sesión')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return {
-    // Estado
     user,
-    token,
-    isAuthenticated,
-    isLoading,
+    loading,
     error,
-    
-    // Métodos
-    login,
-    logout,
-    clearError,
-    
-    // Helpers de rol
-    getUserRole,
-    isAdmin: isAdmin(),
-    isTechnician: isTechnician(),
-    isEmployee: isEmployee()
-  };
-};
-
-export default useAuth; 
+    signIn,
+    signOut,
+    isAuthenticated: !!user
+  }
+} 

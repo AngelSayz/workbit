@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const supabase = require('../config/supabase');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
 // Login validation rules for Supabase Auth
@@ -134,39 +135,93 @@ router.post('/login', loginValidation, async (req, res) => {
   return router.handle(req, res);
 });
 
-// POST /api/auth/register - User registration with Supabase Auth
-router.post('/register', [
+// GET /api/auth/admin-exists - Check if administrators exist in the system
+router.get('/admin-exists', async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    // Buscar usuarios con rol admin
+    const { data: admins, error } = await supabase
+      .from('users')
+      .select('id, roles!inner(name)')
+      .eq('roles.name', 'admin')
+      .limit(1);
+
+    if (error) {
+      console.error('Error checking admins:', error);
+      return res.status(500).json({
+        error: 'Database error',
+        message: error.message
+      });
+    }
+
+    const hasAdmin = admins && admins.length > 0;
+
+    res.json({
+      hasAdmin,
+      message: hasAdmin ? 'Administrators exist' : 'No administrators found'
+    });
+
+  } catch (error) {
+    console.error('Error in admin-exists:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Internal server error'
+    });
+  }
+});
+
+// POST /api/auth/first-admin - Create first administrator
+router.post('/first-admin', [
   body('name').trim().isLength({ min: 1 }).withMessage('Name is required'),
   body('lastname').trim().isLength({ min: 1 }).withMessage('Last name is required'),
   body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('cardCode').optional().trim()
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
 ], async (req, res) => {
-  console.log('Registration request received:', req.body);
-  
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log('Validation errors:', errors.array());
       return res.status(400).json({
         error: 'Validation failed',
         details: errors.array()
       });
     }
 
-    const { name, lastname, username, email, password, cardCode } = req.body;
-    console.log('Processing registration for:', { name, lastname, username, email });
+    const { name, lastname, username, email, password } = req.body;
 
     if (!supabase) {
-      console.error('Supabase not configured');
       return res.status(500).json({
         error: 'Database connection failed'
       });
     }
 
-    // Check if username already exists in our users table
-    console.log('Checking for existing username...');
+    // VERIFICAR QUE NO EXISTAN ADMINISTRADORES
+    const { data: existingAdmins, error: adminCheckError } = await supabase
+      .from('users')
+      .select('id, roles!inner(name)')
+      .eq('roles.name', 'admin')
+      .limit(1);
+
+    if (adminCheckError) {
+      console.error('Error checking existing admins:', adminCheckError);
+      return res.status(500).json({
+        error: 'Database error during admin check'
+      });
+    }
+
+    if (existingAdmins && existingAdmins.length > 0) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Administrators already exist. Use regular registration process.'
+      });
+    }
+
+    // Verificar que el username no exista
     const { data: existingUsers, error: usernameCheckError } = await supabase
       .from('users')
       .select('username')
@@ -175,21 +230,17 @@ router.post('/register', [
     if (usernameCheckError) {
       console.error('Username check error:', usernameCheckError);
       return res.status(500).json({
-        error: 'Database error during username check',
-        message: usernameCheckError.message
+        error: 'Database error during username check'
       });
     }
 
     if (existingUsers && existingUsers.length > 0) {
-      console.log('Username already exists:', username);
       return res.status(409).json({
-        error: 'Username already exists',
-        message: 'Username is already taken'
+        error: 'Username already exists'
       });
     }
 
-    // Create user in Supabase Auth
-    console.log('Creating user in Supabase Auth...');
+    // Crear usuario en Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password
@@ -204,125 +255,40 @@ router.post('/register', [
     }
 
     if (!authData.user) {
-      console.error('No user data returned from Supabase');
       return res.status(400).json({
         error: 'Registration failed',
         message: 'Failed to create user account'
       });
     }
 
-    console.log('User created in Supabase Auth:', authData.user.id);
+    // CONFIRMAR EMAIL AUTOMÁTICAMENTE PARA EL PRIMER ADMIN
+    if (authData.user.id) {
+      try {
+        await supabase.auth.admin.updateUserById(authData.user.id, {
+          email_confirm: true
+        });
+        console.log('Email auto-confirmed for first admin');
+      } catch (confirmError) {
+        console.warn('Could not auto-confirm email for first admin:', confirmError);
+        // Continuar aunque no se pueda confirmar automáticamente
+      }
+    }
 
-    // Get default role (user)
-    console.log('Getting default role...');
-    const { data: roles, error: roleError } = await supabase
+    // Obtener rol de admin
+    const { data: adminRole, error: roleError } = await supabase
       .from('roles')
       .select('id')
-      .eq('name', 'user')
+      .eq('name', 'admin')
       .single();
 
-    if (roleError) {
-      console.error('Role lookup error:', roleError);
+    if (roleError || !adminRole) {
+      console.error('Admin role not found:', roleError);
       return res.status(500).json({
-        error: 'Default role lookup failed',
-        message: roleError.message
+        error: 'Admin role not found in system'
       });
     }
 
-    if (!roles) {
-      console.error('Default role not found');
-      return res.status(500).json({
-        error: 'Default role not found'
-      });
-    }
-
-    console.log('Default role found:', roles.id);
-
-    // Handle card code - auto-generate if not provided
-    let cardId = null;
-    let finalCardCode = cardCode;
-    
-    if (!cardCode) {
-      console.log('Auto-generating card code...');
-      // Auto-generate a unique card code
-      const generateCardCode = () => {
-        const prefix = 'WB';
-        const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
-        return `${prefix}${randomPart}`;
-      };
-
-      let attempts = 0;
-      let isUnique = false;
-      
-      while (!isUnique && attempts < 10) {
-        finalCardCode = generateCardCode();
-        console.log(`Checking card code uniqueness (attempt ${attempts + 1}):`, finalCardCode);
-        
-        // Check if this code already exists
-        const { data: existingCard, error: cardCheckError } = await supabase
-          .from('codecards')
-          .select('id')
-          .eq('code', finalCardCode)
-          .single();
-        
-        if (cardCheckError && cardCheckError.code === 'PGRST116') {
-          // No rows returned - code is unique
-          isUnique = true;
-        } else if (cardCheckError) {
-          console.error('Card check error:', cardCheckError);
-          break;
-        } else if (!existingCard) {
-          isUnique = true;
-        }
-        attempts++;
-      }
-      
-      if (!isUnique) {
-        console.error('Could not generate unique card code after 10 attempts');
-        return res.status(500).json({
-          error: 'Could not generate unique card code'
-        });
-      }
-      
-      console.log('Generated unique card code:', finalCardCode);
-    }
-
-    // Create or find card
-    if (finalCardCode) {
-      console.log('Creating/finding card with code:', finalCardCode);
-      // Try to find existing card first
-      const { data: existingCard, error: existingCardError } = await supabase
-        .from('codecards')
-        .select('id')
-        .eq('code', finalCardCode)
-        .single();
-      
-      if (existingCardError && existingCardError.code !== 'PGRST116') {
-        console.error('Error checking existing card:', existingCardError);
-      } else if (existingCard) {
-        console.log('Using existing card:', existingCard.id);
-        cardId = existingCard.id;
-      } else {
-        console.log('Creating new card...');
-        // Create new card
-        const { data: newCard, error: cardError } = await supabase
-          .from('codecards')
-          .insert({ code: finalCardCode })
-          .select('id')
-          .single();
-        
-        if (cardError) {
-          console.error('Error creating card:', cardError);
-          // Continue without card if creation fails
-        } else {
-          console.log('Card created:', newCard.id);
-          cardId = newCard.id;
-        }
-      }
-    }
-
-    // Create user profile in our users table
-    console.log('Creating user profile...');
+    // Crear perfil de usuario
     const { data: newUser, error: userError } = await supabase
       .from('users')
       .insert({
@@ -330,32 +296,137 @@ router.post('/register', [
         lastname,
         username,
         user_id: authData.user.id,
-        role_id: roles.id,
-        card_id: cardId
+        role_id: adminRole.id
       })
       .select()
       .single();
 
     if (userError) {
-      console.error('User profile creation error:', userError);
-      
-      // If user profile creation fails, we should clean up the auth user
+      console.error('Error creating user profile:', userError);
+      // Intentar limpiar el usuario de auth si falló el perfil
       try {
         await supabase.auth.admin.deleteUser(authData.user.id);
-        console.log('Cleaned up auth user after profile creation failure');
       } catch (cleanupError) {
-        console.error('Failed to cleanup auth user:', cleanupError);
+        console.error('Error cleaning up auth user:', cleanupError);
       }
-      
       return res.status(500).json({
-        error: 'Registration failed',
-        message: 'Failed to create user profile'
+        error: 'Failed to create user profile'
       });
     }
 
-    console.log('User profile created successfully:', newUser.id);
+    res.status(201).json({
+      success: true,
+      message: 'First administrator created successfully',
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        lastname: newUser.lastname,
+        username: newUser.username,
+        email: authData.user.email,
+        role: 'admin'
+      }
+    });
 
-    const responseData = {
+  } catch (error) {
+    console.error('First admin registration error:', error);
+    res.status(500).json({
+      error: 'Registration failed',
+      message: 'Internal server error during registration'
+    });
+  }
+});
+
+// POST /api/auth/register - Registro abierto SOLO para rol 'user' (app móvil)
+router.post('/register', [
+  body('name').trim().isLength({ min: 1 }).withMessage('Name is required'),
+  body('lastname').trim().isLength({ min: 1 }).withMessage('Last name is required'),
+  body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('cardCode').optional().trim()
+], async (req, res) => {
+  console.log('Mobile registration request received:', req.body);
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+    const { name, lastname, username, email, password, cardCode } = req.body;
+    if (!supabase) {
+      return res.status(500).json({ error: 'Database connection failed' });
+    }
+    // Check if username already exists
+    const { data: existingUsers, error: usernameCheckError } = await supabase
+      .from('users')
+      .select('username')
+      .eq('username', username);
+    if (usernameCheckError) {
+      return res.status(500).json({ error: 'Database error during username check', message: usernameCheckError.message });
+    }
+    if (existingUsers && existingUsers.length > 0) {
+      return res.status(409).json({ error: 'Username already exists', message: 'Username is already taken' });
+    }
+    // Create user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+    if (authError) {
+      return res.status(400).json({ error: 'Registration failed', message: authError.message });
+    }
+    if (!authData.user) {
+      return res.status(400).json({ error: 'Registration failed', message: 'Failed to create user account' });
+    }
+    // Get role 'user'
+    const { data: userRole, error: roleError } = await supabase
+      .from('roles')
+      .select('id')
+      .eq('name', 'user')
+      .single();
+    if (roleError || !userRole) {
+      return res.status(500).json({ error: 'User role not found in system' });
+    }
+    // Handle card code (opcional)
+    let cardId = null;
+    let finalCardCode = cardCode;
+    if (cardCode) {
+      const { data: existingCard, error: existingCardError } = await supabase
+        .from('codecards')
+        .select('id')
+        .eq('code', cardCode)
+        .single();
+      if (!existingCardError && existingCard) {
+        cardId = existingCard.id;
+      } else {
+        const { data: newCard, error: cardError } = await supabase
+          .from('codecards')
+          .insert({ code: cardCode })
+          .select('id')
+          .single();
+        if (!cardError && newCard) {
+          cardId = newCard.id;
+        }
+      }
+    }
+    // Create user profile in our users table
+    const { data: newUser, error: userError } = await supabase
+      .from('users')
+      .insert({
+        name,
+        lastname,
+        username,
+        user_id: authData.user.id,
+        role_id: userRole.id,
+        card_id: cardId
+      })
+      .select()
+      .single();
+    if (userError) {
+      // Clean up auth user if profile creation fails
+      try { await supabase.auth.admin.deleteUser(authData.user.id); } catch {}
+      return res.status(500).json({ error: 'Registration failed', message: 'Failed to create user profile' });
+    }
+    res.status(201).json({
       message: 'User registered successfully',
       user: {
         id: newUser.id,
@@ -363,19 +434,125 @@ router.post('/register', [
         lastname: newUser.lastname,
         username: newUser.username,
         email: authData.user.email,
+        role: 'user',
         cardCode: finalCardCode
       }
-    };
-
-    console.log('Sending successful response:', responseData);
-    res.status(201).json(responseData);
-
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({
-      error: 'Registration failed',
-      message: 'Internal server error during registration'
     });
+  } catch (error) {
+    res.status(500).json({ error: 'Registration failed', message: 'Internal server error during registration' });
+  }
+});
+
+// POST /api/auth/admin-register - SOLO para admins, permite crear admin o technician
+router.post('/admin-register', [
+  authenticateToken,
+  requireRole(['admin']),
+  body('name').trim().isLength({ min: 1 }).withMessage('Name is required'),
+  body('lastname').trim().isLength({ min: 1 }).withMessage('Last name is required'),
+  body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('role').optional().isIn(['admin', 'technician']).withMessage('Invalid role'),
+  body('cardCode').optional().trim()
+], async (req, res) => {
+  console.log('Admin registration request received:', req.body);
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    }
+    const { name, lastname, username, email, password, role = 'technician', cardCode } = req.body;
+    if (!supabase) {
+      return res.status(500).json({ error: 'Database connection failed' });
+    }
+    // Check if username already exists
+    const { data: existingUsers, error: usernameCheckError } = await supabase
+      .from('users')
+      .select('username')
+      .eq('username', username);
+    if (usernameCheckError) {
+      return res.status(500).json({ error: 'Database error during username check', message: usernameCheckError.message });
+    }
+    if (existingUsers && existingUsers.length > 0) {
+      return res.status(409).json({ error: 'Username already exists', message: 'Username is already taken' });
+    }
+    // Create user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+    if (authError) {
+      return res.status(400).json({ error: 'Registration failed', message: authError.message });
+    }
+    if (!authData.user) {
+      return res.status(400).json({ error: 'Registration failed', message: 'Failed to create user account' });
+    }
+    // AUTO-CONFIRMAR EMAIL PARA USUARIOS CREADOS POR ADMIN
+    if (authData.user.id) {
+      try {
+        await supabase.auth.admin.updateUserById(authData.user.id, { email_confirm: true });
+      } catch {}
+    }
+    // Get role by name
+    const { data: roleData, error: roleError } = await supabase
+      .from('roles')
+      .select('id')
+      .eq('name', role)
+      .single();
+    if (roleError || !roleData) {
+      return res.status(500).json({ error: 'Role not found' });
+    }
+    // Handle card code (opcional)
+    let cardId = null;
+    let finalCardCode = cardCode;
+    if (cardCode) {
+      const { data: existingCard, error: existingCardError } = await supabase
+        .from('codecards')
+        .select('id')
+        .eq('code', cardCode)
+        .single();
+      if (!existingCardError && existingCard) {
+        cardId = existingCard.id;
+      } else {
+        const { data: newCard, error: cardError } = await supabase
+          .from('codecards')
+          .insert({ code: cardCode })
+          .select('id')
+          .single();
+        if (!cardError && newCard) {
+          cardId = newCard.id;
+        }
+      }
+    }
+    // Create user profile in our users table
+    const { data: newUser, error: userError } = await supabase
+      .from('users')
+      .insert({
+        name,
+        lastname,
+        username,
+        user_id: authData.user.id,
+        role_id: roleData.id,
+        card_id: cardId
+      })
+      .select()
+      .single();
+    if (userError) {
+      try { await supabase.auth.admin.deleteUser(authData.user.id); } catch {}
+      return res.status(500).json({ error: 'Registration failed', message: 'Failed to create user profile' });
+    }
+    res.status(201).json({
+      message: 'User registered successfully',
+      success: true,
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        lastname: newUser.lastname,
+        username: newUser.username,
+        email: authData.user.email,
+        role: role,
+        cardCode: finalCardCode
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Registration failed', message: 'Internal server error during registration' });
   }
 });
 

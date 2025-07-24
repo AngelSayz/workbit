@@ -1,205 +1,195 @@
-# WorkBit Web Application
+# WorkBit Web App
 
-Una aplicación web moderna para la gestión de espacios de trabajo y reservas, construida con React, Vite y Tailwind CSS, que se conecta con un backend ASP.NET.
+Sistema web de gestión inteligente de espacios de trabajo. Aplicación frontend desarrollada en React con Vite, diseñada para conectar con el backend de Node.js y Supabase Auth.
 
 ## 🚀 Características
 
-- **Autenticación JWT**: Sistema de login seguro con tokens
-- **Dashboard Interactivo**: Resumen en tiempo real de espacios y reservas
-- **Gestión de Espacios**: Visualización y control de estado de cubículos
-- **Sistema de Reservas**: Creación y gestión de reservas
-- **Roles de Usuario**: Admin, Técnico y Empleado con permisos diferenciados
-- **UI Moderna**: Interfaz responsive con animaciones suaves
-- **Componentes Reutilizables**: Arquitectura modular y escalable
+- **Diseño Minimalista**: Interface limpia con paleta de colores blanco y azul
+- **Autenticación Segura**: Integración con Supabase Auth y validación de roles
+- **Dashboard Administrativo**: Panel de control para administradores y técnicos
+- **Responsive**: Totalmente adaptable a dispositivos móviles
+- **Componentes Modulares**: Arquitectura escalable con componentes reutilizables
 
-## 🛠️ Tecnologías
+## 📋 Requisitos Previos
 
-- **Frontend**: React 18, Vite
-- **Estilos**: Tailwind CSS
-- **Estado Global**: Zustand
-- **Rutas**: React Router DOM
-- **HTTP Client**: Axios
-- **Animaciones**: Framer Motion
-- **Iconos**: Lucide React
+- Node.js 18+
+- Cuenta de Supabase configurada
+- Backend de WorkBit (Node.js) ejecutándose
 
-## 📋 Prerrequisitos
+## 🛠️ Instalación
 
-- Node.js 16+ y npm
-- Backend ASP.NET ejecutándose en `http://localhost:5000`
+### 1. Clonar el repositorio
+```bash
+git clone <tu-repositorio>
+cd workbit_web
+```
 
-## 🚀 Instalación
+### 2. Instalar dependencias
+```bash
+npm install
+```
 
-1. **Clonar el repositorio**
-   ```bash
-   git clone <repository-url>
-   cd workbit_web
-   ```
+### 3. Configurar variables de entorno
 
-2. **Instalar dependencias**
-   ```bash
-   npm install
-   ```
+Crea un archivo `.env` en la raíz del proyecto:
 
-3. **Configurar variables de entorno**
-   
-   Crea un archivo `.env.local` en la raíz del proyecto:
-   ```env
-   VITE_API_URL=http://localhost:5000/api
-   ```
+```env
+# API Configuration
+VITE_API_URL=http://localhost:3000
+VITE_API_BASE_URL=http://localhost:3000/api
 
-4. **Ejecutar en desarrollo**
-   ```bash
-   npm run dev
-   ```
+# Supabase Configuration
+VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+VITE_SUPABASE_ANON_KEY=tu-anon-key
 
-5. **Construir para producción**
-   ```bash
-   npm run build
-   ```
+# Environment
+VITE_NODE_ENV=development
+```
+
+### 4. Configurar Supabase
+
+1. Crea un proyecto en [Supabase](https://supabase.com)
+2. Ejecuta el schema SQL de la base de datos (database.sql)
+3. Configura la autenticación en Supabase
+4. Actualiza las variables de entorno con tus credenciales
+
+## 🚀 Desarrollo
+
+### Iniciar servidor de desarrollo
+```bash
+npm run dev
+```
+
+La aplicación estará disponible en `http://localhost:5173`
+
+### Compilar para producción
+```bash
+npm run build
+```
+
+### Vista previa de producción
+```bash
+npm run preview
+```
+
+## 🔐 Autenticación y Roles
+
+La aplicación utiliza un sistema de autenticación de doble validación:
+
+1. **Supabase Auth**: Manejo de sesiones y tokens
+2. **Validación de Roles**: Solo usuarios con roles `admin` o `technician` pueden acceder
+
+### Roles Soportados
+- `admin`: Acceso completo al sistema
+- `technician`: Acceso limitado sin gestión de usuarios
 
 ## 📁 Estructura del Proyecto
 
 ```
-src/
-├── api/                    # Configuración de Axios y llamadas API
-│   └── apiService.js       # Servicios centralizados de API
-├── components/
-│   ├── ui/                 # Componentes base reutilizables
-│   │   ├── Button.jsx
-│   │   ├── Input.jsx
-│   │   ├── Card.jsx
-│   │   ├── Modal.jsx
-│   │   └── LoadingSpinner.jsx
-│   └── layout/             # Componentes de layout
-│       └── Sidebar.jsx
-├── features/
-│   └── auth/               # Lógica de autenticación
-│       └── ProtectedRoute.jsx
-├── hooks/                  # Hooks personalizados
-│   ├── useAuth.js
-│   └── useApi.js
-├── lib/                    # Utilidades y constantes
-│   ├── constants.js
-│   └── utils.js
-├── pages/                  # Páginas principales
-│   ├── LoginPage.jsx
-│   └── dashboard/
-│       ├── DashboardLayout.jsx
-│       └── OverviewPage.jsx
-├── store/                  # Estado global con Zustand
-│   └── userStore.js
-└── App.jsx                 # Configuración de rutas principales
+workbit_web/
+├── src/
+│   ├── api/              # Servicios de API
+│   ├── components/       # Componentes reutilizables
+│   │   ├── layout/       # Navbar, Footer, etc.
+│   │   ├── sections/     # Secciones de la landing page
+│   │   └── ui/           # Componentes base (Button, Input, etc.)
+│   ├── features/         # Características específicas
+│   │   └── auth/         # Autenticación
+│   ├── hooks/            # React hooks personalizados
+│   ├── lib/              # Utilidades y configuraciones
+│   ├── pages/            # Páginas principales
+│   │   └── dashboard/    # Páginas del dashboard
+│   └── store/            # Estado global
+├── public/               # Archivos estáticos
+└── vercel.json          # Configuración para Vercel
 ```
 
-## 🔑 Funcionalidades Principales
+## 🌐 Deploy en Vercel
 
-### Autenticación
-- Login con email y contraseña
-- Gestión automática de tokens JWT
-- Rutas protegidas por roles
-- Persistencia de sesión
+### 1. Configuración automática
+```bash
+# Instalar Vercel CLI
+npm i -g vercel
 
-### Dashboard
-- Resumen de estadísticas en tiempo real
-- Tarjetas de espacios con estados
-- Lista de reservas recientes
-- Navegación contextual por rol
+# Deploy desde el directorio del proyecto
+vercel
+```
 
-### Gestión de Espacios
-- Visualización de todos los espacios
-- Cambio de estado (disponible, ocupado, mantenimiento)
-- Filtros y búsqueda
-- Información detallada por espacio
+### 2. Variables de entorno en Vercel
+Configura las siguientes variables en el dashboard de Vercel:
 
-### Sistema de Reservas
-- Creación de nuevas reservas
-- Gestión de estados (pendiente, activa, cancelada)
-- Calendario de disponibilidad
-- Historial de reservas
+- `VITE_API_URL`: URL de tu backend de producción
+- `VITE_API_BASE_URL`: URL base de la API
+- `VITE_SUPABASE_URL`: URL de tu proyecto Supabase
+- `VITE_SUPABASE_ANON_KEY`: Clave anónima de Supabase
 
-## 🔧 Configuración de API
+### 3. Configuración del Backend
+Asegúrate de que tu backend de Node.js esté desplegado y configurado con:
+- CORS habilitado para tu dominio de Vercel
+- Variables de entorno correctas en producción
 
-El frontend se conecta al backend ASP.NET mediante los siguientes endpoints:
+## 🔧 API Backend
 
-- **POST** `/api/account/login` - Autenticación
-- **GET** `/api/account/profile` - Perfil del usuario
-- **GET** `/api/spaces` - Lista de espacios
-- **PUT** `/api/spaces/{id}/status` - Actualizar estado de espacio
-- **GET** `/api/reservations` - Lista de reservas
-- **POST** `/api/reservations` - Crear reserva
-- **GET** `/api/users` - Lista de usuarios (Admin)
+Esta aplicación se conecta con el backend de Node.js de WorkBit. Asegúrate de que esté ejecutándose con los siguientes endpoints:
 
-## 👥 Roles y Permisos
+- `POST /login` - Autenticación de usuarios
+- `GET /api/users` - Gestión de usuarios
+- `GET /api/spaces` - Gestión de espacios
+- `GET /api/reservations` - Gestión de reservas
 
-### Administrador
-- Acceso completo a todas las funcionalidades
-- Gestión de usuarios
-- Panel de administración
-- Control total de espacios y reservas
+## 🎨 Personalización
 
-### Técnico
-- Gestión de espacios y estados
-- Gestión de reservas
-- Panel técnico especializado
-- Sin acceso a gestión de usuarios
+### Colores
+La aplicación usa una paleta de colores azul y blanco. Para personalizar:
 
-### Empleado
-- Visualización de espacios
-- Creación de reservas propias
-- Consulta de información básica
+1. Edita `tailwind.config.js` para modificar los colores
+2. Los colores principales están en las clases `blue-*`
 
-## 🎨 Sistema de Diseño
+### Componentes
+- Los componentes UI base están en `src/components/ui/`
+- Las secciones de la landing page en `src/components/sections/`
+- El layout del dashboard en `src/pages/dashboard/`
 
-El proyecto utiliza un sistema de diseño consistente basado en:
+## 📝 Scripts Disponibles
 
-- **Colores**: Paleta azul como color primario
-- **Tipografía**: Sistema tipográfico escalable
-- **Espaciado**: Grid system basado en Tailwind
-- **Componentes**: Biblioteca de componentes reutilizables
-- **Animaciones**: Transiciones suaves con Framer Motion
+- `npm run dev` - Servidor de desarrollo
+- `npm run build` - Compilar para producción
+- `npm run preview` - Vista previa de producción
+- `npm run lint` - Ejecutar ESLint
 
-## 🔄 Estado Global
+## 🔍 Solución de Problemas
 
-El estado se gestiona con Zustand y incluye:
+### Error de CORS
+Si recibes errores de CORS, verifica que:
+- El backend tenga configurado CORS para tu dominio
+- Las URLs en las variables de entorno sean correctas
 
-- **Usuario**: Datos del usuario autenticado
-- **Autenticación**: Token y estado de sesión
-- **Roles**: Permisos y validaciones
+### Error de Autenticación
+Si el login falla:
+- Verifica que Supabase esté configurado correctamente
+- Asegúrate de que el usuario tenga rol `admin` o `technician`
+- Revisa que el backend esté ejecutándose
 
-## 📱 Responsive Design
+### Error 404 en Vercel
+Si las rutas no funcionan en Vercel:
+- Verifica que `vercel.json` esté presente
+- Asegúrate de que las rewrites estén configuradas
 
-La aplicación está optimizada para:
-- Desktop (1024px+)
-- Tablet (768px - 1023px)
-- Mobile (320px - 767px)
-
-## 🧪 Próximas Funcionalidades
-
-- [ ] Notificaciones en tiempo real
-- [ ] Sistema de reportes
-- [ ] Integración con calendario externo
-- [ ] Modo oscuro
-- [ ] PWA (Progressive Web App)
-- [ ] Internacionalización completa
-
-## 🤝 Contribuir
+## 🤝 Contribución
 
 1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
+2. Crea una rama para tu feature (`git checkout -b feature/nueva-caracteristica`)
+3. Commit tus cambios (`git commit -m 'Agregar nueva característica'`)
+4. Push a la rama (`git push origin feature/nueva-caracteristica`)
 5. Abre un Pull Request
 
 ## 📄 Licencia
 
-Este proyecto está bajo la licencia MIT. Ver el archivo `LICENSE` para más detalles.
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
-## 📞 Soporte
+## 🆘 Soporte
 
-Para soporte técnico o consultas:
-- Crear un issue en el repositorio
-- Contactar al equipo de desarrollo
-
----
-
-Desarrollado con ❤️ para WorkBit
+Si necesitas ayuda:
+1. Revisa la documentación del backend de Node.js
+2. Verifica la configuración de Supabase
+3. Consulta los logs de desarrollo en la consola del navegador
