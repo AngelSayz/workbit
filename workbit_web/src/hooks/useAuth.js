@@ -46,10 +46,10 @@ export const useAuth = () => {
     try {
       setLoading(true)
       
-      // Get JWT token and user data from our backend
-      const response = await authAPI.login(authUser.email, '')
+      // Get user profile from our backend using the Supabase user ID
+      const response = await authAPI.getUserBySupabaseId(authUser.id)
       
-      if (response.token && response.user) {
+      if (response.user) {
         // Store JWT token for API calls
         localStorage.setItem('workbit_token', response.token)
         

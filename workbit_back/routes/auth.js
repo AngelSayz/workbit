@@ -583,4 +583,97 @@ router.post('/logout', async (req, res) => {
   }
 });
 
+// POST /api/auth/user-by-supabase-id - Get user data by Supabase user ID
+router.post('/user-by-supabase-id', [
+  body('supabaseUserId').isUUID().withMessage('Valid Supabase user ID is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { supabaseUserId } = req.body;
+
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed',
+        message: 'Unable to connect to database'
+      });
+    }
+
+    // Get user profile data from our users table using the auth user_id
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select(`
+        id,
+        name,
+        lastname,
+        username,
+        user_id,
+        created_at,
+        roles(id, name),
+        codecards(id, code)
+      `)
+      .eq('user_id', supabaseUserId);
+
+    if (userError) {
+      console.error('Database error:', userError);
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Failed to query user database'
+      });
+    }
+
+    if (!users || users.length === 0) {
+      return res.status(401).json({
+        error: 'User not found',
+        message: 'User profile not found in system'
+      });
+    }
+
+    const user = users[0];
+
+    // Generate JWT token for our internal API
+    const token = jwt.sign(
+      { 
+        userId: user.id,
+        username: user.username,
+        role: user.roles?.name || 'user',
+        supabaseUserId: supabaseUserId
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Prepare user response
+    const userResponse = {
+      id: user.id,
+      name: user.name,
+      lastname: user.lastname,
+      username: user.username,
+      role: user.roles?.name || 'user',
+      cardCode: user.codecards?.code || null,
+      created_at: user.created_at
+    };
+
+    res.json({
+      message: 'User data retrieved successfully',
+      token,
+      user: userResponse,
+      expiresIn: '24h'
+    });
+
+  } catch (error) {
+    console.error('Get user by Supabase ID error:', error);
+    res.status(500).json({
+      error: 'Failed to get user data',
+      message: 'Internal server error'
+    });
+  }
+});
+
 module.exports = router; 

@@ -46,6 +46,13 @@ export const authAPI = {
     return response.data;
   },
   
+  getUserBySupabaseId: async (supabaseUserId) => {
+    const response = await axios.post(`${API_URL}/api/auth/user-by-supabase-id`, { 
+      supabaseUserId 
+    });
+    return response.data;
+  },
+  
   register: async (userData) => {
     const response = await apiClient.post('/auth/register', userData);
     return response.data;
