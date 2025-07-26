@@ -78,8 +78,8 @@ const Footer = () => {
     <footer className="bg-gray-900 text-white border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
-        <div className="py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+        <div className="py-12 md:py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 md:gap-12">
             {/* Company Info */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -89,20 +89,20 @@ const Footer = () => {
               className="lg:col-span-1"
             >
               {/* Logo */}
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">W</span>
+              <div className="flex items-center space-x-2 mb-4 md:mb-6">
+                <div className="h-8 w-8 md:h-10 md:w-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm md:text-lg">W</span>
                 </div>
-                <span className="text-2xl font-bold">WorkBit</span>
+                <span className="text-xl md:text-2xl font-bold">WorkBit</span>
               </div>
 
-              <p className="text-gray-400 mb-6 leading-relaxed font-light">
+              <p className="text-sm md:text-base text-gray-400 mb-4 md:mb-6 leading-relaxed font-light">
                 Revolucionamos la gestión de espacios de trabajo con tecnología 
                 IoT avanzada y una plataforma intuitiva para empresas modernas.
               </p>
 
               {/* Contact Info */}
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {contactInfo.map((item, index) => {
                   const Icon = item.icon;
                   return (
@@ -110,9 +110,9 @@ const Footer = () => {
                       key={index}
                       href={item.href}
                       whileHover={{ x: 5 }}
-                      className="flex items-center space-x-3 text-gray-400 hover:text-blue-400 transition-colors"
+                      className="flex items-center space-x-2 md:space-x-3 text-gray-400 hover:text-blue-400 transition-colors text-sm md:text-base"
                     >
-                      <Icon size={16} />
+                      <Icon size={14} className="md:w-4 md:h-4" />
                       <span>{item.text}</span>
                     </motion.a>
                   );
@@ -121,7 +121,7 @@ const Footer = () => {
             </motion.div>
 
             {/* Links Sections */}
-            <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
               {/* Producto */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -129,13 +129,13 @@ const Footer = () => {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 viewport={{ once: true }}
               >
-                <h3 className="text-lg font-semibold mb-4">Producto</h3>
-                <ul className="space-y-3">
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Producto</h3>
+                <ul className="space-y-2 md:space-y-3">
                   {footerLinks.product.map((link) => (
                     <li key={link.name}>
                       <button
                         onClick={() => scrollToSection(link.href)}
-                        className="text-gray-400 hover:text-blue-400 transition-colors cursor-pointer"
+                        className="text-sm md:text-base text-gray-400 hover:text-blue-400 transition-colors cursor-pointer"
                       >
                         {link.name}
                       </button>
@@ -151,13 +151,13 @@ const Footer = () => {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 viewport={{ once: true }}
               >
-                <h3 className="text-lg font-semibold mb-4">Empresa</h3>
-                <ul className="space-y-3">
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Empresa</h3>
+                <ul className="space-y-2 md:space-y-3">
                   {footerLinks.company.map((link) => (
                     <li key={link.name}>
                       <Link
                         to={link.href}
-                        className="text-gray-400 hover:text-blue-400 transition-colors"
+                        className="text-sm md:text-base text-gray-400 hover:text-blue-400 transition-colors"
                       >
                         {link.name}
                       </Link>
@@ -173,21 +173,21 @@ const Footer = () => {
                 transition={{ duration: 0.6, delay: 0.3 }}
                 viewport={{ once: true }}
               >
-                <h3 className="text-lg font-semibold mb-4">Soporte</h3>
-                <ul className="space-y-3">
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Soporte</h3>
+                <ul className="space-y-2 md:space-y-3">
                   {footerLinks.support.map((link) => (
                     <li key={link.name}>
                       {link.href.startsWith('#') ? (
                         <button
                           onClick={() => scrollToSection(link.href)}
-                          className="text-gray-400 hover:text-blue-400 transition-colors cursor-pointer"
+                          className="text-sm md:text-base text-gray-400 hover:text-blue-400 transition-colors cursor-pointer"
                         >
                           {link.name}
                         </button>
                       ) : (
                         <Link
                           to={link.href}
-                          className="text-gray-400 hover:text-blue-400 transition-colors"
+                          className="text-sm md:text-base text-gray-400 hover:text-blue-400 transition-colors"
                         >
                           {link.name}
                         </Link>
@@ -204,13 +204,13 @@ const Footer = () => {
                 transition={{ duration: 0.6, delay: 0.4 }}
                 viewport={{ once: true }}
               >
-                <h3 className="text-lg font-semibold mb-4">Legal</h3>
-                <ul className="space-y-3">
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Legal</h3>
+                <ul className="space-y-2 md:space-y-3">
                   {footerLinks.legal.map((link) => (
                     <li key={link.name}>
                       <Link
                         to={link.href}
-                        className="text-gray-400 hover:text-blue-400 transition-colors"
+                        className="text-sm md:text-base text-gray-400 hover:text-blue-400 transition-colors"
                       >
                         {link.name}
                       </Link>
@@ -228,16 +228,16 @@ const Footer = () => {
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.5 }}
           viewport={{ once: true }}
-          className="border-t border-gray-800 py-8"
+          className="border-t border-gray-800 py-6 md:py-8"
         >
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             {/* Copyright */}
-            <div className="text-gray-400 text-sm">
+            <div className="text-gray-400 text-xs md:text-sm text-center md:text-left">
               © 2024 WorkBit. Todos los derechos reservados.
             </div>
 
             {/* Social Links */}
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4 md:space-x-6">
               {socialLinks.map((social) => {
                 const Icon = social.icon;
                 return (
@@ -251,15 +251,15 @@ const Footer = () => {
                     className="text-gray-400 hover:text-blue-400 transition-colors"
                     aria-label={social.name}
                   >
-                    <Icon size={20} />
+                    <Icon size={18} className="md:w-5 md:h-5" />
                   </motion.a>
                 );
               })}
             </div>
 
             {/* Language Selector */}
-            <div className="text-gray-400 text-sm">
-              <select className="bg-transparent border border-gray-700 rounded px-2 py-1 text-sm">
+            <div className="text-gray-400 text-xs md:text-sm">
+              <select className="bg-transparent border border-gray-700 rounded px-2 py-1 text-xs md:text-sm">
                 <option value="es">🇪🇸 Español</option>
                 <option value="en">🇺🇸 English</option>
                 <option value="fr">🇫🇷 Français</option>

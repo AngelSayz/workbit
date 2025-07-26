@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 
 // Pages
@@ -7,35 +7,62 @@ import LoginPage from './pages/LoginPage';
 import DashboardLayout from './pages/dashboard/DashboardLayout';
 import OverviewPage from './pages/dashboard/OverviewPage';
 import UsersPage from './pages/dashboard/UsersPage';
+import FirstSetupPage from './pages/FirstSetupPage';
 
 // Components
 import ProtectedRoute from './features/auth/ProtectedRoute';
 import RoleGuard from './features/auth/RoleGuard';
 import SetupGuard from './components/layout/SetupGuard';
+import MobileBlock from './components/MobileBlock';
+import useMobile from './hooks/useMobile';
 
 function App() {
+  const isMobile = useMobile();
+
   return (
     <Router>
       <div className="App">
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
+          
+          {/* Bloquear acceso al login desde móviles */}
           <Route 
             path="/login" 
             element={
-              <SetupGuard>
-                <LoginPage />
-              </SetupGuard>
+              isMobile ? (
+                <MobileBlock />
+              ) : (
+                <SetupGuard>
+                  <LoginPage />
+                </SetupGuard>
+              )
             } 
           />
           
-          {/* Protected Dashboard Routes - Solo proteger la ruta principal */}
+          {/* Bloquear acceso al setup desde móviles */}
+          <Route 
+            path="/setup" 
+            element={
+              isMobile ? (
+                <MobileBlock />
+              ) : (
+                <FirstSetupPage />
+              )
+            } 
+          />
+          
+          {/* Bloquear acceso al dashboard desde móviles */}
           <Route 
             path="/dashboard" 
             element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
+              isMobile ? (
+                <MobileBlock />
+              ) : (
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              )
             }
           >
             {/* Dashboard Pages - Sin protección adicional */}
@@ -57,8 +84,8 @@ function App() {
               element={
                 <div className="w-full h-full p-6">
                   <div className="text-center py-12">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Gestión de Espacios</h1>
-                    <p className="text-gray-600">Esta página estará disponible pronto...</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Gestión de Espacios</h2>
+                    <p className="text-gray-600">Funcionalidad en desarrollo...</p>
                   </div>
                 </div>
               } 
@@ -69,8 +96,8 @@ function App() {
               element={
                 <div className="w-full h-full p-6">
                   <div className="text-center py-12">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Gestión de Reservas</h1>
-                    <p className="text-gray-600">Esta página estará disponible pronto...</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Reservas</h2>
+                    <p className="text-gray-600">Funcionalidad en desarrollo...</p>
                   </div>
                 </div>
               } 
@@ -81,15 +108,15 @@ function App() {
               element={
                 <div className="w-full h-full p-6">
                   <div className="text-center py-12">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Configuración</h1>
-                    <p className="text-gray-600">Esta página estará disponible pronto...</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Configuración</h2>
+                    <p className="text-gray-600">Funcionalidad en desarrollo...</p>
                   </div>
                 </div>
               } 
             />
             
             {/* Default redirect to overview */}
-            <Route path="" element={<Navigate to="overview" replace />} />
+            <Route path="" element={<OverviewPage />} />
           </Route>
           
           {/* 404 Route */}

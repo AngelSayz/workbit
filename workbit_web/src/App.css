@@ -104,3 +104,65 @@ body {
 .read-the-docs {
   color: #888;
 }
+
+/* Estilos específicos para móviles */
+@media (max-width: 768px) {
+  /* Mejorar la legibilidad en móviles */
+  body {
+    font-size: 16px; /* Evita zoom en iOS */
+  }
+  
+  /* Ajustar espaciado en móviles */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Mejorar botones en móviles */
+  button, .btn {
+    min-height: 44px; /* Tamaño mínimo para touch */
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Ajustar inputs en móviles */
+  input, textarea, select {
+    font-size: 16px; /* Evita zoom en iOS */
+    padding: 0.75rem;
+  }
+  
+  /* Mejorar navegación móvil */
+  .mobile-nav {
+    padding: 1rem;
+  }
+  
+  /* Ajustar cards en móviles */
+  .card {
+    margin-bottom: 1rem;
+    padding: 1rem;
+  }
+  
+  /* Mejorar espaciado de texto en móviles */
+  h1 { font-size: 1.75rem; line-height: 1.2; }
+  h2 { font-size: 1.5rem; line-height: 1.3; }
+  h3 { font-size: 1.25rem; line-height: 1.4; }
+  p { line-height: 1.6; }
+}
+
+/* Mejoras de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mejoras para pantallas de alta densidad */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Optimizar para pantallas Retina */
+}
+
+/* Mejoras para modo oscuro del sistema */
+@media (prefers-color-scheme: dark) {
+  /* Futuras implementaciones de modo oscuro */
+}
