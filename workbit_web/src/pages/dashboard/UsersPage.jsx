@@ -62,7 +62,8 @@ const UsersPage = () => {
     setFormError('');
 
     try {
-      const response = await authAPI.register(newUser);
+      // Usar el nuevo método adminRegister que permite especificar el rol
+      const response = await authAPI.adminRegister(newUser);
       
       if (response.message || response.success) {
         // Reload users list

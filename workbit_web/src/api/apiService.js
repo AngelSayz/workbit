@@ -42,19 +42,12 @@ apiClient.interceptors.response.use(
 // Funciones de autenticación
 export const authAPI = {
   login: async (email, password) => {
-    const response = await axios.post(`${API_URL}/login`, { email, password });
+    const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
     return response.data;
   },
-  
-  getUserBySupabaseId: async (supabaseUserId) => {
-    const response = await axios.post(`${API_URL}/api/auth/user-by-supabase-id`, { 
-      supabaseUserId 
-    });
-    return response.data;
-  },
-  
+
   register: async (userData) => {
-    const response = await apiClient.post('/auth/register', userData);
+    const response = await axios.post(`${API_URL}/api/auth/register`, userData);
     return response.data;
   },
 
@@ -63,24 +56,44 @@ export const authAPI = {
     return response.data;
   },
 
-  checkAdminExists: async () => {
-    try {
-      const response = await axios.get(`${API_URL}/api/auth/admin-exists`);
-      return response.data;
-    } catch (error) {
-      console.error('Error checking admin exists:', error);
-      return { hasAdmin: true }; // Fail safe - si hay error, asumir que sí hay admin
-    }
-  },
-  
-  getProfile: async () => {
-    const response = await apiClient.get('/users/profile');
+  // Nuevo método para registro de usuarios por administradores
+  adminRegister: async (userData) => {
+    const token = localStorage.getItem('workbit_token');
+    const response = await axios.post(`${API_URL}/api/auth/admin-register`, userData, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     return response.data;
   },
-  
+
+  getUserBySupabaseId: async (supabaseUserId) => {
+    const response = await axios.post(`${API_URL}/api/auth/user-by-supabase-id`, { 
+      supabaseUserId 
+    });
+    return response.data;
+  },
+
+  checkAdminExists: async () => {
+    const response = await axios.get(`${API_URL}/api/auth/admin-exists`);
+    return response.data;
+  },
+
   logout: async () => {
+    const token = localStorage.getItem('workbit_token');
+    if (token) {
+      try {
+        await axios.post(`${API_URL}/api/auth/logout`, {}, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    }
     localStorage.removeItem('workbit_token');
-    return Promise.resolve();
+    localStorage.removeItem('workbit_user');
   }
 };
 
