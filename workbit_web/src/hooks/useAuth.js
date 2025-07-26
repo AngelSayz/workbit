@@ -6,6 +6,7 @@ export const useAuth = () => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
     // Get initial session
@@ -16,11 +17,13 @@ export const useAuth = () => {
           await handleAuthUser(session.user)
         } else {
           setLoading(false)
+          setIsInitialized(true)
         }
       } catch (err) {
         console.error('Error getting session:', err)
         setError('Error loading authentication')
         setLoading(false)
+        setIsInitialized(true)
       }
     }
 
@@ -29,12 +32,15 @@ export const useAuth = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email)
+        
         if (session?.user) {
           await handleAuthUser(session.user)
         } else {
           setUser(null)
           setLoading(false)
           localStorage.removeItem('workbit_token')
+          setIsInitialized(true)
         }
       }
     )
@@ -44,14 +50,41 @@ export const useAuth = () => {
 
   const handleAuthUser = async (authUser) => {
     try {
-      setLoading(true)
+      // Solo hacer loading si es la primera vez
+      if (!isInitialized) {
+        setLoading(true)
+      }
+      
+      // Verificar si ya tenemos los datos del usuario en localStorage
+      const cachedUser = localStorage.getItem('workbit_user')
+      const cachedToken = localStorage.getItem('workbit_token')
+      
+      if (cachedUser && cachedToken && !isInitialized) {
+        try {
+          const userData = JSON.parse(cachedUser)
+          // Verificar que el usuario cacheado corresponde al usuario actual de Supabase
+          if (userData.supabaseUserId === authUser.id) {
+            setUser(userData)
+            setError(null)
+            setLoading(false)
+            setIsInitialized(true)
+            return
+          }
+        } catch (e) {
+          // Si hay error al parsear, continuar con la llamada al backend
+        }
+      }
       
       // Get user profile from our backend using the Supabase user ID
       const response = await authAPI.getUserBySupabaseId(authUser.id)
       
       if (response.user) {
-        // Store JWT token for API calls
+        // Store JWT token and user data for future use
         localStorage.setItem('workbit_token', response.token)
+        localStorage.setItem('workbit_user', JSON.stringify({
+          ...response.user,
+          supabaseUserId: authUser.id
+        }))
         
         // Check if user has admin or technician role
         const allowedRoles = ['admin', 'technician']
@@ -76,6 +109,7 @@ export const useAuth = () => {
       setUser(null)
     } finally {
       setLoading(false)
+      setIsInitialized(true)
     }
   }
 
@@ -106,6 +140,7 @@ export const useAuth = () => {
       setLoading(true)
       await supabase.auth.signOut()
       localStorage.removeItem('workbit_token')
+      localStorage.removeItem('workbit_user')
       setUser(null)
       setError(null)
     } catch (err) {

@@ -179,8 +179,12 @@ async function startServer() {
       console.log('✅ Supabase connected');
     }
     
-    // Start MQTT client
-    console.log('✅ MQTT client initialized');
+    // MQTT status (solo mostrar si está configurado)
+    if (process.env.MQTT_BROKER_URL) {
+      console.log(`✅ MQTT client initialized (${mqttClient.connected ? 'connected' : 'disconnected'})`);
+    } else {
+      console.log('ℹ️ MQTT not configured');
+    }
     
     // Start server
     app.listen(PORT, '0.0.0.0', () => {
@@ -191,7 +195,7 @@ async function startServer() {
     });
     
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    console.error('❌ Failed to start server:', error.message);
     process.exit(1);
   }
 }
@@ -199,11 +203,19 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('🛑 SIGTERM received, shutting down gracefully...');
+  // Cerrar conexiones antes de salir
+  if (mqttClient && mqttClient.end) {
+    mqttClient.end();
+  }
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   console.log('🛑 SIGINT received, shutting down gracefully...');
+  // Cerrar conexiones antes de salir
+  if (mqttClient && mqttClient.end) {
+    mqttClient.end();
+  }
   process.exit(0);
 });
 

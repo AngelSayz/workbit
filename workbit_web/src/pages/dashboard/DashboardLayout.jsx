@@ -63,14 +63,9 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <motion.div
-        initial={{ x: -300 }}
-        animate={{ x: sidebarOpen ? 0 : -300 }}
-        transition={{ duration: 0.3 }}
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform lg:translate-x-0 lg:static lg:inset-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 transition duration-200 ease-in-out`}
-      >
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
@@ -101,24 +96,21 @@ const DashboardLayout = () => {
                       : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
                   }`}
                 >
-                  <Icon 
-                    size={20} 
-                    className={`mr-3 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} 
-                  />
+                  <Icon size={20} className="mr-3" />
                   {item.name}
                 </a>
               );
             })}
           </nav>
 
-          {/* User Info & Logout */}
+          {/* User Profile & Logout */}
           <div className="border-t border-gray-200 p-4">
             <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <User size={20} className="text-blue-600" />
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                <User size={16} className="text-blue-600" />
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
                   {user?.name} {user?.lastname}
                 </p>
                 <p className="text-xs text-gray-500 capitalize">
@@ -126,64 +118,48 @@ const DashboardLayout = () => {
                 </p>
               </div>
             </div>
-            
             <button
               onClick={handleLogout}
-              className="w-full flex items-center px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              className="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-red-600 rounded-lg transition-colors duration-200"
             >
-              <LogOut size={20} className="mr-3" />
+              <LogOut size={16} className="mr-3" />
               Cerrar Sesión
             </button>
           </div>
         </div>
-      </motion.div>
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        >
-          <div className="absolute inset-0 bg-gray-600 opacity-75" />
-        </div>
-      )}
+      </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
-        {/* Top Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 h-16">
-          <div className="flex items-center justify-between h-full px-6">
+      <div className="flex-1 flex flex-col lg:ml-0">
+        {/* Top Bar */}
+        <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
+          <div className="flex items-center justify-between h-16 px-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700"
             >
               <Menu size={24} />
             </button>
-            
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:block">
-                <h1 className="text-lg font-semibold text-gray-900">
-                  Sistema de Gestión WorkBit
-                </h1>
-              </div>
+            <div className="text-lg font-bold text-blue-600">
+              WorkBit
             </div>
-
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
-                <span>Bienvenido,</span>
-                <span className="font-medium">{user?.name}</span>
-              </div>
-            </div>
+            <div className="w-6"></div> {/* Spacer for centering */}
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            <Outlet />
-          </div>
+        <main className="flex-1 w-full">
+          <Outlet />
         </main>
       </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-gray-600 bg-opacity-75 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };

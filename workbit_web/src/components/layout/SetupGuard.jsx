@@ -12,11 +12,18 @@ const SetupGuard = ({ children }) => {
 
   const checkSystemSetup = async () => {
     try {
+      console.log('🔍 Verificando si existe un administrador en el sistema...');
       const response = await authAPI.checkAdminExists();
       setNeedsSetup(!response.hasAdmin);
+      
+      if (!response.hasAdmin) {
+        console.log('⚠️ No se encontraron administradores. Mostrando página de configuración inicial.');
+      } else {
+        console.log('✅ Se encontraron administradores. Continuando con el login normal.');
+      }
     } catch (error) {
-      console.error('Error checking system setup:', error);
-      // En caso de error, asumir que el sistema está configurado
+      console.error('❌ Error verificando configuración del sistema:', error);
+      // En caso de error, asumir que el sistema está configurado para evitar bloqueos
       setNeedsSetup(false);
     } finally {
       setLoading(false);

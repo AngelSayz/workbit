@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 const ProtectedRoute = ({ children, requiredRole = null }) => {
   const { user, loading, isAuthenticated } = useAuth();
 
-  if (loading) {
+  // Solo mostrar loading en la primera carga
+  if (loading && !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <motion.div
@@ -20,11 +21,12 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
     );
   }
 
+  // Si no está autenticado, redirigir al login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Check required role if specified
+  // Si está autenticado pero no tiene el rol requerido
   if (requiredRole && user?.role !== requiredRole) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -48,6 +50,7 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
     );
   }
 
+  // Si está autenticado y tiene los permisos, mostrar el contenido
   return children;
 };
 

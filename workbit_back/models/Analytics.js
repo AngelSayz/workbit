@@ -4,8 +4,7 @@ const mongoose = require('mongoose');
 const spaceUsageSchema = new mongoose.Schema({
   space_id: {
     type: Number,
-    required: true,
-    index: true
+    required: true
   },
   space_name: {
     type: String,
@@ -13,8 +12,7 @@ const spaceUsageSchema = new mongoose.Schema({
   },
   date: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   total_reservations: {
     type: Number,
@@ -50,8 +48,7 @@ const spaceUsageSchema = new mongoose.Schema({
 const userActivitySchema = new mongoose.Schema({
   user_id: {
     type: Number,
-    required: true,
-    index: true
+    required: true
   },
   username: {
     type: String,
@@ -59,8 +56,7 @@ const userActivitySchema = new mongoose.Schema({
   },
   date: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   total_reservations: {
     type: Number,
@@ -96,8 +92,7 @@ const userActivitySchema = new mongoose.Schema({
 const systemMetricsSchema = new mongoose.Schema({
   date: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   total_users: {
     type: Number,
@@ -157,20 +152,16 @@ const eventLogSchema = new mongoose.Schema({
   event_type: {
     type: String,
     required: true,
-    enum: ['space_access', 'space_exit', 'reservation_created', 'reservation_cancelled', 'reservation_confirmed', 'space_status_changed', 'user_login', 'system_alert'],
-    index: true
+    enum: ['space_access', 'space_exit', 'reservation_created', 'reservation_cancelled', 'reservation_confirmed', 'space_status_changed', 'user_login', 'system_alert']
   },
   user_id: {
-    type: Number,
-    index: true
+    type: Number
   },
   space_id: {
-    type: Number,
-    index: true
+    type: Number
   },
   reservation_id: {
-    type: Number,
-    index: true
+    type: Number
   },
   event_data: {
     type: mongoose.Schema.Types.Mixed, // Flexible data storage
@@ -178,8 +169,7 @@ const eventLogSchema = new mongoose.Schema({
   },
   timestamp: {
     type: Date,
-    default: Date.now,
-    index: true
+    default: Date.now
   },
   source: {
     type: String,
@@ -199,8 +189,7 @@ const eventLogSchema = new mongoose.Schema({
 const performanceMetricsSchema = new mongoose.Schema({
   endpoint: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   method: {
     type: String,
@@ -226,8 +215,7 @@ const performanceMetricsSchema = new mongoose.Schema({
   },
   timestamp: {
     type: Date,
-    default: Date.now,
-    index: true
+    default: Date.now
   },
   error_message: {
     type: String
@@ -236,7 +224,7 @@ const performanceMetricsSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Create indexes for better query performance
+// Create indexes for better query performance (sin duplicados)
 spaceUsageSchema.index({ space_id: 1, date: 1 }, { unique: true });
 userActivitySchema.index({ user_id: 1, date: 1 }, { unique: true });
 systemMetricsSchema.index({ date: 1 }, { unique: true });

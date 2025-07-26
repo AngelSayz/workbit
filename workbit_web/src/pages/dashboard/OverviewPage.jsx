@@ -40,7 +40,7 @@ const OverviewPage = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="w-full h-full p-6 space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -98,45 +98,25 @@ const OverviewPage = () => {
         className="bg-white rounded-xl shadow-sm border border-gray-200 p-8"
       >
         <div className="text-center">
-          <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Construction className="w-10 h-10 text-blue-600" />
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Construction className="w-8 h-8 text-blue-600" />
           </div>
-          
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Dashboard en Desarrollo
+            Funcionalidades en Desarrollo
           </h2>
-          
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            Estamos trabajando en las funcionalidades completas del dashboard. 
-            Pronto tendrás acceso a métricas en tiempo real, análisis detallados 
-            y herramientas de gestión avanzadas.
+            Estamos trabajando en implementar todas las funcionalidades del dashboard. 
+            Pronto tendrás acceso completo a la gestión de espacios, reservas y usuarios.
           </p>
-
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
-            <Clock size={16} />
-            <span>Funcionalidades disponibles próximamente</span>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Welcome Message */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.4 }}
-        className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-blue-900 mb-1">
-              ¡Bienvenido, {user?.name}!
-            </h3>
-            <p className="text-blue-700">
-              Has iniciado sesión como {user?.role}. Tu sesión está activa y segura.
-            </p>
-          </div>
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <Users className="w-6 h-6 text-blue-600" />
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center">
+              <Clock className="w-4 h-4 mr-2" />
+              <span>Próximamente</span>
+            </div>
+            <div className="flex items-center">
+              <Activity className="w-4 h-4 mr-2" />
+              <span>En desarrollo</span>
+            </div>
           </div>
         </div>
       </motion.div>

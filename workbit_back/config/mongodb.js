@@ -6,16 +6,19 @@ const connectMongoDB = async () => {
       throw new Error('MONGODB_URI not found in environment variables');
     }
 
+    // Configuración optimizada sin opciones deprecadas
     await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      // Removidas las opciones deprecadas useNewUrlParser y useUnifiedTopology
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
     });
 
     console.log('✅ MongoDB Atlas connected successfully');
     
     // Handle connection events
     mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err);
+      console.error('❌ MongoDB connection error:', err.message);
     });
 
     mongoose.connection.on('disconnected', () => {
