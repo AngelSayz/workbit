@@ -207,6 +207,10 @@
     "typing": "WorkBot está escribiendo...",
     "error": "Error al enviar mensaje. Por favor, intenta de nuevo.",
     "errorMessage": "Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.",
+    "rateLimitError": "Has alcanzado el límite de mensajes por minuto. Por favor, espera un momento antes de enviar otro mensaje.",
+    "timeoutError": "La solicitud tardó demasiado en procesarse. Por favor, intenta de nuevo.",
+    "serviceUnavailable": "El servicio de chat no está disponible temporalmente. Por favor, intenta más tarde.",
+    "tooFast": "Espera {{seconds}} segundos antes de enviar otro mensaje.",
     "suggestedQuestions": "Preguntas sugeridas:",
     "questions": {
       "what": "¿Qué es WorkBit?",

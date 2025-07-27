@@ -10,8 +10,12 @@ const ChatWidget = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [lastMessageTime, setLastMessageTime] = useState(0);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Minimum time between messages (2 seconds)
+  const MIN_MESSAGE_INTERVAL = 2000;
 
   // Load chat history from localStorage on component mount
   useEffect(() => {
@@ -49,6 +53,16 @@ const ChatWidget = () => {
     
     if (!inputMessage.trim() || isLoading) return;
 
+    // Check if enough time has passed since last message
+    const now = Date.now();
+    const timeSinceLastMessage = now - lastMessageTime;
+    
+    if (timeSinceLastMessage < MIN_MESSAGE_INTERVAL) {
+      const remainingTime = Math.ceil((MIN_MESSAGE_INTERVAL - timeSinceLastMessage) / 1000);
+      setError(t('chat.tooFast', { seconds: remainingTime }));
+      return;
+    }
+
     const userMessage = {
       id: Date.now(),
       content: inputMessage.trim(),
@@ -60,6 +74,7 @@ const ChatWidget = () => {
     setInputMessage('');
     setIsLoading(true);
     setError(null);
+    setLastMessageTime(now);
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat`, {
@@ -89,17 +104,29 @@ const ChatWidget = () => {
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
-             setError(t('chat.error'));
       
-      const errorMessage = {
+      let errorMessage = t('chat.errorMessage');
+      
+      // Handle specific error types
+      if (error.message.includes('429')) {
+        errorMessage = t('chat.rateLimitError');
+      } else if (error.message.includes('408')) {
+        errorMessage = t('chat.timeoutError');
+      } else if (error.message.includes('503')) {
+        errorMessage = t('chat.serviceUnavailable');
+      }
+      
+      setError(t('chat.error'));
+      
+      const errorBotMessage = {
         id: Date.now() + 1,
-                 content: t('chat.errorMessage'),
+        content: errorMessage,
         sender: 'bot',
         timestamp: new Date().toISOString(),
         isError: true
       };
       
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorBotMessage]);
     } finally {
       setIsLoading(false);
     }
