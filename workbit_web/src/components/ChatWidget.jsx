@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Loader2, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 // Simple markdown parser for basic formatting
@@ -181,7 +181,7 @@ const ChatWidget = () => {
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="fixed bottom-24 left-6 z-50 w-80 h-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col"
+            className="fixed bottom-24 left-6 z-50 w-120 h-144 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-2xl">
@@ -200,7 +200,7 @@ const ChatWidget = () => {
                    className="text-blue-100 hover:text-white transition-colors text-xs"
                    title={t('chat.clearTitle')}
                  >
-                   {t('chat.clear')}
+                   <Trash2 size={16} />
                  </button>
                 <button
                   onClick={() => setIsOpen(false)}
@@ -217,7 +217,6 @@ const ChatWidget = () => {
                 <div className="text-center text-gray-500 text-sm py-8">
                   <Bot className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                   <p>{t('chat.welcome')}</p>
-                  <p>{t('chat.welcomeSubtitle')}</p>
                   
                   {/* Suggested Questions */}
                   <div className="mt-6 space-y-2">
