@@ -49,7 +49,7 @@ router.post('/', [
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.FRONTEND_URL || 'https://workbit.com',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'https://workbit.vercel.app/',
           'X-Title': 'WorkBit Assistant'
         },
         timeout: 30000 // 30 seconds timeout
