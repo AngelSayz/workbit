@@ -3,12 +3,34 @@ const axios = require('axios');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
 
+// System prompt for WorkBot
+const SYSTEM_PROMPT = `Eres WorkBot, el asistente virtual oficial de WorkBit. Respondes de forma clara, breve y profesional a cualquier pregunta relacionada con el sistema.
+
+WorkBit es una solución modular e inteligente para la gestión de espacios de trabajo como cubículos, salas de estudio y oficinas privadas. Está diseñada para adaptarse a instituciones como escuelas, bibliotecas o empresas.
+
+El sistema incluye:
+- **Módulo de monitoreo ambiental**: sensor DHT22 (temperatura y humedad), sensor CCS811 (CO2 y calidad del aire), sensores infrarrojos de presencia, y un ESP32.
+- **Módulo de control de acceso**: lector RFID RC522, sensores infrarrojos para conteo de personas, y un ESP32.
+- Los espacios se reservan mediante una app y se gestionan desde la plataforma web.
+
+Tu objetivo es explicar el funcionamiento, características e integración de WorkBit. Si el usuario pregunta cómo contratar el sistema, infórmale que debe contactarnos a través del formulario que se encuentra en la página. Si pregunta por precios, indícale que los costos pueden variar según la institución y que debe comunicarse con nosotros para una cotización personalizada.
+
+Puedes responder en **español** o en **inglés**, dependiendo del idioma del usuario.
+
+Si el usuario hace preguntas irrelevantes o no relacionadas con WorkBit, redirígelo educadamente al propósito de la página.
+
+No inventes información. No respondas como si fueras humano. Mantente dentro del contexto de WorkBit en todo momento.`;
+
 // POST /api/chat - Chat with AI
 router.post('/', [
   body('message')
     .trim()
     .isLength({ min: 1, max: 1000 })
-    .withMessage('Message must be between 1 and 1000 characters')
+    .withMessage('Message must be between 1 and 1000 characters'),
+  body('language')
+    .optional()
+    .isIn(['es', 'en'])
+    .withMessage('Language must be either "es" or "en"')
 ], async (req, res) => {
   try {
     // Validate input
@@ -20,7 +42,7 @@ router.post('/', [
       });
     }
 
-    const { message } = req.body;
+    const { message, language = 'es' } = req.body;
     const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
@@ -35,11 +57,22 @@ router.post('/', [
       model: 'google/gemini-2.0-flash-exp:free',
       messages: [
         {
+          role: 'system',
+          content: SYSTEM_PROMPT
+        },
+        {
           role: 'user',
           content: message
         }
       ]
     };
+
+    // Add language instruction to the system prompt if specified
+    if (language === 'en') {
+      openRouterRequest.messages[0].content += '\n\nIMPORTANT: The user is communicating in English. Please respond in English and maintain a professional tone.';
+    } else {
+      openRouterRequest.messages[0].content += '\n\nIMPORTANT: The user is communicating in Spanish. Please respond in Spanish and maintain a professional tone.';
+    }
 
     // Make request to OpenRouter
     const response = await axios.post(

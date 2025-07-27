@@ -4,7 +4,7 @@ import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const ChatWidget = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -67,7 +67,10 @@ const ChatWidget = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: userMessage.content })
+        body: JSON.stringify({ 
+          message: userMessage.content,
+          language: i18n.language || 'es' // Send user's language preference
+        })
       });
 
       if (!response.ok) {
@@ -168,13 +171,34 @@ const ChatWidget = () => {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                             {messages.length === 0 && (
-                 <div className="text-center text-gray-500 text-sm py-8">
-                   <Bot className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                   <p>{t('chat.welcome')}</p>
-                   <p>{t('chat.welcomeSubtitle')}</p>
-                 </div>
-               )}
+              {messages.length === 0 && (
+                <div className="text-center text-gray-500 text-sm py-8">
+                  <Bot className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p>{t('chat.welcome')}</p>
+                  <p>{t('chat.welcomeSubtitle')}</p>
+                  
+                  {/* Suggested Questions */}
+                  <div className="mt-6 space-y-2">
+                    <p className="text-xs text-gray-400 mb-3">{t('chat.suggestedQuestions')}</p>
+                    <div className="space-y-2">
+                      {[
+                        t('chat.questions.what'),
+                        t('chat.questions.reservations'),
+                        t('chat.questions.sensors'),
+                        t('chat.questions.contact')
+                      ].map((question, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setInputMessage(question)}
+                          className="block w-full text-left px-3 py-2 text-xs bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors duration-200 text-gray-600 hover:text-gray-800"
+                        >
+                          {question}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {messages.map((message) => (
                 <motion.div

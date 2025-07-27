@@ -196,16 +196,23 @@
     "cancelled": "Cancelado"
   },
   "chat": {
-    "title": "WorkBit Assistant",
-    "subtitle": "¿En qué puedo ayudarte?",
-    "welcome": "¡Hola! Soy el asistente de WorkBit.",
-    "welcomeSubtitle": "¿En qué puedo ayudarte hoy?",
-    "placeholder": "Escribe tu mensaje...",
+    "title": "WorkBot Assistant",
+    "subtitle": "Asistente Virtual Oficial de WorkBit",
+    "welcome": "¡Hola! Soy WorkBot, el asistente virtual oficial de WorkBit.",
+    "welcomeSubtitle": "Puedo ayudarte con información sobre el sistema inteligente de gestión de espacios de trabajo de WorkBit, monitoreo ambiental, control de acceso y reservas. ¿En qué puedo ayudarte hoy?",
+    "placeholder": "Pregúntame sobre WorkBit...",
     "clear": "Limpiar",
     "clearTitle": "Limpiar chat",
     "openChat": "Abrir chat",
-    "typing": "Escribiendo...",
+    "typing": "WorkBot está escribiendo...",
     "error": "Error al enviar mensaje. Por favor, intenta de nuevo.",
-    "errorMessage": "Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo."
+    "errorMessage": "Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.",
+    "suggestedQuestions": "Preguntas sugeridas:",
+    "questions": {
+      "what": "¿Qué es WorkBit?",
+      "reservations": "¿Cómo funciona el sistema de reservas?",
+      "sensors": "¿Qué sensores incluye el sistema?",
+      "contact": "¿Cómo puedo contactar para más información?"
+    }
   }
 } 
