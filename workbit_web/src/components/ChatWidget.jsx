@@ -3,6 +3,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+// Simple markdown parser for basic formatting
+const parseMarkdown = (text) => {
+  if (!text) return '';
+  
+  return text
+    // Bold text: **text** -> <strong>text</strong>
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Italic text: *text* -> <em>text</em>
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Code: `text` -> <code>text</code>
+    .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm">$1</code>')
+    // Line breaks
+    .replace(/\n/g, '<br />');
+};
+
 const ChatWidget = () => {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
@@ -256,7 +271,7 @@ const ChatWidget = () => {
                             ? 'bg-red-50 text-red-700 border border-red-200'
                             : 'bg-gray-100 text-gray-800'
                       }`}>
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        <p className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: parseMarkdown(message.content) }}></p>
                         <p className={`text-xs mt-1 ${
                           message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
                         }`}>
