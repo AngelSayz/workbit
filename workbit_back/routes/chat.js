@@ -72,6 +72,95 @@ Si preguntan por sensores o especificaciones técnicas, responde con datos claro
 
 Si preguntan por alcance, frecuencia, alimentación o compatibilidad, sé lo más específico posible.`;
 
+// Available models in order of preference
+const MODELS = [
+  'deepseek/deepseek-r1-0528-qwen3-8b:free',
+  'google/gemma-3n-e2b-it:free',
+  'deepseek/deepseek-r1-0528:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'qwen/qwen3-coder:free'
+];
+
+// Function to make request to OpenRouter with fallback
+const makeOpenRouterRequest = async (message, language, apiKey) => {
+  let lastError = null;
+  
+  for (const model of MODELS) {
+    try {
+      console.log(`Trying model: ${model}`);
+      
+      const openRouterRequest = {
+        model: model,
+        messages: [
+          {
+            role: 'system',
+            content: SYSTEM_PROMPT
+          },
+          {
+            role: 'user',
+            content: message
+          }
+        ]
+      };
+
+      // Add language instruction to the system prompt if specified
+      if (language === 'en') {
+        openRouterRequest.messages[0].content += '\n\nIMPORTANT: The user is communicating in English. Please respond in English with a professional but warm tone. Keep responses concise and clear.';
+      } else {
+        openRouterRequest.messages[0].content += '\n\nIMPORTANT: The user is communicating in Spanish. Please respond in Spanish with a professional but warm tone. Keep responses concise and clear.';
+      }
+
+      const response = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        openRouterRequest,
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.FRONTEND_URL || 'https://workbit.vercel.app/',
+            'X-Title': 'WorkBit Assistant'
+          },
+          timeout: 30000 // 30 seconds timeout
+        }
+      );
+
+      const reply = response.data.choices[0]?.message?.content;
+
+      if (!reply) {
+        throw new Error('No response content received from AI');
+      }
+
+      return {
+        reply,
+        model: model
+      };
+      
+    } catch (error) {
+      console.error(`Error with model ${model}:`, error.message);
+      lastError = error;
+      
+      // If it's a rate limit error, try the next model
+      if (error.response && error.response.status === 429) {
+        console.log(`Rate limit hit for ${model}, trying next model...`);
+        continue;
+      }
+      
+      // If it's a timeout or connection error, try the next model
+      if (error.code === 'ECONNABORTED' || error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+        console.log(`Connection error for ${model}, trying next model...`);
+        continue;
+      }
+      
+      // For other errors, try the next model
+      console.log(`Other error for ${model}, trying next model...`);
+      continue;
+    }
+  }
+  
+  // If all models failed, throw the last error
+  throw lastError || new Error('All models failed to respond');
+};
+
 // POST /api/chat - Chat with AI
 router.post('/', [
   body('message')
@@ -103,55 +192,14 @@ router.post('/', [
       });
     }
 
-    // Prepare request to OpenRouter
-    const openRouterRequest = {
-      model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
-      messages: [
-        {
-          role: 'system',
-          content: SYSTEM_PROMPT
-        },
-        {
-          role: 'user',
-          content: message
-        }
-      ]
-    };
-
-    // Add language instruction to the system prompt if specified
-    if (language === 'en') {
-      openRouterRequest.messages[0].content += '\n\nIMPORTANT: The user is communicating in English. Please respond in English with a professional but warm tone. Keep responses concise and clear.';
-    } else {
-      openRouterRequest.messages[0].content += '\n\nIMPORTANT: The user is communicating in Spanish. Please respond in Spanish with a professional but warm tone. Keep responses concise and clear.';
-    }
-
-    // Make request to OpenRouter
-    const response = await axios.post(
-      'https://openrouter.ai/api/v1/chat/completions',
-      openRouterRequest,
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.FRONTEND_URL || 'https://workbit.vercel.app/',
-          'X-Title': 'WorkBit Assistant'
-        },
-        timeout: 30000 // 30 seconds timeout
-      }
-    );
-
-    // Extract the response content
-    const reply = response.data.choices[0]?.message?.content;
-
-    if (!reply) {
-      throw new Error('No response content received from AI');
-    }
+    // Use the fallback system
+    const result = await makeOpenRouterRequest(message, language, apiKey);
 
     // Return the response
     res.json({
-      reply,
+      reply: result.reply,
       timestamp: new Date().toISOString(),
-      model: 'deepseek/deepseek-r1-0528-qwen3-8b:free'
+      model: result.model
     });
 
   } catch (error) {
@@ -194,7 +242,7 @@ router.post('/', [
 
     // Generic error
     res.status(500).json({
-      error: 'Internal server error'
+      error: 'All AI models are currently unavailable. Please try again later.'
     });
   }
 });
