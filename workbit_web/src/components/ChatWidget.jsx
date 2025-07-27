@@ -182,6 +182,7 @@ const ChatWidget = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             className="fixed bottom-24 left-6 z-50 w-120 h-144 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col"
+            style={{ minWidth: '480px', maxWidth: '480px', minHeight: '576px', maxHeight: '576px' }}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-2xl">
@@ -248,7 +249,7 @@ const ChatWidget = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[80%] ${message.sender === 'user' ? 'order-2' : 'order-1'}`}>
+                  <div className={`max-w-[85%] ${message.sender === 'user' ? 'order-2' : 'order-1'}`}>
                     <div className={`flex items-start space-x-2 ${message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                         message.sender === 'user' 
@@ -270,7 +271,10 @@ const ChatWidget = () => {
                             ? 'bg-red-50 text-red-700 border border-red-200'
                             : 'bg-gray-100 text-gray-800'
                       }`}>
-                        <p className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: parseMarkdown(message.content) }}></p>
+                        <div 
+                          className="whitespace-pre-wrap break-words max-w-full" 
+                          dangerouslySetInnerHTML={{ __html: parseMarkdown(message.content) }}
+                        ></div>
                         <p className={`text-xs mt-1 ${
                           message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
                         }`}>
@@ -288,7 +292,7 @@ const ChatWidget = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className="flex justify-start"
                 >
-                  <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-3 py-2">
+                  <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-3 py-2 max-w-[85%]">
                     <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
                     <span className="text-sm text-gray-600">{t('chat.typing')}</span>
                   </div>
