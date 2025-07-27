@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { 
   Menu, 
   X, 
@@ -18,34 +19,35 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const menuItems = [
     { 
-      name: 'Dashboard', 
+      name: t('dashboard.sidebar.overview'), 
       href: '/dashboard/overview', 
       icon: Home,
       roles: ['admin', 'technician']
     },
     { 
-      name: 'Espacios', 
+      name: t('dashboard.sidebar.spaces'), 
       href: '/dashboard/spaces', 
       icon: Building,
       roles: ['admin', 'technician']
     },
     { 
-      name: 'Reservas', 
+      name: t('dashboard.sidebar.reservations'), 
       href: '/dashboard/reservations', 
       icon: Calendar,
       roles: ['admin', 'technician']
     },
     { 
-      name: 'Usuarios', 
+      name: t('dashboard.sidebar.users'), 
       href: '/dashboard/users', 
       icon: Users,
       roles: ['admin']
     },
     { 
-      name: 'Configuración', 
+      name: t('dashboard.sidebar.settings'), 
       href: '/dashboard/settings', 
       icon: Settings,
       roles: ['admin', 'technician']
@@ -123,7 +125,7 @@ const DashboardLayout = () => {
               className="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-red-600 rounded-lg transition-colors duration-200"
             >
               <LogOut size={16} className="mr-3" />
-              Cerrar Sesión
+              {t('dashboard.header.logout')}
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Users, Building2, Calendar } from 'lucide-react';
 
 const AnimatedCounter = ({ value, duration = 2 }) => {
@@ -25,10 +26,11 @@ const AnimatedCounter = ({ value, duration = 2 }) => {
 };
 
 const StatsSection = () => {
+  const { t } = useTranslation();
   const stats = [
     {
       id: 1,
-      name: 'Usuarios Activos',
+      name: t('stats.users'),
       value: 12500,
       icon: Users,
       description: 'Profesionales utilizando WorkBit diariamente',
@@ -36,7 +38,7 @@ const StatsSection = () => {
     },
     {
       id: 2,
-      name: 'Empresas',
+      name: t('stats.spaces'),
       value: 250,
       icon: Building2,
       description: 'Organizaciones que confían en nuestra plataforma',
@@ -44,7 +46,7 @@ const StatsSection = () => {
     },
     {
       id: 3,
-      name: 'Reservas',
+      name: t('stats.reservations'),
       value: 850000,
       icon: Calendar,
       description: 'Reservas gestionadas exitosamente',
@@ -88,11 +90,10 @@ const StatsSection = () => {
             NUESTRO IMPACTO
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-6xl font-bold text-gray-900 mb-6 md:mb-8 tracking-tight px-4">
-            Resultados que
-            <span className="block text-blue-600">marcan la diferencia</span>
+            {t('stats.title')}
           </h2>
           <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-light px-4">
-            Descubre el impacto que WorkBit está teniendo en organizaciones de todo el mundo
+            {t('stats.subtitle')}
           </p>
         </motion.div>
 
@@ -175,7 +176,7 @@ const StatsSection = () => {
             }}
             className="inline-flex items-center px-6 md:px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transition-all duration-300 text-sm md:text-base"
           >
-            Únete ahora
+            {t('stats.learnMore')}
           </motion.button>
         </motion.div>
       </div>

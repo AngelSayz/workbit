@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { 
   Monitor, 
   Shield, 
@@ -9,36 +10,37 @@ import {
 } from 'lucide-react';
 
 const FeaturesSection = () => {
+  const { t } = useTranslation();
   const features = [
     {
       icon: <Monitor className="w-6 h-6 md:w-8 md:h-8" />,
-      title: "Monitoreo IoT",
-      description: "Sensores inteligentes que monitorizan la ocupación y condiciones ambientales en tiempo real."
+      title: t('features.reservations.title'),
+      description: t('features.reservations.description')
     },
     {
       icon: <Shield className="w-6 h-6 md:w-8 md:h-8" />,
-      title: "Acceso Seguro",
-      description: "Control de acceso mediante tecnología RFID y autenticación digital avanzada."
+      title: t('features.access.title'),
+      description: t('features.access.description')
     },
     {
       icon: <BarChart3 className="w-6 h-6 md:w-8 md:h-8" />,
-      title: "Analíticas Avanzadas",
-      description: "Dashboard con métricas detalladas para optimizar el uso de espacios y recursos."
+      title: t('features.analytics.title'),
+      description: t('features.analytics.description')
     },
     {
       icon: <Clock className="w-6 h-6 md:w-8 md:h-8" />,
-      title: "Gestión de Reservas",
-      description: "Sistema completo de reservas con confirmación automática y gestión de horarios."
+      title: t('features.reservations.title'),
+      description: t('features.reservations.description')
     },
     {
       icon: <Users className="w-6 h-6 md:w-8 md:h-8" />,
-      title: "Multi-usuario",
-      description: "Gestión de diferentes tipos de usuarios con roles y permisos personalizables."
+      title: t('features.access.title'),
+      description: t('features.access.description')
     },
     {
       icon: <Smartphone className="w-6 h-6 md:w-8 md:h-8" />,
-      title: "Multiplataforma",
-      description: "Acceso desde web, móvil y dispositivos IoT para máxima flexibilidad."
+      title: t('features.mobile.title'),
+      description: t('features.mobile.description')
     }
   ];
 
@@ -53,10 +55,10 @@ const FeaturesSection = () => {
           className="text-center mb-12 md:mb-16"
         >
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6 px-4">
-            Características
+            {t('features.title')}
           </h2>
           <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto px-4">
-            Tecnología avanzada para la gestión inteligente de espacios de trabajo
+            {t('features.subtitle')}
           </p>
         </motion.div>
 

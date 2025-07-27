@@ -14,6 +14,7 @@ import ProtectedRoute from './features/auth/ProtectedRoute';
 import RoleGuard from './features/auth/RoleGuard';
 import SetupGuard from './components/layout/SetupGuard';
 import MobileBlock from './components/MobileBlock';
+import ScrollToTop from './components/ScrollToTop';
 import useMobile from './hooks/useMobile';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
   return (
     <Router>
       <div className="App">
+        <ScrollToTop />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />

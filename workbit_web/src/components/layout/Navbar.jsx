@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Menu, X, LogIn } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../ui';
 import useMobile from '../../hooks/useMobile';
+import LanguageSelector from '../LanguageSelector';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const isMobile = useMobile();
+  const { t } = useTranslation();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -47,25 +50,26 @@ const Navbar = () => {
                 href="#features" 
                 className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors duration-300"
               >
-                Características
+                {t('nav.features')}
               </a>
               <a 
                 href="#contact" 
                 className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors duration-300"
               >
-                Contacto
+                {t('nav.contact')}
               </a>
             </div>
           </div>
 
-          {/* Desktop Login Button */}
-          <div className="hidden md:block">
+          {/* Desktop Login Button and Language Selector */}
+          <div className="hidden md:flex items-center space-x-4">
+            <LanguageSelector />
             <Button
               onClick={handleLogin}
               icon={<LogIn size={18} />}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              Iniciar Sesión
+              {t('nav.login')}
             </Button>
           </div>
 
@@ -95,14 +99,14 @@ const Navbar = () => {
                 className="text-gray-700 hover:text-blue-600 block px-3 py-3 text-base font-medium transition-colors duration-300 rounded-lg hover:bg-gray-50"
                 onClick={toggleMenu}
               >
-                Características
+                {t('nav.features')}
               </a>
               <a 
                 href="#contact"
                 className="text-gray-700 hover:text-blue-600 block px-3 py-3 text-base font-medium transition-colors duration-300 rounded-lg hover:bg-gray-50"
                 onClick={toggleMenu}
               >
-                Contacto
+                {t('nav.contact')}
               </a>
               <div className="pt-2">
                 <Button
@@ -114,7 +118,7 @@ const Navbar = () => {
                       : 'bg-blue-600 hover:bg-blue-700 text-white'
                   }`}
                 >
-                  {isMobile ? 'Solo Disponible en PC' : 'Iniciar Sesión'}
+                  {isMobile ? 'Solo Disponible en PC' : t('nav.login')}
                 </Button>
               </div>
             </div>

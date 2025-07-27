@@ -1,0 +1,211 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "features": "Características",
+    "contact": "Contacto",
+    "login": "Iniciar Sesión"
+  },
+  "hero": {
+    "title": "Gestiona tu espacio de trabajo de manera inteligente",
+    "subtitle": "WorkBit te permite reservar espacios, gestionar usuarios y optimizar el uso de tus instalaciones con tecnología avanzada.",
+    "cta": "Acceder al Sistema",
+    "ctaMobile": "Acceder desde PC"
+  },
+  "features": {
+    "title": "Características Principales",
+    "subtitle": "Descubre cómo WorkBit puede transformar la gestión de tu espacio de trabajo",
+    "reservations": {
+      "title": "Reservas Inteligentes",
+      "description": "Sistema de reservas en tiempo real con notificaciones automáticas y gestión de conflictos."
+    },
+    "analytics": {
+      "title": "Analytics Avanzados",
+      "description": "Métricas detalladas sobre el uso de espacios, ocupación y tendencias de utilización."
+    },
+    "access": {
+      "title": "Control de Acceso",
+      "description": "Gestión de permisos por roles, control de entrada y salida con registro de actividad."
+    },
+    "mobile": {
+      "title": "App Móvil",
+      "description": "Aplicación móvil nativa para reservas rápidas y notificaciones push en tiempo real."
+    }
+  },
+  "stats": {
+    "title": "Impacto en Números",
+    "subtitle": "Descubre cómo WorkBit está transformando espacios de trabajo",
+    "users": "Usuarios Activos",
+    "spaces": "Espacios Gestionados",
+    "reservations": "Reservas Mensuales",
+    "satisfaction": "Satisfacción",
+    "learnMore": "Conoce Más"
+  },
+  "contact": {
+    "title": "¿Listo para empezar?",
+    "subtitle": "Contáctanos para implementar WorkBit en tu organización",
+    "name": "Nombre",
+    "email": "Correo Electrónico",
+    "company": "Empresa",
+    "message": "Mensaje",
+    "send": "Enviar Mensaje",
+    "info": {
+      "title": "Información de Contacto",
+      "email": "info@workbit.com",
+      "phone": "+1 (555) 123-4567",
+      "address": "123 Work Street, Tech City, TC 12345"
+    }
+  },
+  "footer": {
+    "description": "WorkBit es la solución integral para la gestión inteligente de espacios de trabajo.",
+    "links": {
+      "product": "Producto",
+      "features": "Características",
+      "pricing": "Precios",
+      "support": "Soporte"
+    },
+    "company": {
+      "about": "Acerca de",
+      "blog": "Blog",
+      "careers": "Carreras",
+      "contact": "Contacto"
+    },
+    "legal": {
+      "privacy": "Privacidad",
+      "terms": "Términos",
+      "cookies": "Cookies"
+    },
+    "copyright": "© 2024 WorkBit. Todos los derechos reservados."
+  },
+  "auth": {
+    "login": {
+      "title": "Iniciar Sesión",
+      "email": "Correo Electrónico",
+      "password": "Contraseña",
+      "submit": "Iniciar Sesión",
+      "forgotPassword": "¿Olvidaste tu contraseña?",
+      "noAccount": "¿No tienes cuenta?",
+      "register": "Registrarse"
+    },
+    "register": {
+      "title": "Registrarse",
+      "name": "Nombre Completo",
+      "email": "Correo Electrónico",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar Contraseña",
+      "submit": "Registrarse",
+      "hasAccount": "¿Ya tienes cuenta?",
+      "login": "Iniciar Sesión"
+    },
+    "setup": {
+      "title": "Configuración Inicial",
+      "subtitle": "Configura el primer administrador del sistema",
+      "name": "Nombre Completo",
+      "email": "Correo Electrónico",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar Contraseña",
+      "submit": "Crear Administrador"
+    }
+  },
+  "dashboard": {
+    "sidebar": {
+      "overview": "Resumen",
+      "users": "Usuarios",
+      "spaces": "Espacios",
+      "reservations": "Reservas",
+      "analytics": "Analytics",
+      "settings": "Configuración"
+    },
+    "header": {
+      "welcome": "Bienvenido",
+      "profile": "Perfil",
+      "logout": "Cerrar Sesión"
+    },
+    "overview": {
+      "title": "Resumen del Sistema",
+      "workingOnIt": "Trabajando en ello...",
+      "comingSoon": "Próximamente"
+    },
+    "users": {
+      "title": "Gestión de Usuarios",
+      "addUser": "Agregar Usuario",
+      "search": "Buscar usuarios...",
+      "table": {
+        "name": "Nombre",
+        "email": "Correo",
+        "role": "Rol",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "roles": {
+        "admin": "Administrador",
+        "technician": "Técnico",
+        "user": "Usuario"
+      },
+      "modal": {
+        "addTitle": "Agregar Nuevo Usuario",
+        "editTitle": "Editar Usuario",
+        "name": "Nombre Completo",
+        "email": "Correo Electrónico",
+        "role": "Rol",
+        "password": "Contraseña",
+        "confirmPassword": "Confirmar Contraseña",
+        "save": "Guardar",
+        "cancel": "Cancelar"
+      },
+      "delete": {
+        "title": "Eliminar Usuario",
+        "message": "¿Estás seguro de que quieres eliminar este usuario?",
+        "confirm": "Eliminar",
+        "cancel": "Cancelar"
+      }
+    }
+  },
+  "mobile": {
+    "blockTitle": "Acceso Restringido",
+    "blockMessage": "El panel de administración no está disponible en dispositivos móviles. Por favor, accede desde una computadora para una mejor experiencia.",
+    "back": "Volver"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "refresh": "Actualizar",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "reset": "Restablecer",
+    "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "online": "En línea",
+    "offline": "Desconectado",
+    "pending": "Pendiente",
+    "completed": "Completado",
+    "cancelled": "Cancelado"
+  },
+  "chat": {
+    "title": "WorkBit Assistant",
+    "subtitle": "¿En qué puedo ayudarte?",
+    "welcome": "¡Hola! Soy el asistente de WorkBit.",
+    "welcomeSubtitle": "¿En qué puedo ayudarte hoy?",
+    "placeholder": "Escribe tu mensaje...",
+    "clear": "Limpiar",
+    "clearTitle": "Limpiar chat",
+    "openChat": "Abrir chat",
+    "typing": "Escribiendo...",
+    "error": "Error al enviar mensaje. Por favor, intenta de nuevo.",
+    "errorMessage": "Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo."
+  }
+} 

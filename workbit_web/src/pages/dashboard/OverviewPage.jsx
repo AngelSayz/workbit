@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { 
   Construction, 
   Users, 
@@ -11,6 +12,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 const OverviewPage = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const stats = [
     {
@@ -48,7 +50,7 @@ const OverviewPage = () => {
         transition={{ duration: 0.6 }}
       >
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Dashboard Principal
+          {t('dashboard.overview.title')}
         </h1>
         <p className="text-gray-600">
           Vista general del sistema de gestión de espacios
@@ -102,7 +104,7 @@ const OverviewPage = () => {
             <Construction className="w-8 h-8 text-blue-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Funcionalidades en Desarrollo
+            {t('dashboard.overview.workingOnIt')}
           </h2>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
             Estamos trabajando en implementar todas las funcionalidades del dashboard. 

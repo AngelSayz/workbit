@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { 
   UserPlus, 
   Users, 
@@ -18,6 +19,7 @@ import { Button } from '../../components/ui';
 import { usersAPI, authAPI } from '../../api/apiService';
 
 const UsersPage = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -150,7 +152,7 @@ const UsersPage = () => {
       >
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Gestión de Usuarios
+            {t('dashboard.users.title')}
           </h1>
           <p className="text-gray-600">
             Administra usuarios del sistema y sus permisos
@@ -161,7 +163,7 @@ const UsersPage = () => {
           icon={<UserPlus size={18} />}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
-          Agregar Usuario
+          {t('dashboard.users.addUser')}
         </Button>
       </motion.div>
 
@@ -176,7 +178,7 @@ const UsersPage = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Buscar usuarios..."
+            placeholder={t('dashboard.users.search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -202,16 +204,16 @@ const UsersPage = () => {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Usuario
+                  {t('dashboard.users.table.name')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rol
+                  {t('dashboard.users.table.role')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
+                  {t('dashboard.users.table.status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
+                  {t('dashboard.users.table.actions')}
                 </th>
               </tr>
             </thead>
@@ -244,13 +246,13 @@ const UsersPage = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
-                      {user.role}
+                      {t(`dashboard.users.roles.${user.role}`)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                      <span className="text-sm text-gray-900">Activo</span>
+                      <span className="text-sm text-gray-900">{t('common.active')}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -291,7 +293,7 @@ const UsersPage = () => {
             className="bg-white rounded-xl p-6 w-full max-w-md"
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Agregar Usuario</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('dashboard.users.modal.addTitle')}</h2>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -304,7 +306,7 @@ const UsersPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre
+                    {t('dashboard.users.modal.name')}
                   </label>
                   <input
                     type="text"
@@ -342,9 +344,9 @@ const UsersPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('dashboard.users.modal.email')}
+                  </label>
                 <input
                   type="email"
                   required
@@ -355,9 +357,9 @@ const UsersPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contraseña
-                </label>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('dashboard.users.modal.password')}
+                  </label>
                 <input
                   type="password"
                   required
@@ -368,16 +370,16 @@ const UsersPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Rol
-                </label>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('dashboard.users.modal.role')}
+                  </label>
                 <select
                   value={newUser.role}
                   onChange={(e) => setNewUser({...newUser, role: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="technician">Técnico</option>
-                  <option value="admin">Administrador</option>
+                  <option value="technician">{t('dashboard.users.roles.technician')}</option>
+                  <option value="admin">{t('dashboard.users.roles.admin')}</option>
                 </select>
               </div>
 
@@ -394,14 +396,14 @@ const UsersPage = () => {
                   onClick={() => setShowAddModal(false)}
                   className="flex-1"
                 >
-                  Cancelar
+                  {t('dashboard.users.modal.cancel')}
                 </Button>
                 <Button
                   type="submit"
                   disabled={formLoading}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  {formLoading ? 'Creando...' : 'Crear Usuario'}
+                  {formLoading ? 'Creando...' : t('dashboard.users.modal.save')}
                 </Button>
               </div>
             </form>
@@ -420,12 +422,10 @@ const UsersPage = () => {
             <div className="text-center">
               <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
               <h2 className="text-xl font-bold text-gray-900 mb-2">
-                Confirmar Eliminación
+                {t('dashboard.users.delete.title')}
               </h2>
               <p className="text-gray-600 mb-6">
-                ¿Estás seguro de que quieres eliminar al usuario{' '}
-                <strong>{selectedUser.name} {selectedUser.lastname}</strong>?
-                Esta acción no se puede deshacer.
+                {t('dashboard.users.delete.message')}
               </p>
               <div className="flex gap-3">
                 <Button
@@ -433,13 +433,13 @@ const UsersPage = () => {
                   onClick={() => setShowDeleteModal(false)}
                   className="flex-1"
                 >
-                  Cancelar
+                  {t('dashboard.users.delete.cancel')}
                 </Button>
                 <Button
                   onClick={handleDeleteUser}
                   className="flex-1 bg-red-600 hover:bg-red-700 text-white"
                 >
-                  Eliminar
+                  {t('dashboard.users.delete.confirm')}
                 </Button>
               </div>
             </div>

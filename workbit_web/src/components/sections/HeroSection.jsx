@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight, Shield, Zap, Users } from 'lucide-react';
 import { Button } from '../ui';
 import useMobile from '../../hooks/useMobile';
 
 const HeroSection = () => {
   const isMobile = useMobile();
+  const { t } = useTranslation();
 
   const handleGetStarted = () => {
     if (isMobile) {
@@ -48,10 +50,7 @@ const HeroSection = () => {
             transition={{ delay: 0.2, duration: 0.8 }}
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 leading-tight px-2"
           >
-            Gestión Inteligente de{' '}
-            <span className="text-blue-600">
-              Espacios
-            </span>
+            {t('hero.title')}
           </motion.h1>
 
           {/* Subtitle */}
@@ -61,8 +60,7 @@ const HeroSection = () => {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="text-lg sm:text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-light px-4"
           >
-            Sistema integrado de monitoreo IoT y gestión de espacios de trabajo 
-            para optimizar la productividad y el uso de recursos.
+            {t('hero.subtitle')}
           </motion.p>
 
           {/* Features Icons */}
@@ -102,7 +100,7 @@ const HeroSection = () => {
                 isMobile ? 'bg-orange-600 hover:bg-orange-700' : ''
               }`}
             >
-              {isMobile ? 'Solo Disponible en PC' : 'Acceder al Sistema'}
+              {isMobile ? t('hero.ctaMobile') : t('hero.cta')}
             </Button>
             
             <Button
@@ -111,7 +109,7 @@ const HeroSection = () => {
               onClick={handleLearnMore}
               className="text-base md:text-lg px-6 md:px-8 py-3 md:py-4 border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-300 w-full sm:w-auto"
             >
-              Conocer Más
+              {t('stats.learnMore')}
             </Button>
           </motion.div>
 

@@ -1,0 +1,211 @@
+{
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "contact": "Contact",
+    "login": "Login"
+  },
+  "hero": {
+    "title": "Manage your workspace intelligently",
+    "subtitle": "WorkBit allows you to reserve spaces, manage users and optimize the use of your facilities with advanced technology.",
+    "cta": "Access System",
+    "ctaMobile": "Access from PC"
+  },
+  "features": {
+    "title": "Main Features",
+    "subtitle": "Discover how WorkBit can transform your workspace management",
+    "reservations": {
+      "title": "Smart Reservations",
+      "description": "Real-time reservation system with automatic notifications and conflict management."
+    },
+    "analytics": {
+      "title": "Advanced Analytics",
+      "description": "Detailed metrics on space usage, occupancy and utilization trends."
+    },
+    "access": {
+      "title": "Access Control",
+      "description": "Role-based permission management, entry and exit control with activity logging."
+    },
+    "mobile": {
+      "title": "Mobile App",
+      "description": "Native mobile application for quick reservations and real-time push notifications."
+    }
+  },
+  "stats": {
+    "title": "Impact in Numbers",
+    "subtitle": "Discover how WorkBit is transforming workspaces",
+    "users": "Active Users",
+    "spaces": "Managed Spaces",
+    "reservations": "Monthly Reservations",
+    "satisfaction": "Satisfaction",
+    "learnMore": "Learn More"
+  },
+  "contact": {
+    "title": "Ready to get started?",
+    "subtitle": "Contact us to implement WorkBit in your organization",
+    "name": "Name",
+    "email": "Email",
+    "company": "Company",
+    "message": "Message",
+    "send": "Send Message",
+    "info": {
+      "title": "Contact Information",
+      "email": "info@workbit.com",
+      "phone": "+1 (555) 123-4567",
+      "address": "123 Work Street, Tech City, TC 12345"
+    }
+  },
+  "footer": {
+    "description": "WorkBit is the comprehensive solution for intelligent workspace management.",
+    "links": {
+      "product": "Product",
+      "features": "Features",
+      "pricing": "Pricing",
+      "support": "Support"
+    },
+    "company": {
+      "about": "About",
+      "blog": "Blog",
+      "careers": "Careers",
+      "contact": "Contact"
+    },
+    "legal": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "cookies": "Cookies"
+    },
+    "copyright": "© 2024 WorkBit. All rights reserved."
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Login",
+      "forgotPassword": "Forgot your password?",
+      "noAccount": "Don't have an account?",
+      "register": "Register"
+    },
+    "register": {
+      "title": "Register",
+      "name": "Full Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Register",
+      "hasAccount": "Already have an account?",
+      "login": "Login"
+    },
+    "setup": {
+      "title": "Initial Setup",
+      "subtitle": "Configure the first system administrator",
+      "name": "Full Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Administrator"
+    }
+  },
+  "dashboard": {
+    "sidebar": {
+      "overview": "Overview",
+      "users": "Users",
+      "spaces": "Spaces",
+      "reservations": "Reservations",
+      "analytics": "Analytics",
+      "settings": "Settings"
+    },
+    "header": {
+      "welcome": "Welcome",
+      "profile": "Profile",
+      "logout": "Logout"
+    },
+    "overview": {
+      "title": "System Overview",
+      "workingOnIt": "Working on it...",
+      "comingSoon": "Coming Soon"
+    },
+    "users": {
+      "title": "User Management",
+      "addUser": "Add User",
+      "search": "Search users...",
+      "table": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "roles": {
+        "admin": "Administrator",
+        "technician": "Technician",
+        "user": "User"
+      },
+      "modal": {
+        "addTitle": "Add New User",
+        "editTitle": "Edit User",
+        "name": "Full Name",
+        "email": "Email",
+        "role": "Role",
+        "password": "Password",
+        "confirmPassword": "Confirm Password",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "delete": {
+        "title": "Delete User",
+        "message": "Are you sure you want to delete this user?",
+        "confirm": "Delete",
+        "cancel": "Cancel"
+      }
+    }
+  },
+  "mobile": {
+    "blockTitle": "Access Restricted",
+    "blockMessage": "The admin panel is not available on mobile devices. Please access from a computer for a better experience.",
+    "back": "Back"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "reset": "Reset",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "active": "Active",
+    "inactive": "Inactive",
+    "online": "Online",
+    "offline": "Offline",
+    "pending": "Pending",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "chat": {
+    "title": "WorkBit Assistant",
+    "subtitle": "How can I help you?",
+    "welcome": "Hello! I'm the WorkBit assistant.",
+    "welcomeSubtitle": "How can I help you today?",
+    "placeholder": "Type your message...",
+    "clear": "Clear",
+    "clearTitle": "Clear chat",
+    "openChat": "Open chat",
+    "typing": "Typing...",
+    "error": "Error sending message. Please try again.",
+    "errorMessage": "Sorry, there was an error processing your message. Please try again."
+  }
+} 

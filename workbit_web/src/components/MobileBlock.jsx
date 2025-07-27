@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Smartphone, Monitor } from 'lucide-react';
 
 const MobileBlock = () => {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4">
       <motion.div
@@ -20,10 +22,10 @@ const MobileBlock = () => {
             <Smartphone className="w-10 h-10 text-blue-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Acceso No Disponible
+            {t('mobile.blockTitle')}
           </h1>
           <p className="text-gray-600">
-            El panel de administración no está disponible en dispositivos móviles
+            {t('mobile.blockMessage')}
           </p>
         </motion.div>
 
@@ -55,7 +57,7 @@ const MobileBlock = () => {
             onClick={() => window.history.back()}
             className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
           >
-            Volver
+            {t('mobile.back')}
           </motion.button>
         </motion.div>
       </motion.div>

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Twitter, 
   Linkedin, 
@@ -10,31 +11,33 @@ import {
   Phone,
   MapPin
 } from 'lucide-react';
+import LanguageSelector from '../LanguageSelector';
 
 const Footer = () => {
+  const { t } = useTranslation();
   const footerLinks = {
     product: [
-      { name: 'Características', href: '#features' },
-      { name: 'Precios', href: '#pricing' },
+      { name: t('footer.links.features'), href: '#features' },
+      { name: t('footer.links.pricing'), href: '#pricing' },
       { name: 'Integraciones', href: '#integrations' },
       { name: 'API', href: '#api' }
     ],
     company: [
-      { name: 'Sobre Nosotros', href: '/about' },
-      { name: 'Carreras', href: '/careers' },
-      { name: 'Blog', href: '/blog' },
+      { name: t('footer.company.about'), href: '/about' },
+      { name: t('footer.company.careers'), href: '/careers' },
+      { name: t('footer.company.blog'), href: '/blog' },
       { name: 'Prensa', href: '/press' }
     ],
     support: [
       { name: 'Centro de Ayuda', href: '/help' },
       { name: 'Documentación', href: '/docs' },
       { name: 'Comunidad', href: '/community' },
-      { name: 'Contacto', href: '#contact' }
+      { name: t('footer.company.contact'), href: '#contact' }
     ],
     legal: [
-      { name: 'Privacidad', href: '/privacy' },
-      { name: 'Términos', href: '/terms' },
-      { name: 'Cookies', href: '/cookies' },
+      { name: t('footer.legal.privacy'), href: '/privacy' },
+      { name: t('footer.legal.terms'), href: '/terms' },
+      { name: t('footer.legal.cookies'), href: '/cookies' },
       { name: 'Seguridad', href: '/security' }
     ]
   };
@@ -97,8 +100,7 @@ const Footer = () => {
               </div>
 
               <p className="text-sm md:text-base text-gray-400 mb-4 md:mb-6 leading-relaxed font-light">
-                Revolucionamos la gestión de espacios de trabajo con tecnología 
-                IoT avanzada y una plataforma intuitiva para empresas modernas.
+                {t('footer.description')}
               </p>
 
               {/* Contact Info */}
@@ -129,7 +131,7 @@ const Footer = () => {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 viewport={{ once: true }}
               >
-                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Producto</h3>
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">{t('footer.links.product')}</h3>
                 <ul className="space-y-2 md:space-y-3">
                   {footerLinks.product.map((link) => (
                     <li key={link.name}>
@@ -151,7 +153,7 @@ const Footer = () => {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 viewport={{ once: true }}
               >
-                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Empresa</h3>
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">{t('footer.company.about')}</h3>
                 <ul className="space-y-2 md:space-y-3">
                   {footerLinks.company.map((link) => (
                     <li key={link.name}>
@@ -173,7 +175,7 @@ const Footer = () => {
                 transition={{ duration: 0.6, delay: 0.3 }}
                 viewport={{ once: true }}
               >
-                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Soporte</h3>
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">{t('footer.links.support')}</h3>
                 <ul className="space-y-2 md:space-y-3">
                   {footerLinks.support.map((link) => (
                     <li key={link.name}>
@@ -233,7 +235,7 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             {/* Copyright */}
             <div className="text-gray-400 text-xs md:text-sm text-center md:text-left">
-              © 2024 WorkBit. Todos los derechos reservados.
+              {t('footer.copyright')}
             </div>
 
             {/* Social Links */}
@@ -259,11 +261,7 @@ const Footer = () => {
 
             {/* Language Selector */}
             <div className="text-gray-400 text-xs md:text-sm">
-              <select className="bg-transparent border border-gray-700 rounded px-2 py-1 text-xs md:text-sm">
-                <option value="es">🇪🇸 Español</option>
-                <option value="en">🇺🇸 English</option>
-                <option value="fr">🇫🇷 Français</option>
-              </select>
+              <LanguageSelector />
             </div>
           </div>
         </motion.div>

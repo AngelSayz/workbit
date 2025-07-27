@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import { Button } from '../ui';
 
 const ContactForm = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -36,11 +38,10 @@ const ContactForm = () => {
           className="text-center mb-12 md:mb-16"
         >
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6 px-4">
-            Contáctanos
+            {t('contact.title')}
           </h2>
           <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto px-4">
-            ¿Interesado en implementar WorkBit en tu organización? 
-            Nos encantaría conocer tus necesidades.
+            {t('contact.subtitle')}
           </p>
         </motion.div>
 
@@ -55,7 +56,7 @@ const ContactForm = () => {
           >
             <div>
               <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">
-                Información de Contacto
+                {t('contact.info.title')}
               </h3>
               <p className="text-sm md:text-base text-gray-600 mb-6 md:mb-8">
                 Nuestro equipo está listo para ayudarte a optimizar 
@@ -70,7 +71,7 @@ const ContactForm = () => {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm md:text-base">Email</p>
-                  <p className="text-gray-600 text-sm md:text-base">contacto@workbit.com</p>
+                  <p className="text-gray-600 text-sm md:text-base">{t('contact.info.email')}</p>
                 </div>
               </div>
 
@@ -80,7 +81,7 @@ const ContactForm = () => {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm md:text-base">Teléfono</p>
-                  <p className="text-gray-600 text-sm md:text-base">+1 (555) 123-4567</p>
+                  <p className="text-gray-600 text-sm md:text-base">{t('contact.info.phone')}</p>
                 </div>
               </div>
 
@@ -90,7 +91,7 @@ const ContactForm = () => {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm md:text-base">Ubicación</p>
-                  <p className="text-gray-600 text-sm md:text-base">Ciudad, País</p>
+                  <p className="text-gray-600 text-sm md:text-base">{t('contact.info.address')}</p>
                 </div>
               </div>
             </div>
@@ -108,7 +109,7 @@ const ContactForm = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre
+                    {t('contact.name')}
                   </label>
                   <input
                     type="text"
@@ -124,7 +125,7 @@ const ContactForm = () => {
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
+                    {t('contact.email')}
                   </label>
                   <input
                     type="email"
@@ -141,7 +142,7 @@ const ContactForm = () => {
 
               <div>
                 <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
-                  Empresa
+                  {t('contact.company')}
                 </label>
                 <input
                   type="text"
@@ -156,7 +157,7 @@ const ContactForm = () => {
 
               <div>
                 <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-                  Mensaje
+                  {t('contact.message')}
                 </label>
                 <textarea
                   id="message"
@@ -176,7 +177,7 @@ const ContactForm = () => {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm md:text-base py-2.5 md:py-3"
                 icon={<Send size={18} />}
               >
-                Enviar Mensaje
+                {t('contact.send')}
               </Button>
             </form>
           </motion.div>
