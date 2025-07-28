@@ -74,11 +74,8 @@ Si preguntan por alcance, frecuencia, alimentación o compatibilidad, sé lo má
 
 // Available models in order of preference
 const MODELS = [
-  'deepseek/deepseek-r1-0528-qwen3-8b:free',
-  'google/gemma-3n-e2b-it:free',
-  'deepseek/deepseek-r1-0528:free',
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'qwen/qwen3-coder:free'
+  'z-ai/glm-4-32b',
+  'deepseek/deepseek-r1-0528-qwen3-8b:free'
 ];
 
 // Function to make request to OpenRouter with fallback
