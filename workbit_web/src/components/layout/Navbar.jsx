@@ -17,7 +17,7 @@ const Navbar = () => {
 
   const handleLogin = () => {
     if (isMobile) {
-      alert('El panel de administración no está disponible en dispositivos móviles. Por favor, accede desde tu computadora.');
+      alert(t('nav.mobileAlert'));
       setIsOpen(false);
       return;
     }
@@ -118,7 +118,7 @@ const Navbar = () => {
                       : 'bg-blue-600 hover:bg-blue-700 text-white'
                   }`}
                 >
-                  {isMobile ? 'Solo Disponible en PC' : t('nav.login')}
+                  {isMobile ? t('nav.mobileOnly') : t('nav.login')}
                 </Button>
               </div>
             </div>

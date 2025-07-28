@@ -3,13 +3,25 @@
     "home": "Inicio",
     "features": "Características",
     "contact": "Contacto",
-    "login": "Iniciar Sesión"
+    "login": "Iniciar Sesión",
+    "mobileOnly": "Solo Disponible en PC",
+    "mobileAlert": "El panel de administración no está disponible en dispositivos móviles. Por favor, accede desde tu computadora."
   },
   "hero": {
     "title": "Gestiona tu espacio de trabajo de manera inteligente",
     "subtitle": "WorkBit te permite reservar espacios, gestionar usuarios y optimizar el uso de tus instalaciones con tecnología avanzada.",
     "cta": "Acceder al Sistema",
-    "ctaMobile": "Acceder desde PC"
+    "ctaMobile": "Acceder desde PC",
+    "features": {
+      "secure": "Seguro",
+      "realtime": "Tiempo Real",
+      "collaborative": "Colaborativo"
+    },
+    "stats": {
+      "monitoring": "Monitoreo Continuo",
+      "realtime": "Tiempo Real",
+      "iot": "Tecnología Avanzada"
+    }
   },
   "features": {
     "title": "Características Principales",
@@ -38,7 +50,16 @@
     "spaces": "Espacios Gestionados",
     "reservations": "Reservas Mensuales",
     "satisfaction": "Satisfacción",
-    "learnMore": "Conoce Más"
+    "learnMore": "Conoce Más",
+    "badge": "NUESTRO IMPACTO",
+    "descriptions": {
+      "users": "Profesionales utilizando WorkBit diariamente",
+      "spaces": "Organizaciones que confían en nuestra plataforma",
+      "reservations": "Reservas gestionadas exitosamente"
+    },
+    "cta": {
+      "text": "¿Listo para formar parte de estas estadísticas?"
+    }
   },
   "contact": {
     "title": "¿Listo para empezar?",
@@ -48,11 +69,24 @@
     "company": "Empresa",
     "message": "Mensaje",
     "send": "Enviar Mensaje",
+    "successMessage": "Gracias por tu interés. Nos pondremos en contacto contigo pronto.",
     "info": {
       "title": "Información de Contacto",
       "email": "info@workbit.com",
       "phone": "+1 (555) 123-4567",
-      "address": "123 Work Street, Tech City, TC 12345"
+      "address": "123 Work Street, Tech City, TC 12345",
+      "description": "Nuestro equipo está listo para ayudarte a optimizar la gestión de espacios en tu organización."
+    },
+    "labels": {
+      "email": "Email",
+      "phone": "Teléfono",
+      "location": "Ubicación"
+    },
+    "placeholders": {
+      "name": "Tu nombre",
+      "email": "tu@email.com",
+      "company": "Tu empresa",
+      "message": "Cuéntanos sobre tus necesidades..."
     }
   },
   "footer": {

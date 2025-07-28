@@ -24,7 +24,7 @@ const ContactForm = () => {
     e.preventDefault();
     // TODO: Implement form submission
     console.log('Form submitted:', formData);
-    alert('Gracias por tu interés. Nos pondremos en contacto contigo pronto.');
+    alert(t('contact.successMessage'));
   };
 
   return (
@@ -59,8 +59,7 @@ const ContactForm = () => {
                 {t('contact.info.title')}
               </h3>
               <p className="text-sm md:text-base text-gray-600 mb-6 md:mb-8">
-                Nuestro equipo está listo para ayudarte a optimizar 
-                la gestión de espacios en tu organización.
+                {t('contact.info.description')}
               </p>
             </div>
 
@@ -70,7 +69,7 @@ const ContactForm = () => {
                   <Mail className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm md:text-base">Email</p>
+                  <p className="font-semibold text-gray-900 text-sm md:text-base">{t('contact.labels.email')}</p>
                   <p className="text-gray-600 text-sm md:text-base">{t('contact.info.email')}</p>
                 </div>
               </div>
@@ -80,7 +79,7 @@ const ContactForm = () => {
                   <Phone className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm md:text-base">Teléfono</p>
+                  <p className="font-semibold text-gray-900 text-sm md:text-base">{t('contact.labels.phone')}</p>
                   <p className="text-gray-600 text-sm md:text-base">{t('contact.info.phone')}</p>
                 </div>
               </div>
@@ -90,7 +89,7 @@ const ContactForm = () => {
                   <MapPin className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm md:text-base">Ubicación</p>
+                  <p className="font-semibold text-gray-900 text-sm md:text-base">{t('contact.labels.location')}</p>
                   <p className="text-gray-600 text-sm md:text-base">{t('contact.info.address')}</p>
                 </div>
               </div>
@@ -119,7 +118,7 @@ const ContactForm = () => {
                     onChange={handleChange}
                     required
                     className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm md:text-base"
-                    placeholder="Tu nombre"
+                    placeholder={t('contact.placeholders.name')}
                   />
                 </div>
 
@@ -135,7 +134,7 @@ const ContactForm = () => {
                     onChange={handleChange}
                     required
                     className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm md:text-base"
-                    placeholder="tu@email.com"
+                    placeholder={t('contact.placeholders.email')}
                   />
                 </div>
               </div>
@@ -151,7 +150,7 @@ const ContactForm = () => {
                   value={formData.company}
                   onChange={handleChange}
                   className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm md:text-base"
-                  placeholder="Tu empresa"
+                  placeholder={t('contact.placeholders.company')}
                 />
               </div>
 
@@ -167,7 +166,7 @@ const ContactForm = () => {
                   onChange={handleChange}
                   required
                   className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none text-sm md:text-base"
-                  placeholder="Cuéntanos sobre tus necesidades..."
+                  placeholder={t('contact.placeholders.message')}
                 />
               </div>
 

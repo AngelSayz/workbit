@@ -11,7 +11,7 @@ const HeroSection = () => {
   const handleGetStarted = () => {
     if (isMobile) {
       // En móvil, mostrar mensaje en lugar de redirigir
-      alert('El panel de administración no está disponible en dispositivos móviles. Por favor, accede desde tu computadora.');
+      alert(t('nav.mobileAlert'));
       return;
     }
     window.location.href = '/login';
@@ -72,15 +72,15 @@ const HeroSection = () => {
           >
             <div className="flex items-center space-x-2 text-gray-700 text-xs sm:text-sm md:text-base">
               <Shield className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600" />
-              <span className="font-medium">Seguro</span>
+              <span className="font-medium">{t('hero.features.secure')}</span>
             </div>
             <div className="flex items-center space-x-2 text-gray-700 text-xs sm:text-sm md:text-base">
               <Zap className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600" />
-              <span className="font-medium">Tiempo Real</span>
+              <span className="font-medium">{t('hero.features.realtime')}</span>
             </div>
             <div className="flex items-center space-x-2 text-gray-700 text-xs sm:text-sm md:text-base">
               <Users className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600" />
-              <span className="font-medium">Colaborativo</span>
+              <span className="font-medium">{t('hero.features.collaborative')}</span>
             </div>
           </motion.div>
 
@@ -123,15 +123,15 @@ const HeroSection = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 max-w-2xl mx-auto">
               <div className="text-center">
                 <div className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-600">24/7</div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">Monitoreo Continuo</div>
+                <div className="text-xs sm:text-sm text-gray-600 font-medium">{t('hero.stats.monitoring')}</div>
               </div>
               <div className="text-center">
                 <div className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-600">100%</div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">Tiempo Real</div>
+                <div className="text-xs sm:text-sm text-gray-600 font-medium">{t('hero.stats.realtime')}</div>
               </div>
               <div className="text-center">
                 <div className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-600">IoT</div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">Tecnología Avanzada</div>
+                <div className="text-xs sm:text-sm text-gray-600 font-medium">{t('hero.stats.iot')}</div>
               </div>
             </div>
           </motion.div>

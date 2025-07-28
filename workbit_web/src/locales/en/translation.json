@@ -3,13 +3,25 @@
     "home": "Home",
     "features": "Features",
     "contact": "Contact",
-    "login": "Login"
+    "login": "Login",
+    "mobileOnly": "PC Only",
+    "mobileAlert": "The admin panel is not available on mobile devices. Please access from your computer."
   },
   "hero": {
     "title": "Manage your workspace intelligently",
     "subtitle": "WorkBit allows you to reserve spaces, manage users and optimize the use of your facilities with advanced technology.",
     "cta": "Access System",
-    "ctaMobile": "Access from PC"
+    "ctaMobile": "Access from PC",
+    "features": {
+      "secure": "Secure",
+      "realtime": "Real Time",
+      "collaborative": "Collaborative"
+    },
+    "stats": {
+      "monitoring": "Continuous Monitoring",
+      "realtime": "Real Time",
+      "iot": "Advanced Technology"
+    }
   },
   "features": {
     "title": "Main Features",
@@ -38,7 +50,16 @@
     "spaces": "Managed Spaces",
     "reservations": "Monthly Reservations",
     "satisfaction": "Satisfaction",
-    "learnMore": "Learn More"
+    "learnMore": "Learn More",
+    "badge": "OUR IMPACT",
+    "descriptions": {
+      "users": "Professionals using WorkBit daily",
+      "spaces": "Organizations trusting our platform",
+      "reservations": "Successfully managed reservations"
+    },
+    "cta": {
+      "text": "Ready to be part of these statistics?"
+    }
   },
   "contact": {
     "title": "Ready to get started?",
@@ -48,11 +69,24 @@
     "company": "Company",
     "message": "Message",
     "send": "Send Message",
+    "successMessage": "Thank you for your interest. We will contact you soon.",
     "info": {
       "title": "Contact Information",
       "email": "info@workbit.com",
       "phone": "+1 (555) 123-4567",
-      "address": "123 Work Street, Tech City, TC 12345"
+      "address": "123 Work Street, Tech City, TC 12345",
+      "description": "Our team is ready to help you optimize space management in your organization."
+    },
+    "labels": {
+      "email": "Email",
+      "phone": "Phone",
+      "location": "Location"
+    },
+    "placeholders": {
+      "name": "Your name",
+      "email": "your@email.com",
+      "company": "Your company",
+      "message": "Tell us about your needs..."
     }
   },
   "footer": {

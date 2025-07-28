@@ -33,7 +33,7 @@ const StatsSection = () => {
       name: t('stats.users'),
       value: 12500,
       icon: Users,
-      description: 'Profesionales utilizando WorkBit diariamente',
+      description: t('stats.descriptions.users'),
       color: 'blue'
     },
     {
@@ -41,7 +41,7 @@ const StatsSection = () => {
       name: t('stats.spaces'),
       value: 250,
       icon: Building2,
-      description: 'Organizaciones que confían en nuestra plataforma',
+      description: t('stats.descriptions.spaces'),
       color: 'green'
     },
     {
@@ -49,7 +49,7 @@ const StatsSection = () => {
       name: t('stats.reservations'),
       value: 850000,
       icon: Calendar,
-      description: 'Reservas gestionadas exitosamente',
+      description: t('stats.descriptions.reservations'),
       color: 'purple'
     }
   ];
@@ -87,7 +87,7 @@ const StatsSection = () => {
         >
           <div className="inline-flex items-center px-3 md:px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-xs md:text-sm font-medium mb-4 md:mb-6">
             <div className="w-1.5 md:w-2 h-1.5 md:h-2 bg-gray-500 rounded-full mr-2"></div>
-            NUESTRO IMPACTO
+            {t('stats.badge')}
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-6xl font-bold text-gray-900 mb-6 md:mb-8 tracking-tight px-4">
             {t('stats.title')}
@@ -163,7 +163,7 @@ const StatsSection = () => {
           className="text-center mt-12 md:mt-16"
         >
           <p className="text-base md:text-lg text-gray-600 mb-4 md:mb-6 px-4">
-            ¿Listo para formar parte de estas estadísticas?
+            {t('stats.cta.text')}
           </p>
           <motion.button
             whileHover={{ scale: 1.05 }}
