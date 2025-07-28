@@ -25,7 +25,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-white overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center bg-white overflow-hidden pt-16 sm:pt-20 md:pt-24">
       {/* Subtle blue gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white"></div>
       
@@ -40,7 +40,7 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="space-y-4 sm:space-y-6 md:space-y-8 py-8 sm:py-12 md:py-16"
+          className="space-y-4 sm:space-y-6 md:space-y-8 py-12 sm:py-16 md:py-20"
         >
 
           {/* Main Title */}

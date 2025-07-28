@@ -11,7 +11,6 @@ import {
   Phone,
   MapPin
 } from 'lucide-react';
-import LanguageSelector from '../LanguageSelector';
 
 const Footer = () => {
   const { t } = useTranslation();
@@ -257,11 +256,6 @@ const Footer = () => {
                   </motion.a>
                 );
               })}
-            </div>
-
-            {/* Language Selector */}
-            <div className="text-gray-400 text-xs md:text-sm">
-              <LanguageSelector />
             </div>
           </div>
         </motion.div>
