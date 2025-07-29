@@ -6,9 +6,11 @@ import {
   Building, 
   Calendar,
   Activity,
-  Clock
+  Clock,
+  Grid3X3
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { Link } from 'react-router-dom';
 
 const OverviewPage = () => {
   const { user } = useAuth();
@@ -40,6 +42,8 @@ const OverviewPage = () => {
       color: 'orange'
     }
   ];
+
+  const isAdmin = user?.role === 'admin';
 
   return (
     <div className="w-full h-full p-6 space-y-6">
@@ -92,11 +96,65 @@ const OverviewPage = () => {
         })}
       </motion.div>
 
+      {/* Quick Actions */}
+      {isAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        >
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Acciones Rápidas
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Link
+              to="/dashboard/spaces"
+              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="p-3 bg-blue-100 rounded-lg mr-4">
+                <Grid3X3 className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">Gestión de Cubículos</h3>
+                <p className="text-sm text-gray-600">Administrar espacios y layout</p>
+              </div>
+            </Link>
+            
+            <Link
+              to="/dashboard/users"
+              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="p-3 bg-green-100 rounded-lg mr-4">
+                <Users className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">Gestión de Usuarios</h3>
+                <p className="text-sm text-gray-600">Administrar usuarios del sistema</p>
+              </div>
+            </Link>
+            
+            <Link
+              to="/dashboard/reservations"
+              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="p-3 bg-purple-100 rounded-lg mr-4">
+                <Calendar className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">Reservas</h3>
+                <p className="text-sm text-gray-600">Gestionar reservas y horarios</p>
+              </div>
+            </Link>
+          </div>
+        </motion.div>
+      )}
+
       {/* Working On It Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
         className="bg-white rounded-xl shadow-sm border border-gray-200 p-8"
       >
         <div className="text-center">
@@ -126,4 +184,4 @@ const OverviewPage = () => {
   );
 };
 
-export default OverviewPage; 
+export default OverviewPage;

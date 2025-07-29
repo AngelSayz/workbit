@@ -132,13 +132,43 @@ export const spacesAPI = {
     return response.data;
   },
   
+  getGridSpaces: async () => {
+    const response = await apiClient.get('/grid/spaces');
+    return response.data;
+  },
+  
   getAvailableSpacesByDate: async (date) => {
     const response = await apiClient.get(`/spaces/available/${date}`);
     return response.data;
   },
   
+  createSpace: async (spaceData) => {
+    const response = await apiClient.post('/spaces', spaceData);
+    return response.data;
+  },
+  
+  updateSpace: async (spaceId, spaceData) => {
+    const response = await apiClient.put(`/spaces/${spaceId}`, spaceData);
+    return response.data;
+  },
+  
+  deleteSpace: async (spaceId) => {
+    const response = await apiClient.delete(`/spaces/${spaceId}`);
+    return response.data;
+  },
+  
   updateSpaceStatus: async (spaceId, status) => {
     const response = await apiClient.put(`/spaces/${spaceId}/status`, { status });
+    return response.data;
+  },
+  
+  updateSpacePosition: async (spaceId, position) => {
+    const response = await apiClient.put(`/grid/spaces/${spaceId}/position`, position);
+    return response.data;
+  },
+  
+  updateGridSettings: async (gridSettings) => {
+    const response = await apiClient.put('/grid', gridSettings);
     return response.data;
   }
 };

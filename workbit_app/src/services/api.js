@@ -93,7 +93,53 @@ class ApiService {
   }
 
   async getAllSpaces() {
-    return this.request('/api/spaces');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/spaces/public`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.spaces || [];
+    } catch (error) {
+      console.error('API request failed:', error);
+      // Retornar datos de ejemplo si falla
+      return [];
+    }
+  }
+
+  async getGridSpaces() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/grid/spaces/public`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('API request failed:', error);
+      // Retornar datos de ejemplo si falla
+      return {
+        success: true,
+        data: {
+          grid: { rows: 5, cols: 8 },
+          spaces: []
+        }
+      };
+    }
   }
 
   // Reservation endpoints

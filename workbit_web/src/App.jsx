@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardLayout from './pages/dashboard/DashboardLayout';
 import OverviewPage from './pages/dashboard/OverviewPage';
 import UsersPage from './pages/dashboard/UsersPage';
+import SpacesPage from './pages/dashboard/SpacesPage';
 import FirstSetupPage from './pages/FirstSetupPage';
 
 // Components
@@ -80,19 +81,17 @@ function App() {
               } 
             />
             
-            {/* Placeholder Pages */}
+            {/* Spaces Management */}
             <Route 
               path="spaces" 
               element={
-                <div className="w-full h-full p-6">
-                  <div className="text-center py-12">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Gestión de Espacios</h2>
-                    <p className="text-gray-600">Funcionalidad en desarrollo...</p>
-                  </div>
-                </div>
+                <RoleGuard requiredRole="admin">
+                  <SpacesPage />
+                </RoleGuard>
               } 
             />
             
+            {/* Placeholder Pages */}
             <Route 
               path="reservations" 
               element={

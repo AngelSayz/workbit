@@ -40,6 +40,40 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/spaces/public - Public endpoint for mobile app
+router.get('/public', async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    const { data: spaces, error } = await supabase
+      .from('spaces')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      console.error('Database error:', error);
+      return res.status(500).json({
+        error: 'Failed to fetch spaces'
+      });
+    }
+
+    res.json({
+      spaces: spaces || [],
+      total: spaces ? spaces.length : 0
+    });
+
+  } catch (error) {
+    console.error('Get spaces error:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve spaces'
+    });
+  }
+});
+
 // GET /api/spaces/available/:date - Get available spaces for a specific date (matches C# backend)
 router.get('/available/:date', 
   [

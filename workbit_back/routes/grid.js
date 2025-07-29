@@ -119,6 +119,43 @@ router.put('/', [
   }
 });
 
+// Get spaces with their grid positions (public endpoint for mobile app)
+router.get('/spaces/public', async (req, res) => {
+  try {
+    const { data: spaces, error } = await supabase
+      .from('spaces')
+      .select('id, name, position_x, position_y, status, capacity')
+      .order('position_y')
+      .order('position_x');
+
+    if (error) throw error;
+
+    // Get current grid settings
+    const { data: gridSettings } = await supabase
+      .from('grid_settings')
+      .select('rows, cols')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    res.json({
+      success: true,
+      data: {
+        grid: gridSettings || { rows: 5, cols: 8 },
+        spaces: spaces || []
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching spaces map:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching spaces map',
+      error: error.message
+    });
+  }
+});
+
 // Get spaces with their grid positions
 router.get('/spaces', authenticateToken, async (req, res) => {
   try {
