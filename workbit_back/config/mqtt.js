@@ -1,17 +1,28 @@
 const mqtt = require('mqtt');
 const AccessLog = require('../models/AccessLog');
 
-// Configuración MQTT optimizada
+// Configuración MQTT optimizada para EMQX
 const mqttOptions = {
-  clientId: process.env.MQTT_CLIENT_ID || `workbit-backend-${Math.random().toString(16).substr(2, 8)}`,
+  clientId: process.env.MQTT_CLIENT_ID || `workbit-backend-${Date.now()}-${Math.random().toString(16).substr(2, 8)}`,
   username: process.env.MQTT_USERNAME || '',
   password: process.env.MQTT_PASSWORD || '',
-  reconnectPeriod: 5000, // Aumentar el tiempo entre reconexiones
-  connectTimeout: 30 * 1000,
-  keepalive: 60,
+  reconnectPeriod: 15000, // 15 segundos entre reconexiones
+  connectTimeout: 45 * 1000, // 45 segundos timeout
+  keepalive: 180, // 3 minutos keepalive
   clean: true,
-  rejectUnauthorized: false, // Para brokers sin SSL
-  maxReconnectAttempts: 5 // Limitar intentos de reconexión
+  rejectUnauthorized: false,
+  maxReconnectAttempts: 15, // Más intentos para EMQX
+  reschedulePings: true,
+  queueQoSZero: false,
+  rescheduleResend: true,
+  // Configuraciones específicas para EMQX
+  protocolVersion: 4, // MQTT 3.1.1
+  will: {
+    topic: 'workbit/backend/status',
+    payload: JSON.stringify({ status: 'offline', timestamp: new Date().toISOString() }),
+    qos: 1,
+    retain: false
+  }
 };
 
 const brokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883';
@@ -28,7 +39,14 @@ function createMqttClient() {
     client.on('connect', () => {
       reconnectAttempts = 0; // Resetear contador de intentos
       isInitialized = true;
-      console.log('✅ MQTT client connected to broker');
+      console.log('✅ MQTT client connected to EMQX broker');
+      
+      // Publicar estado online
+      client.publish('workbit/backend/status', JSON.stringify({
+        status: 'online',
+        timestamp: new Date().toISOString(),
+        clientId: mqttOptions.clientId
+      }), { qos: 1, retain: false });
       
       // Subscribe to relevant topics
       const topics = [
@@ -37,11 +55,11 @@ function createMqttClient() {
       ];
       
       topics.forEach(topic => {
-        client.subscribe(topic, (err) => {
+        client.subscribe(topic, { qos: 1 }, (err) => {
           if (err) {
             console.error(`❌ Failed to subscribe to ${topic}:`, err);
           } else {
-            console.log(`📡 Subscribed to MQTT topic: ${topic}`);
+            console.log(`📡 Subscribed to MQTT topic: ${topic} (QoS 1)`);
           }
         });
       });
@@ -49,26 +67,42 @@ function createMqttClient() {
 
     client.on('error', (error) => {
       console.error('❌ MQTT client error:', error.message);
+      console.error('❌ MQTT error details:', {
+        code: error.code,
+        errno: error.errno,
+        syscall: error.syscall,
+        address: error.address,
+        port: error.port
+      });
     });
 
     client.on('reconnect', () => {
       reconnectAttempts++;
-      if (reconnectAttempts <= 3) {
+      if (reconnectAttempts <= 5) {
         console.log(`🔄 MQTT client reconnecting... (attempt ${reconnectAttempts})`);
+      } else if (reconnectAttempts <= 10) {
+        console.log(`⚠️ MQTT reconnection attempt ${reconnectAttempts} - continuing...`);
       } else {
-        console.log(`⚠️ MQTT reconnection attempt ${reconnectAttempts} - limiting logs`);
+        console.log(`🔄 MQTT reconnection attempt ${reconnectAttempts} - limiting logs`);
       }
     });
 
     client.on('offline', () => {
       if (isInitialized) {
-        console.warn('⚠️ MQTT client offline');
+        console.warn('⚠️ MQTT client offline - connection lost');
       }
     });
 
     client.on('close', () => {
       console.log('🔌 MQTT client connection closed');
     });
+
+    // Heartbeat para monitorear la conexión
+    setInterval(() => {
+      if (client && client.connected) {
+        console.log('💓 MQTT heartbeat - connection stable');
+      }
+    }, 120000); // Cada 2 minutos
 
     client.on('message', (topic, message) => {
       try {
@@ -87,7 +121,7 @@ function createMqttClient() {
 
     // Manejar desconexión después de múltiples intentos
     client.on('reconnect', () => {
-      if (reconnectAttempts >= 10) {
+      if (reconnectAttempts >= 20) {
         console.error('❌ MQTT max reconnection attempts reached, stopping reconnection');
         client.end(true);
       }
@@ -98,8 +132,23 @@ function createMqttClient() {
   }
 }
 
+// Función para diagnosticar problemas de conexión EMQX
+function diagnoseEmqxConnection() {
+  console.log('🔍 EMQX Connection Diagnostics:');
+  console.log('  - Broker URL:', process.env.MQTT_BROKER_URL || 'Not set');
+  console.log('  - Client ID:', mqttOptions.clientId);
+  console.log('  - Username:', process.env.MQTT_USERNAME ? 'Set' : 'Not set');
+  console.log('  - Password:', process.env.MQTT_PASSWORD ? 'Set' : 'Not set');
+  console.log('  - Keepalive:', mqttOptions.keepalive, 'seconds');
+  console.log('  - Reconnect Period:', mqttOptions.reconnectPeriod, 'ms');
+  console.log('  - Connect Timeout:', mqttOptions.connectTimeout, 'ms');
+  console.log('  - Protocol Version:', mqttOptions.protocolVersion);
+  console.log('  - Will Topic:', mqttOptions.will.topic);
+}
+
 // Inicializar MQTT solo si está configurado
 if (process.env.MQTT_BROKER_URL) {
+  diagnoseEmqxConnection();
   createMqttClient();
 } else {
   console.log('ℹ️ MQTT not configured, skipping MQTT initialization');
@@ -178,10 +227,11 @@ const publishAccessResponse = (cardCode, accessGranted) => {
     const topic = 'workbit/access/response';
     const message = JSON.stringify({
       card_code: cardCode,
-      access_granted: accessGranted
+      access_granted: accessGranted,
+      timestamp: new Date().toISOString()
     });
     
-    client.publish(topic, message, (err) => {
+    client.publish(topic, message, { qos: 1, retain: false }, (err) => {
       if (err && process.env.NODE_ENV === 'development') {
         console.error(`❌ Failed to publish to ${topic}:`, err.message);
       } else {
@@ -195,10 +245,11 @@ const publishGuestsAccess = (guests) => {
   if (client && client.connected) {
     const topic = 'workbit/access/guests';
     const message = JSON.stringify({
-      guests: guests
+      guests: guests,
+      timestamp: new Date().toISOString()
     });
     
-    client.publish(topic, message, (err) => {
+    client.publish(topic, message, { qos: 1, retain: false }, (err) => {
       if (err && process.env.NODE_ENV === 'development') {
         console.error(`❌ Failed to publish to ${topic}:`, err.message);
       } else {
