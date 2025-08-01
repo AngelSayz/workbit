@@ -6,6 +6,104 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const { publishSpaceStatus } = require('../config/mqtt');
 const router = express.Router();
 
+// POST /api/spaces - Create new space (admin only)
+router.post('/', 
+  authenticateToken, 
+  requireRole(['admin']),
+  async (req, res) => {
+    try {
+      const { name, capacity, status, position_x, position_y } = req.body;
+
+      // Validaciones básicas
+      if (!name || !name.trim()) {
+        return res.status(400).json({
+          error: 'Space name is required'
+        });
+      }
+
+      if (!capacity || capacity < 1 || capacity > 8) {
+        return res.status(400).json({
+          error: 'Capacity must be between 1 and 8'
+        });
+      }
+
+      const validStatuses = ['available', 'unavailable', 'occupied', 'reserved', 'maintenance'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+          error: 'Invalid status',
+          validStatuses
+        });
+      }
+
+      if (typeof position_x !== 'number' || typeof position_y !== 'number') {
+        return res.status(400).json({
+          error: 'Position coordinates must be numbers'
+        });
+      }
+
+      if (!supabase) {
+        return res.status(500).json({
+          error: 'Database connection failed'
+        });
+      }
+
+      // Verificar si ya existe un espacio en esa posición
+      const { data: existingSpace, error: checkError } = await supabase
+        .from('spaces')
+        .select('id')
+        .eq('position_x', position_x)
+        .eq('position_y', position_y)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Check existing space error:', checkError);
+        return res.status(500).json({
+          error: 'Failed to check existing space'
+        });
+      }
+
+      if (existingSpace) {
+        return res.status(409).json({
+          error: 'A space already exists at this position'
+        });
+      }
+
+      // Crear el nuevo espacio
+      const { data: newSpace, error } = await supabase
+        .from('spaces')
+        .insert({
+          name: name.trim(),
+          capacity,
+          status,
+          position_x,
+          position_y,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Create space error:', error);
+        return res.status(500).json({
+          error: 'Failed to create space'
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Space created successfully',
+        space: newSpace
+      });
+
+    } catch (error) {
+      console.error('Create space error:', error);
+      res.status(500).json({
+        error: 'Failed to create space'
+      });
+    }
+  }
+);
+
 // GET /api/spaces - Get all spaces
 router.get('/', async (req, res) => {
   try {

@@ -116,8 +116,8 @@ const OverviewPage = () => {
                 <Grid className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Gestión de Cubículos</h3>
-                <p className="text-sm text-gray-600">Administrar espacios y layout</p>
+                <h3 className="font-medium text-gray-900">Layout de Cubículos</h3>
+                <p className="text-sm text-gray-600">Visualizar y gestionar espacios</p>
               </div>
             </Link>
             
