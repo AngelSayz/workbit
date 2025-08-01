@@ -409,16 +409,22 @@ router.post('/register', [
       }
     }
     // Create user profile in our users table
+    const userData = {
+      name,
+      lastname,
+      username,
+      user_id: authData.user.id,
+      role_id: userRole.id
+    };
+    
+    // Only add card_id if we have a valid card
+    if (cardId !== null) {
+      userData.card_id = cardId;
+    }
+    
     const { data: newUser, error: userError } = await supabase
       .from('users')
-      .insert({
-        name,
-        lastname,
-        username,
-        user_id: authData.user.id,
-        role_id: userRole.id,
-        card_id: cardId
-      })
+      .insert(userData)
       .select()
       .single();
     if (userError) {
@@ -523,22 +529,27 @@ router.post('/admin-register', [
         }
       }
     }
-    // Al crear el perfil de usuario, si cardId es null, ponerlo en 0
-    const safeCardId = cardId == null ? 0 : cardId;
     // Create user profile in our users table
+    const userData = {
+      name,
+      lastname,
+      username,
+      user_id: authData.user.id,
+      role_id: roleData.id
+    };
+    
+    // Only add card_id if we have a valid card
+    if (cardId !== null) {
+      userData.card_id = cardId;
+    }
+    
     const { data: newUser, error: userError } = await supabase
       .from('users')
-      .insert({
-        name,
-        lastname,
-        username,
-        user_id: authData.user.id,
-        role_id: roleData.id,
-        card_id: safeCardId
-      })
+      .insert(userData)
       .select()
       .single();
     if (userError) {
+      console.error('Error creating user profile:', userError);
       if (supabaseAdmin) {
         try { 
           await supabaseAdmin.auth.admin.deleteUser(authData.user.id); 
@@ -546,7 +557,7 @@ router.post('/admin-register', [
           console.warn('Failed to delete auth user after profile creation error:', error.message);
         }
       }
-      return res.status(500).json({ error: 'Registration failed', message: 'Failed to create user profile' });
+      return res.status(500).json({ error: 'Registration failed', message: 'Failed to create user profile', details: userError.message });
     }
     res.status(201).json({
       message: 'User registered successfully',
@@ -562,7 +573,8 @@ router.post('/admin-register', [
       }
     });
   } catch (error) {
-    res.status(500).json({ error: 'Registration failed', message: 'Internal server error during registration' });
+    console.error('Admin registration error:', error);
+    res.status(500).json({ error: 'Registration failed', message: 'Internal server error during registration', details: error.message });
   }
 });
 
