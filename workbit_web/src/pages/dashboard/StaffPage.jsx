@@ -51,6 +51,7 @@ const StaffPage = () => {
   const [spaces, setSpaces] = useState([]);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [updatingTasks, setUpdatingTasks] = useState(new Set());
 
   useEffect(() => {
     fetchData();
@@ -191,6 +192,70 @@ const StaffPage = () => {
       setFormError(err.response?.data?.message || err.message || 'Error al crear tarea');
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const handleUpdateTaskAssignment = async (taskId, assignedTo) => {
+    setUpdatingTasks(prev => new Set(prev).add(taskId));
+    try {
+      const response = await tasksAPI.updateTask(taskId, { assigned_to: assignedTo || null });
+      
+      if (response.success) {
+        await fetchTasks();
+        // Silently update without alert
+      } else {
+        throw new Error(response.error || 'Error al actualizar tarea');
+      }
+    } catch (err) {
+      console.error('Error updating task:', err);
+      alert(err.response?.data?.message || err.message || 'Error al actualizar tarea');
+    } finally {
+      setUpdatingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleUpdateTaskStatus = async (taskId, status) => {
+    setUpdatingTasks(prev => new Set(prev).add(taskId));
+    try {
+      const response = await tasksAPI.updateTask(taskId, { status });
+      
+      if (response.success) {
+        await fetchTasks();
+        // Silently update without alert
+      } else {
+        throw new Error(response.error || 'Error al actualizar estado');
+      }
+    } catch (err) {
+      console.error('Error updating task status:', err);
+      alert(err.response?.data?.message || err.message || 'Error al actualizar estado');
+    } finally {
+      setUpdatingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+      try {
+        const response = await tasksAPI.deleteTask(taskId);
+        
+        if (response.success) {
+          await fetchTasks();
+          alert('Tarea eliminada exitosamente');
+        } else {
+          throw new Error(response.error || 'Error al eliminar tarea');
+        }
+      } catch (err) {
+        console.error('Error deleting task:', err);
+        alert(err.response?.data?.message || err.message || 'Error al eliminar tarea');
+      }
     }
   };
 
@@ -502,26 +567,45 @@ const StaffPage = () => {
                             {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(task.status)}`}>
-                            {task.status === 'completed' ? 'Completada' : 
-                             task.status === 'in_progress' ? 'En Progreso' : 
-                             task.status === 'pending' ? 'Pendiente' : 'Cancelada'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {task.assigned_to ? 'Asignado' : 'Sin asignar'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            <button className="text-blue-600 hover:text-blue-900">
-                              <Edit size={16} />
-                            </button>
-                            <button className="text-red-600 hover:text-red-900">
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
+                                                 <td className="px-6 py-4 whitespace-nowrap">
+                           <select
+                             value={task.status || 'pending'}
+                             onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
+                             disabled={updatingTasks.has(task.id)}
+                             className={`px-2 py-1 border border-gray-300 rounded text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white ${updatingTasks.has(task.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                           >
+                             <option value="pending">Pendiente</option>
+                             <option value="in_progress">En Progreso</option>
+                             <option value="completed">Completada</option>
+                             <option value="cancelled">Cancelada</option>
+                           </select>
+                         </td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                           <select
+                             value={task.assigned_to || ''}
+                             onChange={(e) => handleUpdateTaskAssignment(task.id, e.target.value)}
+                             disabled={updatingTasks.has(task.id)}
+                             className={`px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white min-w-[120px] ${updatingTasks.has(task.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                           >
+                             <option value="">Sin asignar</option>
+                             {technicians.map(tech => (
+                               <option key={tech.id} value={tech.id}>
+                                 {tech.name} {tech.lastname}
+                               </option>
+                             ))}
+                           </select>
+                         </td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                           <div className="flex items-center space-x-2">
+                             <button 
+                               onClick={() => handleDeleteTask(task.id)}
+                               className="text-red-600 hover:text-red-900"
+                               title="Eliminar tarea"
+                             >
+                               <Trash2 size={16} />
+                             </button>
+                           </div>
+                         </td>
                       </motion.tr>
                     ))
                   ) : (
