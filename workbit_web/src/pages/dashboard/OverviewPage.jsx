@@ -7,7 +7,7 @@ import {
   Calendar,
   Activity,
   Clock,
-  Grid3x3
+  Grid
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
@@ -113,7 +113,7 @@ const OverviewPage = () => {
               className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="p-3 bg-blue-100 rounded-lg mr-4">
-                <Grid3x3 className="w-6 h-6 text-blue-600" />
+                <Grid className="w-6 h-6 text-blue-600" />
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">Gestión de Cubículos</h3>
