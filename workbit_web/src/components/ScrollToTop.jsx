@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 const ScrollToTop = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const location = useLocation();
+  
+  // No mostrar el botón en las rutas del dashboard
+  const isDashboardRoute = location.pathname.startsWith('/dashboard');
 
   useEffect(() => {
     const toggleVisibility = () => {
@@ -27,7 +32,7 @@ const ScrollToTop = () => {
 
   return (
     <AnimatePresence>
-      {isVisible && (
+      {isVisible && !isDashboardRoute && (
         <motion.button
           initial={{ opacity: 0, scale: 0, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
