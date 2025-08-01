@@ -1,4 +1,5 @@
 const mqtt = require('mqtt');
+const AccessLog = require('../models/AccessLog');
 
 // Configuración MQTT optimizada
 const mqttOptions = {
@@ -31,11 +32,8 @@ function createMqttClient() {
       
       // Subscribe to relevant topics
       const topics = [
-        'workbit/spaces/+/status',      // Space status updates
-        'workbit/access/+/entry',       // Access control entries
-        'workbit/access/+/exit',        // Access control exits
-        'workbit/reservations/+/status', // Reservation status changes
-        'workbit/system/heartbeat'      // System heartbeat
+        'workbit/access/request',       // RFID access requests
+        'workbit/sensors/infrared'      // Infrared sensor data
       ];
       
       topics.forEach(topic => {
@@ -116,20 +114,12 @@ if (process.env.MQTT_BROKER_URL) {
 
 // Handle incoming MQTT messages
 function handleMqttMessage(topic, data) {
-  const topicParts = topic.split('/');
-  
-  switch (topicParts[1]) {
-    case 'spaces':
-      handleSpaceStatusUpdate(topicParts[2], data);
+  switch (topic) {
+    case 'workbit/access/request':
+      handleAccessRequest(data);
       break;
-    case 'access':
-      handleAccessEvent(topicParts[2], topicParts[3], data);
-      break;
-    case 'reservations':
-      handleReservationUpdate(topicParts[2], data);
-      break;
-    case 'system':
-      handleSystemMessage(topicParts[2], data);
+    case 'workbit/sensors/infrared':
+      handleInfraredSensorData(data);
       break;
     default:
       if (process.env.NODE_ENV === 'development') {
@@ -139,82 +129,87 @@ function handleMqttMessage(topic, data) {
 }
 
 // MQTT message handlers
-function handleSpaceStatusUpdate(spaceId, data) {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🏢 Space ${spaceId} status update:`, data);
+async function handleAccessRequest(data) {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🚪 RFID Access request received:`, data);
+    }
+
+    // Extract card code from the data
+    const cardCode = data.card_code || data.cardCode || data.code;
+    
+    if (!cardCode) {
+      console.error('❌ No card code found in access request data');
+      return;
+    }
+
+    // Log the access attempt to database
+    const accessLog = new AccessLog({
+      card_code: cardCode,
+      access_granted: false, // Will be updated based on validation
+      source: 'rfid',
+      mqtt_topic: 'workbit/access/request',
+      raw_data: data,
+      timestamp: new Date()
+    });
+
+    await accessLog.save();
+
+    // TODO: Validate card access against user database and reservations
+    // For now, we'll just log the attempt
+    console.log(`📝 Access attempt logged for card: ${cardCode}`);
+
+  } catch (error) {
+    console.error('❌ Error handling access request:', error.message);
   }
-  // TODO: Update space status in database
 }
 
-function handleAccessEvent(spaceId, eventType, data) {
+function handleInfraredSensorData(data) {
   if (process.env.NODE_ENV === 'development') {
-    console.log(`🚪 Access ${eventType} for space ${spaceId}:`, data);
+    console.log(`📡 Infrared sensor data:`, data);
   }
-  // TODO: Log access event in database
-}
-
-function handleReservationUpdate(reservationId, data) {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`📅 Reservation ${reservationId} update:`, data);
-  }
-  // TODO: Update reservation status
-}
-
-function handleSystemMessage(messageType, data) {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`⚙️ System ${messageType}:`, data);
-  }
+  // TODO: Process infrared sensor data
+  // This could be used for occupancy detection, motion alerts, etc.
 }
 
 // Helper functions to publish messages
-const publishSpaceStatus = (spaceId, status) => {
+const publishAccessResponse = (cardCode, accessGranted) => {
   if (client && client.connected) {
-    const topic = `workbit/spaces/${spaceId}/status`;
+    const topic = 'workbit/access/response';
     const message = JSON.stringify({
-      spaceId,
-      status,
-      timestamp: new Date().toISOString()
+      card_code: cardCode,
+      access_granted: accessGranted
     });
     
     client.publish(topic, message, (err) => {
       if (err && process.env.NODE_ENV === 'development') {
         console.error(`❌ Failed to publish to ${topic}:`, err.message);
+      } else {
+        console.log(`✅ Access response published for card: ${cardCode}, granted: ${accessGranted}`);
       }
     });
   }
 };
 
-const publishAccessEvent = (spaceId, eventType, userId, reservationId = null) => {
+const publishGuestsAccess = (guests) => {
   if (client && client.connected) {
-    const topic = `workbit/access/${spaceId}/${eventType}`;
+    const topic = 'workbit/access/guests';
     const message = JSON.stringify({
-      spaceId,
-      userId,
-      reservationId,
-      timestamp: new Date().toISOString()
+      guests: guests
     });
     
-    client.publish(topic, message);
-  }
-};
-
-const publishReservationUpdate = (reservationId, status, data = {}) => {
-  if (client && client.connected) {
-    const topic = `workbit/reservations/${reservationId}/status`;
-    const message = JSON.stringify({
-      reservationId,
-      status,
-      ...data,
-      timestamp: new Date().toISOString()
+    client.publish(topic, message, (err) => {
+      if (err && process.env.NODE_ENV === 'development') {
+        console.error(`❌ Failed to publish to ${topic}:`, err.message);
+      } else {
+        console.log(`✅ Guests access updated:`, guests);
+      }
     });
-    
-    client.publish(topic, message);
   }
 };
 
 module.exports = {
   client,
-  publishSpaceStatus,
-  publishAccessEvent,
-  publishReservationUpdate
+  publishAccessResponse,
+  publishGuestsAccess
 }; 
