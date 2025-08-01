@@ -11,7 +11,8 @@ import {
   Calendar, 
   Settings, 
   LogOut,
-  User
+  User,
+  Wrench
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
