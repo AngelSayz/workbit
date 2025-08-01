@@ -135,6 +135,7 @@ router.post('/',
           priority,
           space_id,
           assigned_to,
+          created_by: req.user.id,
           status: 'pending',
           created_at: new Date().toISOString()
         })

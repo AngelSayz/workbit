@@ -17,7 +17,7 @@ import {
   AlertCircle,
   X
 } from 'lucide-react';
-import { usersAPI, tasksAPI, authAPI } from '../../api/apiService';
+import { usersAPI, tasksAPI, authAPI, spacesAPI } from '../../api/apiService';
 
 const StaffPage = () => {
   const [technicians, setTechnicians] = useState([]);
@@ -48,6 +48,7 @@ const StaffPage = () => {
     space_id: '',
     assigned_to: ''
   });
+  const [spaces, setSpaces] = useState([]);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -60,7 +61,8 @@ const StaffPage = () => {
       setLoading(true);
       await Promise.all([
         fetchTechnicians(),
-        fetchTasks()
+        fetchTasks(),
+        fetchSpaces()
       ]);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -95,6 +97,20 @@ const StaffPage = () => {
     } catch (err) {
       console.error('Error fetching tasks:', err);
       setTasks([]);
+    }
+  };
+
+  const fetchSpaces = async () => {
+    try {
+      const response = await spacesAPI.getSpaces();
+      if (response.data?.spaces) {
+        setSpaces(response.data.spaces);
+      } else {
+        setSpaces([]);
+      }
+    } catch (err) {
+      console.error('Error fetching spaces:', err);
+      setSpaces([]);
     }
   };
 
@@ -769,6 +785,25 @@ const StaffPage = () => {
                   <option value="low">Baja</option>
                   <option value="medium">Media</option>
                   <option value="high">Alta</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Espacio
+                </label>
+                <select
+                  required
+                  value={newTask.space_id}
+                  onChange={(e) => setNewTask({...newTask, space_id: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Seleccionar espacio</option>
+                  {spaces.map(space => (
+                    <option key={space.id} value={space.id}>
+                      {space.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
