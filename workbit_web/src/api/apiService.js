@@ -122,6 +122,11 @@ export const usersAPI = {
   deleteUser: async (userId) => {
     const response = await apiClient.delete(`/users/${userId}`);
     return response.data;
+  },
+  
+  updateUserCardCode: async (userId, cardCode) => {
+    const response = await apiClient.put(`/users/${userId}/card-code`, { cardCode });
+    return response.data;
   }
 };
 

@@ -1,5 +1,5 @@
 const express = require('express');
-const supabase = require('../config/supabase');
+const { supabase } = require('../config/supabase');
 const { mongoose } = require('../config/mongodb');
 const { client: mqttClient } = require('../config/mqtt');
 const router = express.Router();

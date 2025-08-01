@@ -11,7 +11,7 @@ import SpacesPage from './pages/dashboard/SpacesPage';
 import StatisticsPage from './pages/dashboard/StatisticsPage';
 import ReservationsPage from './pages/dashboard/ReservationsPage';
 import StaffPage from './pages/dashboard/StaffPage';
-import TasksPage from './pages/dashboard/TasksPage';
+
 import FirstSetupPage from './pages/FirstSetupPage';
 import RepairsPage from './pages/dashboard/RepairsPage';
 
@@ -134,15 +134,7 @@ function App() {
               } 
             />
             
-            {/* Tasks Management */}
-            <Route 
-              path="tasks" 
-              element={
-                <RoleGuard requiredRole="admin">
-                  <TasksPage />
-                </RoleGuard>
-              } 
-            />
+
             
             <Route 
               path="settings" 

@@ -60,12 +60,7 @@ const DashboardLayout = () => {
       icon: Wrench,
       roles: ['admin']
     },
-    { 
-      name: 'Tareas', 
-      href: '/dashboard/tasks', 
-      icon: Wrench,
-      roles: ['admin', 'technician']
-    },
+    
     { 
       name: 'Configuración', 
       href: '/dashboard/settings', 

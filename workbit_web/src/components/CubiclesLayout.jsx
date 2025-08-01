@@ -431,11 +431,6 @@ const CubiclesLayout = () => {
                        <tspan x={cellWidth / 2} dy="-10">+ Agregar</tspan>
                        <tspan x={cellWidth / 2} dy="20">Espacio</tspan>
                      </text>
-                     <g transform={`translate(${cellWidth / 2 - 12}, ${cellHeight / 2 - 30})`}>
-                       <svg width="24" height="24" viewBox="0 0 24 24" fill="#9ca3af">
-                         <path d="M12 2C13.1 2 14 2.9 14 4V10H20C21.1 10 22 10.9 22 12C22 13.1 21.1 14 20 14H14V20C14 21.1 13.1 22 12 22C10.9 22 10 21.1 10 20V14H4C2.9 14 2 13.1 2 12C2 10.9 2.9 10 4 10H10V4C10 2.9 10.9 2 12 2Z"/>
-                       </svg>
-                     </g>
                    </g>
                  );
                }

@@ -26,6 +26,7 @@ const UsersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditCardModal, setShowEditCardModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
   // Form state for new user
@@ -38,6 +39,7 @@ const UsersPage = () => {
     role: 'technician',
     cardCode: ''
   });
+  const [editCardCode, setEditCardCode] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -48,7 +50,8 @@ const UsersPage = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await usersAPI.getUsers();
+      // Solo obtener usuarios normales (role_id = 1)
+      const response = await usersAPI.getUsersByRole('user');
       setUsers(response.users || response.data || []);
     } catch (err) {
       console.error('Error loading users:', err);
@@ -90,6 +93,33 @@ const UsersPage = () => {
     } catch (err) {
       console.error('Error creating user:', err);
       setFormError(err.response?.data?.message || err.message || 'Error al crear usuario');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleEditCardCode = (user) => {
+    setSelectedUser(user);
+    setEditCardCode(user.card_code || '');
+    setShowEditCardModal(true);
+  };
+
+  const handleUpdateCardCode = async () => {
+    if (!selectedUser) return;
+    
+    setFormLoading(true);
+    setFormError('');
+
+    try {
+      await usersAPI.updateUserCardCode(selectedUser.id, editCardCode);
+      await loadUsers();
+      setShowEditCardModal(false);
+      setSelectedUser(null);
+      setEditCardCode('');
+      alert('Code card actualizado exitosamente');
+    } catch (err) {
+      console.error('Error updating card code:', err);
+      setFormError(err.response?.data?.message || err.message || 'Error al actualizar code card');
     } finally {
       setFormLoading(false);
     }
@@ -158,13 +188,9 @@ const UsersPage = () => {
             Administra usuarios del sistema y sus permisos
           </p>
         </div>
-        <Button
-          onClick={() => setShowAddModal(true)}
-          icon={<UserPlus size={18} />}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          {t('dashboard.users.addUser')}
-        </Button>
+        <div className="text-sm text-gray-500">
+          Solo usuarios normales
+        </div>
       </motion.div>
 
       {/* Search and Stats */}
@@ -207,7 +233,7 @@ const UsersPage = () => {
                   {t('dashboard.users.table.name')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('dashboard.users.table.role')}
+                  Code Card
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('dashboard.users.table.status')}
@@ -245,9 +271,18 @@ const UsersPage = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
-                      {t(`dashboard.users.roles.${user.role}`)}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-900 font-mono">
+                        {user.card_code || 'Sin código'}
+                      </span>
+                      <button
+                        onClick={() => handleEditCardCode(user)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Editar code card"
+                      >
+                        <Edit size={14} />
+                      </button>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -442,6 +477,69 @@ const UsersPage = () => {
                   {t('dashboard.users.delete.confirm')}
                 </Button>
               </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Card Code Modal */}
+      {showEditCardModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl p-6 w-full max-w-md"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Editar Code Card</h2>
+              <button
+                onClick={() => setShowEditCardModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Editando code card para: <strong>{selectedUser.name} {selectedUser.lastname}</strong>
+              </p>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Code Card
+                </label>
+                <input
+                  type="text"
+                  value={editCardCode}
+                  onChange={(e) => setEditCardCode(e.target.value)}
+                  placeholder="Ingrese el código de la tarjeta"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                />
+              </div>
+            </div>
+
+            {formError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-red-600">{formError}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowEditCardModal(false)}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleUpdateCardCode}
+                disabled={formLoading}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {formLoading ? 'Actualizando...' : 'Actualizar'}
+              </Button>
             </div>
           </motion.div>
         </div>

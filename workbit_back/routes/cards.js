@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const supabase = require('../config/supabase');
+const { supabase } = require('../config/supabase');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { logActivity } = require('../utils/helpers');
 

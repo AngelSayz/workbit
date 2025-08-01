@@ -10,7 +10,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 
 // Import database connections
 const { connectMongoDB } = require('./config/mongodb');
-const supabase = require('./config/supabase');
+const { supabase } = require('./config/supabase');
 const mqttClient = require('./config/mqtt');
 
 // Import routes

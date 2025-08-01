@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const supabase = require('../config/supabase');
+const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
@@ -485,10 +485,12 @@ router.post('/admin-register', [
       return res.status(400).json({ error: 'Registration failed', message: 'Failed to create user account' });
     }
     // AUTO-CONFIRMAR EMAIL PARA USUARIOS CREADOS POR ADMIN
-    if (authData.user.id) {
+    if (authData.user.id && supabaseAdmin) {
       try {
-        await supabase.auth.admin.updateUserById(authData.user.id, { email_confirm: true });
-      } catch {}
+        await supabaseAdmin.auth.admin.updateUserById(authData.user.id, { email_confirm: true });
+      } catch (error) {
+        console.warn('Failed to auto-confirm email:', error.message);
+      }
     }
     // Get role by name
     const { data: roleData, error: roleError } = await supabase
@@ -537,7 +539,13 @@ router.post('/admin-register', [
       .select()
       .single();
     if (userError) {
-      try { await supabase.auth.admin.deleteUser(authData.user.id); } catch {}
+      if (supabaseAdmin) {
+        try { 
+          await supabaseAdmin.auth.admin.deleteUser(authData.user.id); 
+        } catch (error) {
+          console.warn('Failed to delete auth user after profile creation error:', error.message);
+        }
+      }
       return res.status(500).json({ error: 'Registration failed', message: 'Failed to create user profile' });
     }
     res.status(201).json({

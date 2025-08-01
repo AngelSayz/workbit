@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../config/supabase');
+const { supabase } = require('../config/supabase');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { logActivity } = require('../utils/helpers');
 
@@ -47,8 +47,8 @@ router.get('/stats',
       // Get total users (role = 'user')
       const { data: users, error: usersError } = await supabase
         .from('users')
-        .select('id, roles(name)')
-        .eq('roles.name', 'user');
+        .select('id')
+        .eq('role_id', 1); // Assuming role_id 1 is 'user'
 
       if (usersError) {
         console.error('Error fetching users:', usersError);
@@ -60,8 +60,8 @@ router.get('/stats',
       // Get total technicians (role = 'technician')
       const { data: technicians, error: techniciansError } = await supabase
         .from('users')
-        .select('id, roles(name)')
-        .eq('roles.name', 'technician');
+        .select('id')
+        .eq('role_id', 3); // Assuming role_id 3 is 'technician'
 
       if (techniciansError) {
         console.error('Error fetching technicians:', techniciansError);
@@ -189,7 +189,7 @@ router.get('/charts',
       // Get users by role for pie chart
       const { data: usersByRole, error: usersError } = await supabase
         .from('users')
-        .select('roles(name)');
+        .select('role_id');
 
       if (usersError) {
         console.error('Error fetching users by role:', usersError);
@@ -201,7 +201,7 @@ router.get('/charts',
       // Count users by role
       const roleCounts = {};
       usersByRole?.forEach(user => {
-        const role = user.roles?.name || 'unknown';
+        const role = user.role_id === 1 ? 'user' : user.role_id === 2 ? 'admin' : user.role_id === 3 ? 'technician' : 'unknown';
         roleCounts[role] = (roleCounts[role] || 0) + 1;
       });
 

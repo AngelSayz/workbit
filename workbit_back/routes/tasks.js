@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const supabase = require('../config/supabase');
+const { supabase } = require('../config/supabase');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { logActivity } = require('../utils/helpers');
 
@@ -29,8 +29,7 @@ router.get('/',
           space_id,
           created_at,
           updated_at,
-          spaces(id, name),
-          users!tasks_assigned_to_fkey(id, name, lastname, username)
+          spaces(id, name)
         `)
         .order('created_at', { ascending: false });
 

@@ -323,7 +323,7 @@ const logger = {
  */
 const logActivity = async (userId, action, details = {}) => {
   try {
-    const supabase = require('../config/supabase');
+    const { supabase } = require('../config/supabase');
     
     const { error } = await supabase
       .from('access_logs')

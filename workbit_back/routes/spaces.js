@@ -1,7 +1,7 @@
 const express = require('express');
 const { query, param, validationResult } = require('express-validator');
 const { format, parseISO, isValid } = require('date-fns');
-const supabase = require('../config/supabase');
+const { supabase } = require('../config/supabase');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { publishSpaceStatus } = require('../config/mqtt');
 const router = express.Router();

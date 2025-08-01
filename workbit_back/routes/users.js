@@ -1,6 +1,6 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
-const supabase = require('../config/supabase');
+const { supabase } = require('../config/supabase');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
@@ -392,5 +392,111 @@ router.delete('/:id', async (req, res) => {
     });
   }
 });
+
+// PUT /api/users/:id/card-code - Update user card code (admin only)
+router.put('/:id/card-code', 
+  authenticateToken, 
+  requireRole(['admin']),
+  [
+    body('cardCode').notEmpty().withMessage('Card code is required')
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Validation errors',
+          details: errors.array()
+        });
+      }
+
+      const { id } = req.params;
+      const { cardCode } = req.body;
+
+      if (!supabase) {
+        return res.status(500).json({
+          error: 'Database connection failed'
+        });
+      }
+
+      // Check if user exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('id, name, lastname')
+        .eq('id', id)
+        .single();
+
+      if (checkError || !existingUser) {
+        return res.status(404).json({
+          error: 'User not found'
+        });
+      }
+
+      // Check if code card already exists for this user
+      const { data: existingCard, error: cardCheckError } = await supabase
+        .from('codecards')
+        .select('id')
+        .eq('user_id', id)
+        .single();
+
+      if (cardCheckError && cardCheckError.code !== 'PGRST116') {
+        console.error('Error checking existing card:', cardCheckError);
+        return res.status(500).json({
+          error: 'Failed to check existing card code'
+        });
+      }
+
+      let result;
+      if (existingCard) {
+        // Update existing card code
+        const { data: updatedCard, error: updateError } = await supabase
+          .from('codecards')
+          .update({ code: cardCode })
+          .eq('user_id', id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Update card code error:', updateError);
+          return res.status(500).json({
+            error: 'Failed to update card code'
+          });
+        }
+
+        result = updatedCard;
+      } else {
+        // Create new card code
+        const { data: newCard, error: createError } = await supabase
+          .from('codecards')
+          .insert({
+            user_id: id,
+            code: cardCode
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Create card code error:', createError);
+          return res.status(500).json({
+            error: 'Failed to create card code'
+          });
+        }
+
+        result = newCard;
+      }
+
+      res.json({
+        message: 'Card code updated successfully',
+        cardCode: result.code
+      });
+
+    } catch (error) {
+      console.error('Update card code error:', error);
+      res.status(500).json({
+        error: 'Failed to update card code'
+      });
+    }
+  }
+);
 
 module.exports = router; 
