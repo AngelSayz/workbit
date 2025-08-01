@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const AccessLog = require('../models/AccessLog');
 const { publishAccessResponse, publishGuestsAccess } = require('../config/mqtt');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 // Get all access logs with pagination and filtering
-router.get('/logs', auth, async (req, res) => {
+router.get('/logs', authenticateToken, async (req, res) => {
   try {
     const {
       page = 1,
@@ -66,7 +66,7 @@ router.get('/logs', auth, async (req, res) => {
 });
 
 // Get access log statistics
-router.get('/stats', auth, async (req, res) => {
+router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
     
@@ -130,7 +130,7 @@ router.get('/stats', auth, async (req, res) => {
 });
 
 // Grant or deny access to a specific card
-router.post('/grant-access', auth, async (req, res) => {
+router.post('/grant-access', authenticateToken, async (req, res) => {
   try {
     const { card_code, access_granted, user_id, username, space_id, space_name, reservation_id, notes } = req.body;
 
@@ -177,7 +177,7 @@ router.post('/grant-access', auth, async (req, res) => {
 });
 
 // Manage guest access list
-router.post('/guests', auth, async (req, res) => {
+router.post('/guests', authenticateToken, async (req, res) => {
   try {
     const { guests, action = 'update' } = req.body;
 
@@ -224,7 +224,7 @@ router.post('/guests', auth, async (req, res) => {
 });
 
 // Clear all guest access
-router.delete('/guests', auth, async (req, res) => {
+router.delete('/guests', authenticateToken, async (req, res) => {
   try {
     // Publish empty guest list via MQTT
     publishGuestsAccess([]);
@@ -258,7 +258,7 @@ router.delete('/guests', auth, async (req, res) => {
 });
 
 // Get recent access attempts for a specific card
-router.get('/card/:cardCode', auth, async (req, res) => {
+router.get('/card/:cardCode', authenticateToken, async (req, res) => {
   try {
     const { cardCode } = req.params;
     const { limit = 10 } = req.query;
