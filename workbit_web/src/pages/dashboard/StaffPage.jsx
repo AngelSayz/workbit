@@ -103,10 +103,13 @@ const StaffPage = () => {
   const fetchSpaces = async () => {
     try {
       const response = await spacesAPI.getSpaces();
-      if (response.data?.spaces) {
-        setSpaces(response.data.spaces);
+      console.log('Spaces API response:', response);
+      if (response.spaces) {
+        setSpaces(response.spaces);
+        console.log('Spaces loaded:', response.spaces.length);
       } else {
         setSpaces([]);
+        console.log('No spaces found in response');
       }
     } catch (err) {
       console.error('Error fetching spaces:', err);
