@@ -11,7 +11,8 @@ import {
   Calendar, 
   Settings, 
   LogOut,
-  User
+  User,
+  Wrench
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -45,6 +46,12 @@ const DashboardLayout = () => {
       href: '/dashboard/users', 
       icon: Users,
       roles: ['admin']
+    },
+    { 
+      name: t('dashboard.sidebar.repairs'), 
+      href: '/dashboard/repairs', 
+      icon: Wrench,
+      roles: ['technician']
     },
     { 
       name: t('dashboard.sidebar.settings'), 

@@ -9,6 +9,7 @@ import OverviewPage from './pages/dashboard/OverviewPage';
 import UsersPage from './pages/dashboard/UsersPage';
 import SpacesPage from './pages/dashboard/SpacesPage';
 import FirstSetupPage from './pages/FirstSetupPage';
+import RepairsPage from './pages/dashboard/RepairsPage';
 
 // Components
 import ProtectedRoute from './features/auth/ProtectedRoute';
@@ -81,7 +82,15 @@ function App() {
               } 
             />
             
-            {/* Spaces Management */}
+            {/* Repairs Management - Nueva ruta añadida */}
+            <Route 
+              path="repairs" 
+              element={
+                <RepairsPage />
+              } 
+            />
+            
+            {/* Placeholder Pages */}
             <Route 
               path="spaces" 
               element={
