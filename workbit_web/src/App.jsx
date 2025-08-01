@@ -8,6 +8,7 @@ import DashboardLayout from './pages/dashboard/DashboardLayout';
 import OverviewPage from './pages/dashboard/OverviewPage';
 import UsersPage from './pages/dashboard/UsersPage';
 import FirstSetupPage from './pages/FirstSetupPage';
+import RepairsPage from './pages/dashboard/RepairsPage';
 
 // Components
 import ProtectedRoute from './features/auth/ProtectedRoute';
@@ -77,6 +78,14 @@ function App() {
                 <RoleGuard requiredRole="admin">
                   <UsersPage />
                 </RoleGuard>
+              } 
+            />
+            
+            {/* Repairs Management - Nueva ruta añadida */}
+            <Route 
+              path="repairs" 
+              element={
+                <RepairsPage />
               } 
             />
             

@@ -47,6 +47,12 @@ const DashboardLayout = () => {
       roles: ['admin']
     },
     { 
+      name: t('dashboard.sidebar.repairs'), 
+      href: '/dashboard/repairs', 
+      icon: Wrench,
+      roles: ['technician']
+    },
+    { 
       name: t('dashboard.sidebar.settings'), 
       href: '/dashboard/settings', 
       icon: Settings,
