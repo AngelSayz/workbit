@@ -318,6 +318,30 @@ const logger = {
   }
 };
 
+/**
+ * Log activity to database
+ */
+const logActivity = async (userId, action, details = {}) => {
+  try {
+    const supabase = require('../config/supabase');
+    
+    const { error } = await supabase
+      .from('access_logs')
+      .insert({
+        user_id: userId,
+        action: action,
+        details: details,
+        timestamp: new Date().toISOString()
+      });
+
+    if (error) {
+      logger.error('Failed to log activity', error);
+    }
+  } catch (error) {
+    logger.error('Error logging activity', error);
+  }
+};
+
 module.exports = {
   generateId,
   generateHash,
@@ -340,5 +364,6 @@ module.exports = {
   deepClone,
   isEmpty,
   retry,
-  logger
+  logger,
+  logActivity
 }; 
