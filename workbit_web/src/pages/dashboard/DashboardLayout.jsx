@@ -12,7 +12,8 @@ import {
   Settings, 
   LogOut,
   User,
-  Wrench
+  Wrench,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -24,37 +25,49 @@ const DashboardLayout = () => {
 
   const menuItems = [
     { 
-      name: t('dashboard.sidebar.overview'), 
+      name: 'Dashboard', 
       href: '/dashboard/overview', 
       icon: Home,
       roles: ['admin', 'technician']
     },
     { 
-      name: t('dashboard.sidebar.spaces'), 
-      href: '/dashboard/spaces', 
-      icon: Building,
-      roles: ['admin', 'technician']
-    },
-    { 
-      name: t('dashboard.sidebar.reservations'), 
+      name: 'Reservas', 
       href: '/dashboard/reservations', 
       icon: Calendar,
       roles: ['admin', 'technician']
     },
     { 
-      name: t('dashboard.sidebar.users'), 
+      name: 'Espacios', 
+      href: '/dashboard/spaces', 
+      icon: Building,
+      roles: ['admin', 'technician']
+    },
+    { 
+      name: 'Estadísticas', 
+      href: '/dashboard/statistics', 
+      icon: BarChart3,
+      roles: ['admin']
+    },
+    { 
+      name: 'Usuarios', 
       href: '/dashboard/users', 
       icon: Users,
       roles: ['admin']
     },
     { 
-      name: t('dashboard.sidebar.repairs'), 
-      href: '/dashboard/repairs', 
+      name: 'Staff', 
+      href: '/dashboard/staff', 
       icon: Wrench,
-      roles: ['technician']
+      roles: ['admin']
     },
     { 
-      name: t('dashboard.sidebar.settings'), 
+      name: 'Tareas', 
+      href: '/dashboard/tasks', 
+      icon: Wrench,
+      roles: ['admin', 'technician']
+    },
+    { 
+      name: 'Configuración', 
       href: '/dashboard/settings', 
       icon: Settings,
       roles: ['admin', 'technician']
@@ -72,12 +85,12 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
             <div className="text-xl font-bold text-blue-600">
               WorkBit
             </div>
@@ -90,7 +103,7 @@ const DashboardLayout = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             {filteredMenuItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
@@ -113,7 +126,7 @@ const DashboardLayout = () => {
           </nav>
 
           {/* User Profile & Logout */}
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-gray-200 p-4 flex-shrink-0">
             <div className="flex items-center mb-4">
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
                 <User size={16} className="text-blue-600" />
@@ -139,7 +152,7 @@ const DashboardLayout = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:ml-0">
+      <div className="flex-1 flex flex-col lg:ml-64">
         {/* Top Bar */}
         <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
           <div className="flex items-center justify-between h-16 px-4">

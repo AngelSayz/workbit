@@ -26,6 +26,8 @@ const roleRoutes = require('./routes/roles');
 const analyticsRoutes = require('./routes/analytics');
 const sensorRoutes = require('./routes/sensors');
 const chatRoutes = require('./routes/chat');
+const dashboardRoutes = require('./routes/dashboard');
+const taskRoutes = require('./routes/tasks');
 
 const app = express();
 app.set('trust proxy', 1); // Para Render y proxies
@@ -83,6 +85,8 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/sensors', sensorRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Legacy route compatibility (from C# backend)
 app.use('/login', authRoutes);

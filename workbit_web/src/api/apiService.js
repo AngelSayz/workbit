@@ -204,6 +204,42 @@ export const accessLogsAPI = {
   }
 };
 
+// Funciones de dashboard
+export const dashboardAPI = {
+  getStats: async () => {
+    const response = await apiClient.get('/dashboard/stats');
+    return response.data;
+  },
+  
+  getCharts: async () => {
+    const response = await apiClient.get('/dashboard/charts');
+    return response.data;
+  }
+};
+
+// Funciones de tasks
+export const tasksAPI = {
+  getTasks: async () => {
+    const response = await apiClient.get('/tasks');
+    return response.data;
+  },
+  
+  createTask: async (taskData) => {
+    const response = await apiClient.post('/tasks', taskData);
+    return response.data;
+  },
+  
+  updateTask: async (taskId, taskData) => {
+    const response = await apiClient.put(`/tasks/${taskId}`, taskData);
+    return response.data;
+  },
+  
+  deleteTask: async (taskId) => {
+    const response = await apiClient.delete(`/tasks/${taskId}`);
+    return response.data;
+  }
+};
+
 // Funciones de administración
 export const adminAPI = {
   getAdminData: async () => {

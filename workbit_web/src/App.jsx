@@ -8,6 +8,10 @@ import DashboardLayout from './pages/dashboard/DashboardLayout';
 import OverviewPage from './pages/dashboard/OverviewPage';
 import UsersPage from './pages/dashboard/UsersPage';
 import SpacesPage from './pages/dashboard/SpacesPage';
+import StatisticsPage from './pages/dashboard/StatisticsPage';
+import ReservationsPage from './pages/dashboard/ReservationsPage';
+import StaffPage from './pages/dashboard/StaffPage';
+import TasksPage from './pages/dashboard/TasksPage';
 import FirstSetupPage from './pages/FirstSetupPage';
 import RepairsPage from './pages/dashboard/RepairsPage';
 
@@ -100,16 +104,43 @@ function App() {
               } 
             />
             
-            {/* Placeholder Pages */}
+            {/* Statistics Page */}
+            <Route 
+              path="statistics" 
+              element={
+                <RoleGuard requiredRole="admin">
+                  <StatisticsPage />
+                </RoleGuard>
+              } 
+            />
+            
+            {/* Reservations Page */}
             <Route 
               path="reservations" 
               element={
-                <div className="w-full h-full p-6">
-                  <div className="text-center py-12">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Reservas</h2>
-                    <p className="text-gray-600">Funcionalidad en desarrollo...</p>
-                  </div>
-                </div>
+                <RoleGuard requiredRole="admin">
+                  <ReservationsPage />
+                </RoleGuard>
+              } 
+            />
+            
+            {/* Staff Management */}
+            <Route 
+              path="staff" 
+              element={
+                <RoleGuard requiredRole="admin">
+                  <StaffPage />
+                </RoleGuard>
+              } 
+            />
+            
+            {/* Tasks Management */}
+            <Route 
+              path="tasks" 
+              element={
+                <RoleGuard requiredRole="admin">
+                  <TasksPage />
+                </RoleGuard>
               } 
             />
             

@@ -28,11 +28,7 @@ const CubiclesLayout = () => {
     position_x: 0,
     position_y: 0
   });
-  const [isExpandingGrid, setIsExpandingGrid] = useState(false);
-  const [expandGridData, setExpandGridData] = useState({
-    rows: 2,
-    cols: 5
-  });
+
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   
@@ -117,23 +113,7 @@ const CubiclesLayout = () => {
     setSelectedSpace(null);
   };
 
-  const handleAddSpaceClick = (x, y) => {
-    // Verificar si ya existe un espacio en esta posición
-    const existingSpace = spaces.find(space => 
-      space.position_x === x && space.position_y === y
-    );
-    
-    if (!existingSpace) {
-      setNewSpaceData({
-        name: '',
-        capacity: 2,
-        status: 'available',
-        position_x: x,
-        position_y: y
-      });
-      setIsAddingSpace(true);
-    }
-  };
+
 
   const handleCreateSpace = async () => {
     try {
@@ -167,30 +147,42 @@ const CubiclesLayout = () => {
     });
   };
 
-  const handleExpandGrid = async () => {
-    try {
-      const response = await spacesAPI.updateGridSettings(expandGridData);
-      if (response.success) {
-        // Recargar los datos
-        await fetchSpacesData();
-        setIsExpandingGrid(false);
-        setExpandGridData({
-          rows: gridSettings.rows,
-          cols: gridSettings.cols
+  const handleAddSpaceClick = async (x, y) => {
+    // Verificar si necesitamos expandir el grid
+    const needsExpansion = x >= gridSettings.cols || y >= gridSettings.rows;
+    
+    if (needsExpansion) {
+      // Calcular nuevas dimensiones
+      const newRows = Math.max(gridSettings.rows, y + 1);
+      const newCols = Math.max(gridSettings.cols, x + 1);
+      
+      try {
+        // Expandir el grid automáticamente
+        const response = await spacesAPI.updateGridSettings({
+          rows: newRows,
+          cols: newCols
         });
+        
+        if (response.success) {
+          // Recargar los datos para obtener el grid actualizado
+          await fetchSpacesData();
+        }
+      } catch (err) {
+        console.error('Error expanding grid:', err);
+        alert('Error al expandir el grid automáticamente');
+        return;
       }
-    } catch (err) {
-      console.error('Error expanding grid:', err);
-      alert('Error al expandir el grid');
     }
-  };
-
-  const cancelExpandGrid = () => {
-    setIsExpandingGrid(false);
-    setExpandGridData({
-      rows: gridSettings.rows,
-      cols: gridSettings.cols
+    
+    // Continuar con la creación del espacio
+    setNewSpaceData({
+      name: '',
+      capacity: 2,
+      status: 'available',
+      position_x: x,
+      position_y: y
     });
+    setIsAddingSpace(true);
   };
 
   if (loading) {
@@ -218,8 +210,54 @@ const CubiclesLayout = () => {
     );
   }
 
-  const svgWidth = Math.max(1400, gridSettings.cols * 280);
-  const svgHeight = Math.max(1000, gridSettings.rows * 320);
+  // Calcular dimensiones dinámicas basadas en las posiciones de cubículos y espacios vacíos
+  const calculateDynamicDimensions = () => {
+    let maxX = 0;
+    let maxY = 0;
+    
+    // Verificar posiciones de cubículos existentes
+    spaces.forEach(space => {
+      maxX = Math.max(maxX, space.position_x);
+      maxY = Math.max(maxY, space.position_y);
+    });
+    
+    // Verificar posiciones adyacentes (espacios vacíos)
+    const adjacentPositions = new Set();
+    spaces.forEach(space => {
+      const { position_x, position_y } = space;
+      const adjacent = [
+        [position_x - 1, position_y],
+        [position_x + 1, position_y],
+        [position_x, position_y - 1],
+        [position_x, position_y + 1],
+        [position_x - 1, position_y - 1],
+        [position_x + 1, position_y - 1],
+        [position_x - 1, position_y + 1],
+        [position_x + 1, position_y + 1]
+      ];
+      adjacent.forEach(([x, y]) => {
+        if (x >= 0 && y >= 0) {
+          adjacentPositions.add(`${x},${y}`);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      });
+    });
+    
+    // Agregar también las posiciones dentro del grid actual
+    for (let row = 0; row < gridSettings.rows; row++) {
+      for (let col = 0; col < gridSettings.cols; col++) {
+        maxX = Math.max(maxX, col);
+        maxY = Math.max(maxY, row);
+      }
+    }
+    
+    return { maxX, maxY };
+  };
+  
+  const { maxX, maxY } = calculateDynamicDimensions();
+  const svgWidth = Math.max(1400, (maxX + 1) * 280);
+  const svgHeight = Math.max(1000, (maxY + 1) * 320);
   const cellWidth = 200;
   const cellHeight = 200;
   const margin = 40;
@@ -231,23 +269,9 @@ const CubiclesLayout = () => {
          <p className="text-gray-600">Vista visual de todos los espacios disponibles ({spaces.length} cubículos)</p>
          {isAdmin && (
            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-             <div className="flex items-center justify-between">
-               <p className="text-sm text-blue-700">
-                 💡 <strong>Modo Administrador:</strong> Haz clic en los espacios vacíos (con borde punteado) para agregar nuevos cubículos.
-               </p>
-               <button
-                 onClick={() => {
-                   setExpandGridData({
-                     rows: gridSettings.rows + 1,
-                     cols: gridSettings.cols + 1
-                   });
-                   setIsExpandingGrid(true);
-                 }}
-                 className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
-               >
-                 Expandir Grid
-               </button>
-             </div>
+             <p className="text-sm text-blue-700">
+               💡 <strong>Modo Administrador:</strong> Haz clic en cualquier espacio vacío (con borde punteado) para agregar nuevos cubículos. El grid se expandirá automáticamente según sea necesario.
+             </p>
            </div>
          )}
        </div>
@@ -337,48 +361,87 @@ const CubiclesLayout = () => {
                          );
            })}
 
-           {/* Renderizar espacios vacíos clickeables (solo para administradores) */}
-           {isAdmin && Array.from({ length: gridSettings.rows }, (_, row) =>
-               Array.from({ length: gridSettings.cols }, (_, col) => {
-                 const x = col * (cellWidth + margin) + margin / 2;
-                 const y = row * (cellHeight + margin) + margin / 2 + 80;
-                 
-                 // Verificar si ya existe un espacio en esta posición
+                      {/* Renderizar espacios vacíos clickeables dinámicamente (solo para administradores) */}
+           {isAdmin && (() => {
+             // Calcular todas las posiciones adyacentes a cubículos existentes
+             const adjacentPositions = new Set();
+             
+             spaces.forEach(space => {
+               const { position_x, position_y } = space;
+               
+               // Agregar posiciones adyacentes (arriba, abajo, izquierda, derecha, diagonales)
+               const adjacent = [
+                 [position_x - 1, position_y],     // Izquierda
+                 [position_x + 1, position_y],     // Derecha
+                 [position_x, position_y - 1],     // Arriba
+                 [position_x, position_y + 1],     // Abajo
+                 [position_x - 1, position_y - 1], // Diagonal superior izquierda
+                 [position_x + 1, position_y - 1], // Diagonal superior derecha
+                 [position_x - 1, position_y + 1], // Diagonal inferior izquierda
+                 [position_x + 1, position_y + 1]  // Diagonal inferior derecha
+               ];
+               
+               adjacent.forEach(([x, y]) => {
+                 if (x >= 0 && y >= 0) { // Solo posiciones válidas
+                   adjacentPositions.add(`${x},${y}`);
+                 }
+               });
+             });
+             
+             // Agregar también las posiciones dentro del grid actual que estén vacías
+             for (let row = 0; row < gridSettings.rows; row++) {
+               for (let col = 0; col < gridSettings.cols; col++) {
                  const existingSpace = spaces.find(space => 
                    space.position_x === col && space.position_y === row
                  );
-                 
                  if (!existingSpace) {
-                   return (
-                     <g key={`empty-${row}-${col}`} transform={`translate(${x}, ${y})`}>
-                       <motion.rect
-                         width={cellWidth}
-                         height={cellHeight}
-                         fill="#f8fafc"
-                         stroke="#d1d5db"
-                         strokeWidth="2"
-                         strokeDasharray="5,5"
-                         rx="12"
-                         whileHover={{ scale: 1.05 }}
-                         onClick={() => handleAddSpaceClick(col, row)}
-                         className="cursor-pointer"
-                         style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
-                       />
-                       <text x={cellWidth / 2} y={cellHeight / 2} textAnchor="middle" fontSize="14" fill="#9ca3af">
-                         <tspan x={cellWidth / 2} dy="-10">+ Agregar</tspan>
-                         <tspan x={cellWidth / 2} dy="20">Espacio</tspan>
-                       </text>
-                       <g transform={`translate(${cellWidth / 2 - 12}, ${cellHeight / 2 - 30})`}>
-                         <svg width="24" height="24" viewBox="0 0 24 24" fill="#9ca3af">
-                           <path d="M12 2C13.1 2 14 2.9 14 4V10H20C21.1 10 22 10.9 22 12C22 13.1 21.1 14 20 14H14V20C14 21.1 13.1 22 12 22C10.9 22 10 21.1 10 20V14H4C2.9 14 2 13.1 2 12C2 10.9 2.9 10 4 10H10V4C10 2.9 10.9 2 12 2Z"/>
-                         </svg>
-                       </g>
-                     </g>
-                   );
+                   adjacentPositions.add(`${col},${row}`);
                  }
-                 return null;
-               })
-             )}
+               }
+             }
+             
+             // Renderizar espacios vacíos en todas las posiciones adyacentes
+             return Array.from(adjacentPositions).map(posKey => {
+               const [col, row] = posKey.split(',').map(Number);
+               const x = col * (cellWidth + margin) + margin / 2;
+               const y = row * (cellHeight + margin) + margin / 2 + 80;
+               
+               // Verificar que no haya un espacio existente en esta posición
+               const existingSpace = spaces.find(space => 
+                 space.position_x === col && space.position_y === row
+               );
+               
+               if (!existingSpace) {
+                 return (
+                   <g key={`empty-${row}-${col}`} transform={`translate(${x}, ${y})`}>
+                     <motion.rect
+                       width={cellWidth}
+                       height={cellHeight}
+                       fill="#f8fafc"
+                       stroke="#d1d5db"
+                       strokeWidth="2"
+                       strokeDasharray="5,5"
+                       rx="12"
+                       whileHover={{ scale: 1.05 }}
+                       onClick={() => handleAddSpaceClick(col, row)}
+                       className="cursor-pointer"
+                       style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                     />
+                     <text x={cellWidth / 2} y={cellHeight / 2} textAnchor="middle" fontSize="14" fill="#9ca3af">
+                       <tspan x={cellWidth / 2} dy="-10">+ Agregar</tspan>
+                       <tspan x={cellWidth / 2} dy="20">Espacio</tspan>
+                     </text>
+                     <g transform={`translate(${cellWidth / 2 - 12}, ${cellHeight / 2 - 30})`}>
+                       <svg width="24" height="24" viewBox="0 0 24 24" fill="#9ca3af">
+                         <path d="M12 2C13.1 2 14 2.9 14 4V10H20C21.1 10 22 10.9 22 12C22 13.1 21.1 14 20 14H14V20C14 21.1 13.1 22 12 22C10.9 22 10 21.1 10 20V14H4C2.9 14 2 13.1 2 12C2 10.9 2.9 10 4 10H10V4C10 2.9 10.9 2 12 2Z"/>
+                       </svg>
+                     </g>
+                   </g>
+                 );
+               }
+               return null;
+             });
+           })()}
                   </svg>
        </div>
 
@@ -526,93 +589,6 @@ const CubiclesLayout = () => {
             </motion.div>
           </div>
                  )}
-
-        {/* Expand Grid Modal */}
-        {isExpandingGrid && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900">
-                  Expandir Grid
-                </h3>
-                <button
-                  onClick={cancelExpandGrid}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-yellow-50 p-3 rounded-md">
-                  <p className="text-sm text-yellow-700">
-                    ⚠️ <strong>Advertencia:</strong> Expandir el grid creará espacios vacíos adicionales donde podrás agregar nuevos cubículos.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Filas
-                    </label>
-                    <input
-                      type="number"
-                      min={gridSettings.rows}
-                      max={10}
-                      value={expandGridData.rows}
-                      onChange={(e) => setExpandGridData({...expandGridData, rows: parseInt(e.target.value) || gridSettings.rows})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Columnas
-                    </label>
-                    <input
-                      type="number"
-                      min={gridSettings.cols}
-                      max={10}
-                      value={expandGridData.cols}
-                      onChange={(e) => setExpandGridData({...expandGridData, cols: parseInt(e.target.value) || gridSettings.cols})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <p className="text-sm text-gray-600">
-                    <strong>Configuración actual:</strong> {gridSettings.rows} filas × {gridSettings.cols} columnas<br/>
-                    <strong>Nueva configuración:</strong> {expandGridData.rows} filas × {expandGridData.cols} columnas<br/>
-                    <strong>Espacios adicionales:</strong> {(expandGridData.rows * expandGridData.cols) - (gridSettings.rows * gridSettings.cols)}
-                  </p>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={cancelExpandGrid}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleExpandGrid}
-                    disabled={expandGridData.rows < gridSettings.rows || expandGridData.cols < gridSettings.cols}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    Expandir Grid
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
        </div>
      );
    };
