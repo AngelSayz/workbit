@@ -5,7 +5,7 @@ import {
   Plus, 
   Settings, 
   Trash2,
-  Grid3X3,
+  Grid3x3,
   Users,
   Calendar,
   Activity
