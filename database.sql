@@ -1,6 +1,3 @@
--- WARNING: This schema is for context only and is not meant to be run.
--- Table order and constraints may not be valid for execution.
-
 CREATE TABLE public.access_logs (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
   user_id integer NOT NULL,
@@ -9,9 +6,9 @@ CREATE TABLE public.access_logs (
   access_time timestamp without time zone NOT NULL,
   exit_time timestamp without time zone,
   CONSTRAINT access_logs_pkey PRIMARY KEY (id),
-  CONSTRAINT access_logs_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES public.reservations(id),
   CONSTRAINT access_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT access_logs_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id)
+  CONSTRAINT access_logs_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id),
+  CONSTRAINT access_logs_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES public.reservations(id)
 );
 CREATE TABLE public.codecards (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -31,8 +28,8 @@ CREATE TABLE public.reservation_participants (
   user_id integer NOT NULL,
   reservation_id integer NOT NULL,
   CONSTRAINT reservation_participants_pkey PRIMARY KEY (id),
-  CONSTRAINT reservation_participants_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES public.reservations(id),
-  CONSTRAINT reservation_participants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT reservation_participants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT reservation_participants_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES public.reservations(id)
 );
 CREATE TABLE public.reservations (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -44,8 +41,8 @@ CREATE TABLE public.reservations (
   owner_id integer NOT NULL,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT reservations_pkey PRIMARY KEY (id),
-  CONSTRAINT reservations_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
-  CONSTRAINT reservations_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id)
+  CONSTRAINT reservations_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id),
+  CONSTRAINT reservations_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.roles (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -62,26 +59,17 @@ CREATE TABLE public.spaces (
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT spaces_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.tasks (
-  id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
-  users_id integer NOT NULL,
-  space_id integer NOT NULL,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT tasks_pkey PRIMARY KEY (id),
-  CONSTRAINT tasks_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id),
-  CONSTRAINT tasks_users_id_fkey FOREIGN KEY (users_id) REFERENCES public.users(id)
-);
 CREATE TABLE public.users (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
   name character varying NOT NULL,
   lastname character varying NOT NULL,
   username character varying NOT NULL UNIQUE,
   role_id integer NOT NULL,
-  card_id integer,
+  card_id integer NOT NULL,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   user_id uuid UNIQUE,
   CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT users_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id),
+  CONSTRAINT users_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT users_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.codecards(id),
-  CONSTRAINT users_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT users_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id)
 );
