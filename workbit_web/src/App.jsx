@@ -88,7 +88,7 @@ function App() {
             
             {/* Repairs Management - Nueva ruta añadida */}
             <Route 
-              path="repairs" 
+              path="assignments" 
               element={
                 <RepairsPage />
               } 

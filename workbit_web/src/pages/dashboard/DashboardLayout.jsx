@@ -43,6 +43,12 @@ const DashboardLayout = () => {
       roles: ['admin', 'technician']
     },
     { 
+      name: 'Asignaciones', 
+      href: '/dashboard/assignments', 
+      icon: Wrench,
+      roles: ['technician']
+    },
+    { 
       name: 'Estadísticas', 
       href: '/dashboard/statistics', 
       icon: BarChart3,
