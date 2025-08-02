@@ -6,7 +6,7 @@ import {
   Search,
   Clock,
   CheckCircle,
-  AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import { tasksAPI } from '../../api/apiService';
 import { useAuth } from '../../hooks/useAuth';
@@ -16,6 +16,7 @@ const RepairsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [updatingTasks, setUpdatingTasks] = useState(new Set());
   const { t } = useTranslation();
   const { user } = useAuth();
 
@@ -31,7 +32,6 @@ const RepairsPage = () => {
       setLoading(true);
       const response = await tasksAPI.getTasks();
       if (response.data?.tasks) {
-        // Solo tareas asignadas al usuario logueado
         setTasks(
           response.data.tasks.filter(
             (task) => String(task.assigned_to) === String(user.id)
@@ -46,6 +46,44 @@ const RepairsPage = () => {
       setError('Error al cargar las tareas');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateTaskStatus = async (taskId, status) => {
+    setUpdatingTasks(prev => new Set(prev).add(taskId));
+    try {
+      const response = await tasksAPI.updateTask(taskId, { status });
+      if (response.success) {
+        await fetchTasks();
+      } else {
+        throw new Error(response.error || 'Error al actualizar estado');
+      }
+    } catch (err) {
+      console.error('Error updating task status:', err);
+      alert(err.response?.data?.message || err.message || 'Error al actualizar estado');
+    } finally {
+      setUpdatingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+      try {
+        const response = await tasksAPI.deleteTask(taskId);
+        if (response.success) {
+          await fetchTasks();
+          alert('Tarea eliminada exitosamente');
+        } else {
+          throw new Error(response.error || 'Error al eliminar tarea');
+        }
+      } catch (err) {
+        console.error('Error deleting task:', err);
+        alert(err.response?.data?.message || err.message || 'Error al eliminar tarea');
+      }
     }
   };
 
@@ -117,53 +155,6 @@ const RepairsPage = () => {
     );
   }
 
-  // Tarjeta con datos del técnico logueado
-  const employeeCard = (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-md mx-auto mb-6"
-    >
-      <div className="flex items-center mb-4">
-        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-          <Wrench className="w-6 h-6 text-orange-600" />
-        </div>
-        <div className="ml-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {user.name} {user.lastname}
-          </h3>
-          <p className="text-sm text-gray-500">@{user.username}</p>
-        </div>
-      </div>
-      <div className="space-y-3">
-        <div className="flex items-center text-sm text-gray-600">
-          <span className="font-medium mr-2">Email:</span>
-          <span>{user.email}</span>
-        </div>
-        <div className="flex items-center text-sm text-gray-600">
-          <span className="font-medium mr-2">Rol:</span>
-          <span className="capitalize">{user.role}</span>
-        </div>
-        {user.cardCode && (
-          <div className="flex items-center text-sm text-gray-600">
-            <span className="font-medium mr-2">Tarjeta:</span>
-            <span className="font-mono">{user.cardCode}</span>
-          </div>
-        )}
-      </div>
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Registrado:</span>
-          <span className="text-gray-900">
-            {user.created_at
-              ? new Date(user.created_at).toLocaleDateString('es-ES')
-              : ''}
-          </span>
-        </div>
-      </div>
-    </motion.div>
-  );
-
   // Tarjetas resumen de tareas del técnico logueado
   const summaryCards = (
     <motion.div
@@ -214,7 +205,6 @@ const RepairsPage = () => {
 
   return (
     <div className="w-full h-full p-6 space-y-6">
-      {employeeCard}
       {summaryCards}
 
       <motion.div
@@ -292,26 +282,30 @@ const RepairsPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          task.status
-                        )}`}
+                      <select
+                        value={task.status || 'pending'}
+                        onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
+                        disabled={updatingTasks.has(task.id)}
+                        className={`px-2 py-1 border border-gray-300 rounded text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white ${updatingTasks.has(task.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        {task.status === 'pending'
-                          ? 'Pendiente'
-                          : task.status === 'in_progress'
-                          ? 'En Progreso'
-                          : task.status === 'completed'
-                          ? 'Completada'
-                          : 'Cancelada'}
-                      </span>
+                        <option value="pending">Pendiente</option>
+                        <option value="in_progress">En Progreso</option>
+                        <option value="completed">Completada</option>
+                        <option value="cancelled">Cancelada</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {user.name} {user.lastname}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {/* Si no quieres acciones, deja vacío o pon un icono de solo vista */}
-                      <span className="text-gray-400">-</span>
+                      <button
+                        onClick={() => handleDeleteTask(task.id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Eliminar tarea"
+                        disabled={updatingTasks.has(task.id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </td>
                   </motion.tr>
                 ))
