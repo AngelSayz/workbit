@@ -245,13 +245,32 @@ async function handleDeviceRegistration(data) {
     const existingDevice = await Device.findOne({ device_id });
     
     if (existingDevice) {
-      // Update last_seen and last_data
+      // Check if space_id has changed
+      const spaceChanged = existingDevice.space_id !== space_id;
+      
+      // Update device with new data (including space_id if changed)
       existingDevice.last_seen = new Date();
       existingDevice.last_data = data;
+      existingDevice.space_id = space_id;
+      existingDevice.space_name = space_name;
+      existingDevice.name = name; // Allow name updates too
+      existingDevice.sensors = sensors || existingDevice.sensors;
+      existingDevice.hardware_info = {
+        model: data.hardware_info?.model || existingDevice.hardware_info?.model || 'Unknown',
+        firmware_version: data.hardware_info?.firmware_version || existingDevice.hardware_info?.firmware_version || 'Unknown',
+        mac_address: data.hardware_info?.mac_address || existingDevice.hardware_info?.mac_address || '',
+        ip_address: data.hardware_info?.ip_address || existingDevice.hardware_info?.ip_address || ''
+      };
+      existingDevice.location = data.location || existingDevice.location;
+      
       await existingDevice.save();
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`🔄 Device ${device_id} already exists, updated last_seen`);
+        if (spaceChanged) {
+          console.log(`🔄 Device ${device_id} moved from space ${existingDevice.space_id} to space ${space_id}`);
+        } else {
+          console.log(`🔄 Device ${device_id} already exists, updated last_seen`);
+        }
       }
       return;
     }
