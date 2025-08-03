@@ -455,6 +455,122 @@ router.get('/stats/overview', authenticateToken, async (req, res) => {
 
 /**
  * @swagger
+ * /api/devices/space/{spaceId}:
+ *   get:
+ *     summary: Get devices and readings for a specific space
+ *     tags: [Devices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: spaceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Space ID
+ *     responses:
+ *       200:
+ *         description: Devices and readings for the space
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     space_info:
+ *                       type: object
+ *                     devices:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Device'
+ *                     statistics:
+ *                       type: object
+ *       404:
+ *         description: Space not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/space/:spaceId', authenticateToken, async (req, res) => {
+  try {
+    const spaceId = parseInt(req.params.spaceId);
+
+    // Get space info from Supabase
+    const { data: space, error: spaceError } = await supabase
+      .from('spaces')
+      .select('*')
+      .eq('id', spaceId)
+      .single();
+
+    if (spaceError || !space) {
+      return res.status(404).json({
+        success: false,
+        error: 'Space not found'
+      });
+    }
+
+    // Get devices for this space
+    const devices = await Device.find({ space_id: spaceId })
+      .sort({ last_seen: -1 })
+      .lean();
+
+    // Get latest readings for each device
+    const deviceIds = devices.map(device => device.device_id);
+    const latestReadings = await DeviceReading.aggregate([
+      { $match: { device_id: { $in: deviceIds } } },
+      { $sort: { timestamp: -1 } },
+      {
+        $group: {
+          _id: '$device_id',
+          latest_reading: { $first: '$$ROOT' }
+        }
+      }
+    ]);
+
+    const readingsMap = {};
+    latestReadings.forEach(item => {
+      readingsMap[item._id] = item.latest_reading;
+    });
+
+    // Enrich devices with latest readings
+    const enrichedDevices = devices.map(device => ({
+      ...device,
+      latest_reading: readingsMap[device.device_id] || null
+    }));
+
+    // Calculate statistics
+    const stats = {
+      total_devices: devices.length,
+      environmental_devices: devices.filter(d => d.type === 'environmental').length,
+      access_control_devices: devices.filter(d => d.type === 'access_control').length,
+      active_devices: devices.filter(d => d.status === 'active').length,
+      online_devices: devices.filter(d => d.status === 'online').length,
+      offline_devices: devices.filter(d => d.status === 'offline').length
+    };
+
+    res.json({
+      success: true,
+      data: {
+        space_info: space,
+        devices: enrichedDevices,
+        statistics: stats
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching space devices:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching space devices'
+    });
+  }
+});
+
+/**
+ * @swagger
  * /api/devices/offline:
  *   get:
  *     summary: Get offline devices

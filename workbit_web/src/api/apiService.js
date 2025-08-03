@@ -181,6 +181,11 @@ export const devicesAPI = {
   getOffline: async (hours = 24) => {
     const response = await apiClient.get('/devices/offline', { params: { hours } });
     return response.data;
+  },
+
+  getBySpace: async (spaceId) => {
+    const response = await apiClient.get(`/devices/space/${spaceId}`);
+    return response.data;
   }
 };
 

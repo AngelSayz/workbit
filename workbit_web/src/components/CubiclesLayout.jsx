@@ -14,7 +14,7 @@ import {
 import { spacesAPI } from '../api/apiService';
 import { useAuth } from '../hooks/useAuth';
 
-const CubiclesLayout = () => {
+const CubiclesLayout = ({ onSpaceClick }) => {
   const [spaces, setSpaces] = useState([]);
   const [gridSettings, setGridSettings] = useState({ rows: 5, cols: 8 });
   const [loading, setLoading] = useState(true);
@@ -106,7 +106,11 @@ const CubiclesLayout = () => {
   };
 
   const handleSpaceClick = (space) => {
-    setSelectedSpace(space);
+    if (onSpaceClick) {
+      onSpaceClick(space);
+    } else {
+      setSelectedSpace(space);
+    }
   };
 
   const closeModal = () => {

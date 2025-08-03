@@ -11,11 +11,16 @@ import {
   Trash2
 } from 'lucide-react';
 import CubiclesLayout from '../../components/CubiclesLayout';
+import SpaceDetailsModal from './SpaceDetailsModal';
+import SpaceStatsModal from './SpaceStatsModal';
 
 const SpacesPage = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('layout');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedSpace, setSelectedSpace] = useState(null);
+  const [showSpaceDetails, setShowSpaceDetails] = useState(false);
+  const [showSpaceStats, setShowSpaceStats] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -23,6 +28,23 @@ const SpacesPage = () => {
     setTimeout(() => {
       setIsRefreshing(false);
     }, 1000);
+  };
+
+  const handleSpaceClick = (space) => {
+    setSelectedSpace(space);
+    setShowSpaceDetails(true);
+  };
+
+  const handleViewStats = (space) => {
+    setSelectedSpace(space);
+    setShowSpaceDetails(false);
+    setShowSpaceStats(true);
+  };
+
+  const handleCloseModals = () => {
+    setShowSpaceDetails(false);
+    setShowSpaceStats(false);
+    setSelectedSpace(null);
   };
 
   const tabs = [
@@ -103,7 +125,7 @@ const SpacesPage = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
             >
-              <CubiclesLayout />
+              <CubiclesLayout onSpaceClick={handleSpaceClick} />
             </motion.div>
           )}
 
@@ -148,6 +170,22 @@ const SpacesPage = () => {
           )}
         </div>
       </motion.div>
+
+      {/* Modals */}
+      {showSpaceDetails && selectedSpace && (
+        <SpaceDetailsModal
+          space={selectedSpace}
+          onClose={handleCloseModals}
+          onViewStats={handleViewStats}
+        />
+      )}
+
+      {showSpaceStats && selectedSpace && (
+        <SpaceStatsModal
+          space={selectedSpace}
+          onClose={handleCloseModals}
+        />
+      )}
     </div>
   );
 };
