@@ -1,6 +1,7 @@
 const mqtt = require('mqtt');
 const AccessLog = require('../models/AccessLog');
 const Device = require('../models/Device');
+const DeviceReading = require('../models/DeviceReading');
 
 // Configuración MQTT optimizada para EMQX
 const mqttOptions = {
@@ -53,7 +54,8 @@ function createMqttClient() {
       const topics = [
         'workbit/access/request',       // RFID access requests
         'workbit/sensors/infrared',     // Infrared sensor data
-        'workbit/devices/add'           // Device registration
+        'workbit/devices/add',          // Device registration
+        'workbit/devices/+/readings'    // Device sensor readings
       ];
       
       topics.forEach(topic => {
@@ -176,7 +178,10 @@ function handleMqttMessage(topic, data) {
       handleDeviceRegistration(data);
       break;
     default:
-      if (process.env.NODE_ENV === 'development') {
+      // Handle device readings with pattern matching
+      if (topic.match(/^workbit\/devices\/.+\/readings$/)) {
+        handleDeviceReadings(topic, data);
+      } else if (process.env.NODE_ENV === 'development') {
         console.log(`📬 Unhandled MQTT topic: ${topic}`);
       }
   }
@@ -224,6 +229,58 @@ function handleInfraredSensorData(data) {
   }
   // TODO: Process infrared sensor data
   // This could be used for occupancy detection, motion alerts, etc.
+}
+
+// Handle device readings from MQTT
+async function handleDeviceReadings(topic, data) {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📊 Device reading received on ${topic}:`, data);
+    }
+
+    // Extract device_id from topic (workbit/devices/DEVICE_ID/readings)
+    const deviceId = topic.split('/')[2];
+    
+    // Validate required fields
+    const { readings, space_id, device_status = 'online', battery_level, signal_strength } = data;
+    
+    if (!readings || !Array.isArray(readings) || readings.length === 0) {
+      console.error('❌ Invalid readings data format');
+      return;
+    }
+
+    // Get device info to validate space_id
+    const device = await Device.findOne({ device_id: deviceId });
+    if (!device) {
+      console.error(`❌ Device ${deviceId} not found in database`);
+      return;
+    }
+
+    // Create new reading record
+    const deviceReading = new DeviceReading({
+      device_id: deviceId,
+      space_id: space_id || device.space_id,
+      readings: readings,
+      device_status,
+      battery_level,
+      signal_strength,
+      raw_data: data
+    });
+
+    await deviceReading.save();
+
+    // Update device last_seen
+    device.last_seen = new Date();
+    device.last_data = data;
+    await device.save();
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ Device reading saved for ${deviceId}: ${readings.length} sensors`);
+    }
+
+  } catch (error) {
+    console.error('❌ Error handling device readings:', error.message);
+  }
 }
 
 // Handle device registration from MQTT

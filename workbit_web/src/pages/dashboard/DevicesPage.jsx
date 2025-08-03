@@ -147,20 +147,45 @@ const DevicesPage = () => {
           </div>
         </div>
 
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center text-sm text-gray-600">
-            <MapPin className="w-4 h-4 mr-2" />
-            <span>{device.space_name}</span>
-          </div>
-          <div className="text-sm text-gray-600">
-            <span className="font-medium">ID:</span> {device.device_id}
-          </div>
-          {device.sensors && device.sensors.length > 0 && (
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">Sensores:</span> {device.sensors.length}
-            </div>
-          )}
-        </div>
+                 <div className="space-y-2 mb-4">
+           <div className="flex items-center text-sm text-gray-600">
+             <MapPin className="w-4 h-4 mr-2" />
+             <span>{device.space_name}</span>
+           </div>
+           <div className="text-sm text-gray-600">
+             <span className="font-medium">ID:</span> {device.device_id}
+           </div>
+           {device.sensors && device.sensors.length > 0 && (
+             <div className="text-sm text-gray-600">
+               <span className="font-medium">Sensores:</span> {device.sensors.length}
+             </div>
+           )}
+           
+           {/* Latest Readings */}
+           {device.latest_reading && device.latest_reading.readings && (
+             <div className="mt-3 p-2 bg-gray-50 rounded">
+               <div className="text-xs font-medium text-gray-700 mb-1">Últimas lecturas:</div>
+               <div className="space-y-1">
+                 {device.latest_reading.readings.slice(0, 3).map((reading, index) => (
+                   <div key={index} className="flex justify-between text-xs">
+                     <span className="text-gray-600">{reading.sensor_name}:</span>
+                     <span className="font-medium">
+                       {reading.value}{reading.unit ? ` ${reading.unit}` : ''}
+                     </span>
+                   </div>
+                 ))}
+                 {device.latest_reading.readings.length > 3 && (
+                   <div className="text-xs text-gray-500">
+                     +{device.latest_reading.readings.length - 3} más...
+                   </div>
+                 )}
+               </div>
+               <div className="text-xs text-gray-400 mt-1">
+                 {new Date(device.latest_reading.timestamp).toLocaleTimeString()}
+               </div>
+             </div>
+           )}
+         </div>
 
         <div className="flex items-center justify-between">
           <div className="text-xs text-gray-500">

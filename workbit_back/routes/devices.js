@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Device = require('../models/Device');
+const DeviceReading = require('../models/DeviceReading');
 const { authenticateToken } = require('../middleware/auth');
 
 /**
@@ -143,13 +144,37 @@ router.get('/', authenticateToken, async (req, res) => {
       .limit(parseInt(limit))
       .lean();
 
+    // Get latest readings for each device
+    const deviceIds = devices.map(device => device.device_id);
+    const latestReadings = await DeviceReading.aggregate([
+      { $match: { device_id: { $in: deviceIds } } },
+      { $sort: { timestamp: -1 } },
+      {
+        $group: {
+          _id: '$device_id',
+          latest_reading: { $first: '$$ROOT' }
+        }
+      }
+    ]);
+
+    const readingsMap = {};
+    latestReadings.forEach(item => {
+      readingsMap[item._id] = item.latest_reading;
+    });
+
+    // Enrich devices with latest readings
+    const enrichedDevices = devices.map(device => ({
+      ...device,
+      latest_reading: readingsMap[device.device_id] || null
+    }));
+
     // Get total count for pagination
     const total = await Device.countDocuments(filter);
     const pages = Math.ceil(total / parseInt(limit));
 
     res.json({
       success: true,
-      data: devices,
+      data: enrichedDevices,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
