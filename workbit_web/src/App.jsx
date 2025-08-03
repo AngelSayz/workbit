@@ -11,6 +11,7 @@ import SpacesPage from './pages/dashboard/SpacesPage';
 import StatisticsPage from './pages/dashboard/StatisticsPage';
 import ReservationsPage from './pages/dashboard/ReservationsPage';
 import StaffPage from './pages/dashboard/StaffPage';
+import DevicesPage from './pages/dashboard/DevicesPage';
 
 import FirstSetupPage from './pages/FirstSetupPage';
 import RepairsPage from './pages/dashboard/RepairsPage';
@@ -134,7 +135,13 @@ function App() {
               } 
             />
             
-
+            {/* Devices Management */}
+            <Route 
+              path="devices" 
+              element={
+                <DevicesPage />
+              } 
+            />
             
             <Route 
               path="settings" 

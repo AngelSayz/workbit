@@ -193,6 +193,15 @@ PUT    /api/sensors/devices/:deviceId/status # Update device status
 GET    /api/sensors/summary           # Sensor data summary
 ```
 
+### Device Management
+```
+GET    /api/devices                   # Get all devices
+GET    /api/devices/:deviceId         # Get device by ID
+PATCH  /api/devices/:deviceId/status  # Update device status
+GET    /api/devices/stats/overview    # Get device statistics
+GET    /api/devices/offline           # Get offline devices
+```
+
 ### Health & Monitoring
 ```
 GET    /api/health                    # Basic health check

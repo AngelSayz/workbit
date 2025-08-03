@@ -13,7 +13,8 @@ import {
   LogOut,
   User,
   Wrench,
-  BarChart3
+  BarChart3,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -60,7 +61,12 @@ const DashboardLayout = () => {
       icon: Wrench,
       roles: ['admin']
     },
-    
+    { 
+      name: 'Dispositivos', 
+      href: '/dashboard/devices', 
+      icon: Activity,
+      roles: ['admin', 'technician']
+    },
     { 
       name: 'Configuración', 
       href: '/dashboard/settings', 

@@ -127,6 +127,60 @@ export const usersAPI = {
   updateUserCardCode: async (userId, cardCode) => {
     const response = await apiClient.put(`/users/${userId}/card-code`, { cardCode });
     return response.data;
+  },
+
+  // Métodos adicionales para compatibilidad
+  getAll: async (params = {}) => {
+    const response = await apiClient.get('/users', { params });
+    return response.data;
+  },
+
+  getById: async (id) => {
+    const response = await apiClient.get(`/users/${id}`);
+    return response.data;
+  },
+
+  create: async (userData) => {
+    const response = await apiClient.post('/users', userData);
+    return response.data;
+  },
+
+  update: async (id, userData) => {
+    const response = await apiClient.put(`/users/${id}`, userData);
+    return response.data;
+  },
+
+  delete: async (id) => {
+    const response = await apiClient.delete(`/users/${id}`);
+    return response.data;
+  }
+};
+
+// Funciones de dispositivos
+export const devicesAPI = {
+  getAll: async (params = {}) => {
+    const response = await apiClient.get('/devices', { params });
+    return response.data;
+  },
+
+  getById: async (deviceId) => {
+    const response = await apiClient.get(`/devices/${deviceId}`);
+    return response.data;
+  },
+
+  updateStatus: async (deviceId, statusData) => {
+    const response = await apiClient.patch(`/devices/${deviceId}/status`, statusData);
+    return response.data;
+  },
+
+  getStats: async () => {
+    const response = await apiClient.get('/devices/stats/overview');
+    return response.data;
+  },
+
+  getOffline: async (hours = 24) => {
+    const response = await apiClient.get('/devices/offline', { params: { hours } });
+    return response.data;
   }
 };
 

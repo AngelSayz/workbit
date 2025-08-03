@@ -1,5 +1,6 @@
 const mqtt = require('mqtt');
 const AccessLog = require('../models/AccessLog');
+const Device = require('../models/Device');
 
 // Configuración MQTT optimizada para EMQX
 const mqttOptions = {
@@ -51,7 +52,8 @@ function createMqttClient() {
       // Subscribe to relevant topics
       const topics = [
         'workbit/access/request',       // RFID access requests
-        'workbit/sensors/infrared'      // Infrared sensor data
+        'workbit/sensors/infrared',     // Infrared sensor data
+        'workbit/devices/add'           // Device registration
       ];
       
       topics.forEach(topic => {
@@ -170,6 +172,9 @@ function handleMqttMessage(topic, data) {
     case 'workbit/sensors/infrared':
       handleInfraredSensorData(data);
       break;
+    case 'workbit/devices/add':
+      handleDeviceRegistration(data);
+      break;
     default:
       if (process.env.NODE_ENV === 'development') {
         console.log(`📬 Unhandled MQTT topic: ${topic}`);
@@ -219,6 +224,63 @@ function handleInfraredSensorData(data) {
   }
   // TODO: Process infrared sensor data
   // This could be used for occupancy detection, motion alerts, etc.
+}
+
+// Handle device registration from MQTT
+async function handleDeviceRegistration(data) {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📱 Device registration received:`, data);
+    }
+
+    // Validate required fields
+    const { device_id, name, type, space_id, space_name, sensors, mqtt_topic } = data;
+    
+    if (!device_id || !name || !type || !space_id || !space_name || !mqtt_topic) {
+      console.error('❌ Missing required fields in device registration');
+      return;
+    }
+
+    // Check if device already exists
+    const existingDevice = await Device.findOne({ device_id });
+    
+    if (existingDevice) {
+      // Update last_seen and last_data
+      existingDevice.last_seen = new Date();
+      existingDevice.last_data = data;
+      await existingDevice.save();
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔄 Device ${device_id} already exists, updated last_seen`);
+      }
+      return;
+    }
+
+    // Create new device
+    const newDevice = new Device({
+      device_id,
+      name,
+      type,
+      space_id,
+      space_name,
+      sensors: sensors || [],
+      mqtt_topic,
+      hardware_info: {
+        model: data.hardware_info?.model || 'Unknown',
+        firmware_version: data.hardware_info?.firmware_version || 'Unknown',
+        mac_address: data.hardware_info?.mac_address || '',
+        ip_address: data.hardware_info?.ip_address || ''
+      },
+      location: data.location || {},
+      last_data: data
+    });
+
+    await newDevice.save();
+    console.log(`✅ New device registered: ${name} (${device_id})`);
+
+  } catch (error) {
+    console.error('❌ Error handling device registration:', error.message);
+  }
 }
 
 // Helper functions to publish messages
