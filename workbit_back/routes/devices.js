@@ -572,6 +572,173 @@ router.get('/space/:spaceId', authenticateToken, async (req, res) => {
 
 /**
  * @swagger
+ * /api/devices/space/{spaceId}/readings:
+ *   get:
+ *     summary: Get historical readings for devices in a space
+ *     tags: [Devices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: spaceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Space ID
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           enum: [24h, 7d, 30d]
+ *           default: 24h
+ *         description: Time range for data
+ *       - in: query
+ *         name: sensorType
+ *         schema:
+ *           type: string
+ *           enum: [temperature, humidity, co2, light, motion, noise, rfid, presence]
+ *         description: Filter by sensor type
+ *     responses:
+ *       200:
+ *         description: Historical readings data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     temperature:
+ *                       type: array
+ *                     humidity:
+ *                       type: array
+ *                     co2:
+ *                       type: array
+ *                     labels:
+ *                       type: array
+ *       404:
+ *         description: Space not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/space/:spaceId/readings', authenticateToken, async (req, res) => {
+  try {
+    const spaceId = parseInt(req.params.spaceId);
+    const { timeRange = '24h', sensorType } = req.query;
+
+    // Calculate time range
+    let startTime;
+    switch (timeRange) {
+      case '24h':
+        startTime = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        startTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startTime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startTime = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    }
+
+    // Get devices for this space
+    const devices = await Device.find({ space_id: spaceId }).lean();
+    const deviceIds = devices.map(device => device.device_id);
+
+    if (deviceIds.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          temperature: [],
+          humidity: [],
+          co2: [],
+          labels: []
+        }
+      });
+    }
+
+    // Build match filter
+    const matchFilter = {
+      device_id: { $in: deviceIds },
+      timestamp: { $gte: startTime }
+    };
+
+    if (sensorType) {
+      matchFilter['readings.sensor_type'] = sensorType;
+    }
+
+    // Get readings with aggregation
+    const readings = await DeviceReading.aggregate([
+      { $match: matchFilter },
+      { $sort: { timestamp: 1 } },
+      {
+        $project: {
+          timestamp: 1,
+          readings: 1
+        }
+      }
+    ]);
+
+    // Process data for charts
+    const chartData = {
+      temperature: [],
+      humidity: [],
+      co2: [],
+      labels: []
+    };
+
+    readings.forEach(reading => {
+      const timestamp = new Date(reading.timestamp);
+      const timeLabel = timeRange === '24h' 
+        ? timestamp.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        : timeRange === '7d'
+        ? timestamp.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })
+        : timestamp.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+
+      chartData.labels.push(timeLabel);
+
+      // Extract sensor values
+      reading.readings.forEach(sensor => {
+        const value = parseFloat(sensor.value);
+        if (!isNaN(value)) {
+          switch (sensor.sensor_type) {
+            case 'temperature':
+              chartData.temperature.push(value);
+              break;
+            case 'humidity':
+              chartData.humidity.push(value);
+              break;
+            case 'co2':
+              chartData.co2.push(value);
+              break;
+          }
+        }
+      });
+    });
+
+    // No llenar con null - solo devolver los datos reales que existen
+    // Si no hay datos, los arrays estarán vacíos
+
+    res.json({
+      success: true,
+      data: chartData
+    });
+
+  } catch (error) {
+    console.error('Error fetching space readings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching space readings'
+    });
+  }
+});
+
+/**
+ * @swagger
  * /api/devices/offline:
  *   get:
  *     summary: Get offline devices

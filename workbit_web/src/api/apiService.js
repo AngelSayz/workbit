@@ -186,6 +186,13 @@ export const devicesAPI = {
   getBySpace: async (spaceId) => {
     const response = await apiClient.get(`/devices/space/${spaceId}`);
     return response.data;
+  },
+
+  getSpaceReadings: async (spaceId, timeRange = '24h', sensorType = null) => {
+    const params = { timeRange };
+    if (sensorType) params.sensorType = sensorType;
+    const response = await apiClient.get(`/devices/space/${spaceId}/readings`, { params });
+    return response.data;
   }
 };
 

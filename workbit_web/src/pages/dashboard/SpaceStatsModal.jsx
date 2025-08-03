@@ -47,12 +47,19 @@ const SpaceStatsModal = ({ space, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeRange, setTimeRange] = useState('24h'); // 24h, 7d, 30d
+  const [chartData, setChartData] = useState({
+    temperature: [],
+    humidity: [],
+    co2: [],
+    labels: []
+  });
 
   useEffect(() => {
     if (space) {
       fetchSpaceDevices();
+      fetchChartData();
     }
-  }, [space]);
+  }, [space, timeRange]);
 
   const fetchSpaceDevices = async () => {
     try {
@@ -69,32 +76,33 @@ const SpaceStatsModal = ({ space, onClose }) => {
     }
   };
 
-  // Mock data for charts (en producción esto vendría del backend)
-  const generateMockData = () => {
-    const hours = timeRange === '24h' ? 24 : timeRange === '7d' ? 168 : 720;
-    const labels = [];
-    const temperatureData = [];
-    const humidityData = [];
-    const co2Data = [];
-
-    for (let i = 0; i < hours; i++) {
-      if (timeRange === '24h') {
-        labels.push(`${i}:00`);
-      } else if (timeRange === '7d') {
-        labels.push(`Día ${Math.floor(i / 24) + 1}`);
-      } else {
-        labels.push(`Semana ${Math.floor(i / 168) + 1}`);
-      }
-
-      temperatureData.push(20 + Math.random() * 10);
-      humidityData.push(40 + Math.random() * 30);
-      co2Data.push(400 + Math.random() * 200);
+  const fetchChartData = async () => {
+    try {
+      const response = await devicesAPI.getSpaceReadings(space.id, timeRange);
+      setChartData(response.data || {
+        temperature: [],
+        humidity: [],
+        co2: [],
+        labels: []
+      });
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+      setChartData({
+        temperature: [],
+        humidity: [],
+        co2: [],
+        labels: []
+      });
     }
-
-    return { labels, temperatureData, humidityData, co2Data };
   };
 
-  const { labels, temperatureData, humidityData, co2Data } = generateMockData();
+  // Usar solo datos reales
+  const { labels, temperatureData, humidityData, co2Data } = {
+    labels: chartData.labels,
+    temperatureData: chartData.temperature,
+    humidityData: chartData.humidity,
+    co2Data: chartData.co2
+  };
 
   const temperatureChartData = {
     labels,
@@ -213,24 +221,29 @@ const SpaceStatsModal = ({ space, onClose }) => {
               <p className="text-sm text-gray-600">Análisis detallado de dispositivos y sensores</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-            >
-              <option value="24h">Últimas 24 horas</option>
-              <option value="7d">Últimos 7 días</option>
-              <option value="30d">Últimos 30 días</option>
-            </select>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onClose}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+                      <div className="flex items-center space-x-2">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="24h">Últimas 24 horas</option>
+                <option value="7d">Últimos 7 días</option>
+                <option value="30d">Últimos 30 días</option>
+              </select>
+              {chartData.labels.length > 0 && (
+                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                  📊 Datos Disponibles
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onClose}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
         </div>
 
         {/* Content */}
@@ -296,68 +309,128 @@ const SpaceStatsModal = ({ space, onClose }) => {
                 </Card>
               </div>
 
-              {/* Charts Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Temperature Chart */}
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Temperatura</h3>
-                  <Line data={temperatureChartData} options={chartOptions} />
-                </Card>
+                             {/* Charts Grid */}
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 {/* Temperature Chart */}
+                 <Card className="p-4">
+                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Temperatura</h3>
+                   {temperatureData.length > 0 ? (
+                     <Line data={temperatureChartData} options={chartOptions} />
+                   ) : (
+                     <div className="flex items-center justify-center h-48 text-gray-500">
+                       <div className="text-center">
+                         <Thermometer className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                         <p>No hay datos de temperatura disponibles</p>
+                         <p className="text-sm">Los dispositivos no han enviado lecturas recientes</p>
+                       </div>
+                     </div>
+                   )}
+                 </Card>
 
-                {/* Humidity Chart */}
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Humedad</h3>
-                  <Line data={humidityChartData} options={chartOptions} />
-                </Card>
+                 {/* Humidity Chart */}
+                 <Card className="p-4">
+                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Humedad</h3>
+                   {humidityData.length > 0 ? (
+                     <Line data={humidityChartData} options={chartOptions} />
+                   ) : (
+                     <div className="flex items-center justify-center h-48 text-gray-500">
+                       <div className="text-center">
+                         <Thermometer className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                         <p>No hay datos de humedad disponibles</p>
+                         <p className="text-sm">Los dispositivos no han enviado lecturas recientes</p>
+                       </div>
+                     </div>
+                   )}
+                 </Card>
 
-                {/* CO2 Chart */}
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Nivel de CO2</h3>
-                  <Line data={co2ChartData} options={chartOptions} />
-                </Card>
+                 {/* CO2 Chart */}
+                 <Card className="p-4">
+                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Nivel de CO2</h3>
+                   {co2Data.length > 0 ? (
+                     <Line data={co2ChartData} options={chartOptions} />
+                   ) : (
+                     <div className="flex items-center justify-center h-48 text-gray-500">
+                       <div className="text-center">
+                         <Activity className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                         <p>No hay datos de CO2 disponibles</p>
+                         <p className="text-sm">Los dispositivos no han enviado lecturas recientes</p>
+                       </div>
+                     </div>
+                   )}
+                 </Card>
 
-                {/* Device Types Chart */}
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Tipos de Dispositivos</h3>
-                  <Doughnut data={deviceTypeData} options={chartOptions} />
-                </Card>
-              </div>
+                 {/* Device Types Chart */}
+                 <Card className="p-4">
+                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Tipos de Dispositivos</h3>
+                   {(stats.environmental_devices > 0 || stats.access_control_devices > 0) ? (
+                     <Doughnut data={deviceTypeData} options={chartOptions} />
+                   ) : (
+                     <div className="flex items-center justify-center h-48 text-gray-500">
+                       <div className="text-center">
+                         <Shield className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                         <p>No hay dispositivos registrados</p>
+                         <p className="text-sm">Registra dispositivos para ver estadísticas</p>
+                       </div>
+                     </div>
+                   )}
+                 </Card>
+               </div>
 
-              {/* Device Status Chart */}
-              <Card className="p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Estado de Dispositivos</h3>
-                <div className="w-full max-w-2xl mx-auto">
-                  <Bar data={deviceStatusData} options={chartOptions} />
-                </div>
-              </Card>
+                             {/* Device Status Chart */}
+               <Card className="p-4">
+                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Estado de Dispositivos</h3>
+                 <div className="w-full max-w-2xl mx-auto">
+                   {stats.total_devices > 0 ? (
+                     <Bar data={deviceStatusData} options={chartOptions} />
+                   ) : (
+                     <div className="flex items-center justify-center h-48 text-gray-500">
+                       <div className="text-center">
+                         <Activity className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                         <p>No hay dispositivos registrados</p>
+                         <p className="text-sm">Registra dispositivos para ver estadísticas de estado</p>
+                       </div>
+                     </div>
+                   )}
+                 </div>
+               </Card>
 
-              {/* Recent Activity */}
-              <Card className="p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Actividad Reciente</h3>
-                <div className="space-y-3">
-                  {devices.slice(0, 5).map((device) => (
-                    <div key={device.device_id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                      <div className="flex items-center space-x-3">
-                        {device.type === 'environmental' ? (
-                          <Thermometer className="w-4 h-4 text-blue-500" />
-                        ) : (
-                          <Shield className="w-4 h-4 text-purple-500" />
-                        )}
-                        <div>
-                          <p className="font-medium text-sm">{device.name}</p>
-                          <p className="text-xs text-gray-500">{device.device_id}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">{device.status}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(device.last_seen).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+                             {/* Recent Activity */}
+               <Card className="p-4">
+                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Actividad Reciente</h3>
+                 {devices.length > 0 ? (
+                   <div className="space-y-3">
+                     {devices.slice(0, 5).map((device) => (
+                       <div key={device.device_id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                         <div className="flex items-center space-x-3">
+                           {device.type === 'environmental' ? (
+                             <Thermometer className="w-4 h-4 text-blue-500" />
+                           ) : (
+                             <Shield className="w-4 h-4 text-purple-500" />
+                           )}
+                           <div>
+                             <p className="font-medium text-sm">{device.name}</p>
+                             <p className="text-xs text-gray-500">{device.device_id}</p>
+                           </div>
+                         </div>
+                         <div className="text-right">
+                           <p className="text-sm font-medium">{device.status}</p>
+                           <p className="text-xs text-gray-500">
+                             {new Date(device.last_seen).toLocaleString()}
+                           </p>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 ) : (
+                   <div className="flex items-center justify-center h-32 text-gray-500">
+                     <div className="text-center">
+                       <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                       <p>No hay actividad reciente</p>
+                       <p className="text-sm">Los dispositivos no han reportado actividad</p>
+                     </div>
+                   </div>
+                 )}
+               </Card>
             </div>
           )}
         </div>
