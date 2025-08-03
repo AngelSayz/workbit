@@ -38,24 +38,7 @@ const EnvironmentalAlert = mongoose.model('EnvironmentalAlert', new mongoose.Sch
   created_at: { type: Date, default: Date.now, index: true }
 }, { timestamps: true }));
 
-const Device = mongoose.model('Device', new mongoose.Schema({
-  device_id: { type: String, required: true, unique: true },
-  device_type: { type: String, required: true, enum: ['sensor', 'controller', 'gateway'] },
-  space_id: { type: Number, required: true, index: true },
-  status: { type: String, enum: ['online', 'offline', 'maintenance'], default: 'offline' },
-  sensors: [{
-    type: { type: String, enum: ['temperature', 'humidity', 'co2', 'light', 'motion', 'noise'] },
-    unit: String,
-    min_value: Number,
-    max_value: Number,
-    threshold_low: Number,
-    threshold_high: Number
-  }],
-  last_seen: { type: Date, default: Date.now },
-  firmware_version: String,
-  battery_level: Number,
-  signal_strength: Number
-}, { timestamps: true }));
+const Device = require('../models/Device');
 
 // Get sensor readings for a space
 router.get('/readings/:spaceId', async (req, res) => {
@@ -396,7 +379,7 @@ router.get('/devices', async (req, res) => {
     let filter = {};
     if (space_id) filter.space_id = parseInt(space_id);
     if (status) filter.status = status;
-    if (device_type) filter.device_type = device_type;
+    if (device_type) filter.type = device_type;
 
     const devices = await Device.find(filter)
       .sort({ last_seen: -1 });

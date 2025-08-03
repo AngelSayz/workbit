@@ -16,8 +16,8 @@ import {
   Edit3
 } from 'lucide-react';
 import { devicesAPI } from '../../api/apiService';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui';
+import { Button } from '../../components/ui';
 
 const DevicesPage = () => {
   const { t } = useTranslation();
