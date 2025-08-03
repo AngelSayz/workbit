@@ -3,6 +3,7 @@ const router = express.Router();
 const Device = require('../models/Device');
 const DeviceReading = require('../models/DeviceReading');
 const { authenticateToken } = require('../middleware/auth');
+const { supabase } = require('../config/supabase');
 
 /**
  * @swagger
