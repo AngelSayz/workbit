@@ -19,7 +19,7 @@ const deviceReadingSchema = new mongoose.Schema({
     sensor_type: {
       type: String,
       required: true,
-      enum: ['temperature', 'humidity', 'co2', 'light', 'motion', 'noise', 'rfid', 'presence']
+      enum: ['temperature', 'humidity', 'co2', 'light', 'motion', 'noise', 'rfid', 'presence', 'people_count', 'infrared_pair']
     },
     value: {
       type: mongoose.Schema.Types.Mixed, // Puede ser número, string, boolean

@@ -542,6 +542,66 @@ router.get('/space/:spaceId', authenticateToken, async (req, res) => {
       latest_reading: readingsMap[device.device_id] || null
     }));
 
+    // Get latest sensor readings for the space
+    const latestReadingsForSpace = await DeviceReading.aggregate([
+      { $match: { space_id: spaceId } },
+      { $sort: { timestamp: -1 } },
+      {
+        $group: {
+          _id: '$device_id',
+          latest_reading: { $first: '$$ROOT' }
+        }
+      }
+    ]);
+
+    // Extract latest sensor values
+    let latestTemperature = null;
+    let latestHumidity = null;
+    let latestCO2 = null;
+    let peopleCount = 0;
+
+    latestReadingsForSpace.forEach(reading => {
+      if (reading.latest_reading && reading.latest_reading.readings) {
+        reading.latest_reading.readings.forEach(sensor => {
+          const value = parseFloat(sensor.value);
+          if (!isNaN(value)) {
+            switch (sensor.sensor_type) {
+              case 'temperature':
+                if (!latestTemperature || reading.latest_reading.timestamp > latestTemperature.timestamp) {
+                  latestTemperature = {
+                    value: value,
+                    unit: sensor.unit || '°C',
+                    timestamp: reading.latest_reading.timestamp
+                  };
+                }
+                break;
+              case 'humidity':
+                if (!latestHumidity || reading.latest_reading.timestamp > latestHumidity.timestamp) {
+                  latestHumidity = {
+                    value: value,
+                    unit: sensor.unit || '%',
+                    timestamp: reading.latest_reading.timestamp
+                  };
+                }
+                break;
+              case 'co2':
+                if (!latestCO2 || reading.latest_reading.timestamp > latestCO2.timestamp) {
+                  latestCO2 = {
+                    value: value,
+                    unit: sensor.unit || 'ppm',
+                    timestamp: reading.latest_reading.timestamp
+                  };
+                }
+                break;
+              case 'people_count':
+                peopleCount = value;
+                break;
+            }
+          }
+        });
+      }
+    });
+
     // Calculate statistics
     const stats = {
       total_devices: devices.length,
@@ -549,7 +609,11 @@ router.get('/space/:spaceId', authenticateToken, async (req, res) => {
       access_control_devices: devices.filter(d => d.type === 'access_control').length,
       active_devices: devices.filter(d => d.status === 'active').length,
       online_devices: devices.filter(d => d.status === 'online').length,
-      offline_devices: devices.filter(d => d.status === 'offline').length
+      offline_devices: devices.filter(d => d.status === 'offline').length,
+      latest_temperature: latestTemperature,
+      latest_humidity: latestHumidity,
+      latest_co2: latestCO2,
+      people_count: peopleCount
     };
 
     res.json({
@@ -790,6 +854,115 @@ router.get('/offline', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Error fetching offline devices'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/devices/space/{spaceId}/activity:
+ *   get:
+ *     summary: Get recent activity logs for a space
+ *     tags: [Devices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: spaceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Space ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of activity logs to return
+ *     responses:
+ *       200:
+ *         description: Recent activity logs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       timestamp:
+ *                         type: string
+ *                       device_id:
+ *                         type: string
+ *                       device_name:
+ *                         type: string
+ *                       activity_type:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       sensor_data:
+ *                         type: object
+ *       500:
+ *         description: Server error
+ */
+router.get('/space/:spaceId/activity', authenticateToken, async (req, res) => {
+  try {
+    const spaceId = parseInt(req.params.spaceId);
+    const limit = parseInt(req.query.limit) || 20;
+
+    // Get recent readings for this space
+    const recentReadings = await DeviceReading.find({ space_id: spaceId })
+      .sort({ timestamp: -1 })
+      .limit(limit)
+      .populate('device_id', 'name type')
+      .lean();
+
+    // Format activity logs
+    const activityLogs = recentReadings.map(reading => {
+      const device = reading.device_id;
+      let activityType = 'sensor_reading';
+      let description = 'Lectura de sensores';
+
+      // Determine activity type based on sensor types
+      if (reading.readings && reading.readings.length > 0) {
+        const sensorTypes = reading.readings.map(s => s.sensor_type);
+        if (sensorTypes.includes('rfid')) {
+          activityType = 'access';
+          description = 'Acceso con tarjeta RFID';
+        } else if (sensorTypes.includes('infrared_pair') || sensorTypes.includes('presence')) {
+          activityType = 'movement';
+          description = 'Detección de movimiento';
+        } else if (sensorTypes.includes('people_count')) {
+          activityType = 'occupancy';
+          description = 'Cambio en ocupación';
+        }
+      }
+
+      return {
+        timestamp: reading.timestamp,
+        device_id: reading.device_id,
+        device_name: device ? device.name : 'Dispositivo desconocido',
+        device_type: device ? device.type : 'unknown',
+        activity_type: activityType,
+        description: description,
+        sensor_data: reading.readings || []
+      };
+    });
+
+    res.json({
+      success: true,
+      data: activityLogs
+    });
+
+  } catch (error) {
+    console.error('Error fetching space activity:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching space activity'
     });
   }
 });

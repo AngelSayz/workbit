@@ -188,12 +188,17 @@ export const devicesAPI = {
     return response.data;
   },
 
-  getSpaceReadings: async (spaceId, timeRange = '24h', sensorType = null) => {
-    const params = { timeRange };
-    if (sensorType) params.sensorType = sensorType;
-    const response = await apiClient.get(`/devices/space/${spaceId}/readings`, { params });
-    return response.data;
-  }
+            getSpaceReadings: async (spaceId, timeRange = '24h', sensorType = null) => {
+            const params = { timeRange };
+            if (sensorType) params.sensorType = sensorType;
+            const response = await apiClient.get(`/devices/space/${spaceId}/readings`, { params });
+            return response.data;
+          },
+
+          getSpaceActivity: async (spaceId, limit = 20) => {
+            const response = await apiClient.get(`/devices/space/${spaceId}/activity`, { params: { limit } });
+            return response.data;
+          }
 };
 
 // Funciones de espacios/cubículos
