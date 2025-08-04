@@ -9,13 +9,18 @@ import {
   Droplets,
   Activity,
   Wifi,
-  Cpu
+  Cpu,
+  Loader2
 } from 'lucide-react';
 import { Button } from '../../components/ui';
 import { Card } from '../../components/ui';
 
-const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
+const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, isLoading = false }) => {
   console.log('SpaceAdminModal - Received space:', space);
+  console.log('SpaceAdminModal - Space ID:', space?.id);
+  console.log('SpaceAdminModal - Space capacity:', space?.capacity);
+  console.log('SpaceAdminModal - Space status:', space?.status);
+  
   const [capacity, setCapacity] = useState(space?.capacity || 2);
   const [status, setStatus] = useState(space?.status || 'available');
   const [showRelocateGrid, setShowRelocateGrid] = useState(false);
@@ -39,7 +44,6 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
     } else {
       console.error('Error: space o space.id es undefined', { space });
     }
-    onClose();
   };
 
   const handleRelocate = () => {
@@ -58,7 +62,6 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
       console.error('Error: No se puede recolocar - datos inválidos', { space, x, y });
     }
     setShowRelocateGrid(false);
-    onClose();
   };
 
   if (showRelocateGrid) {
@@ -83,6 +86,7 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
               variant="outline"
               size="sm"
               onClick={() => setShowRelocateGrid(false)}
+              disabled={isLoading}
             >
               <X className="w-4 h-4" />
             </Button>
@@ -98,12 +102,14 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
                   <button
                     key={i}
                     onClick={() => handleGridClick(x, y)}
-                    className="w-12 h-12 border-2 border-gray-300 rounded hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    disabled={isLoading}
+                    className="w-12 h-12 border-2 border-gray-300 rounded hover:border-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {space.position_x === x && space.position_y === y ? (
                       <div className="w-full h-full bg-blue-500 rounded flex items-center justify-center">
-                    </div>
-                  ) : null}
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                    ) : null}
                   </button>
                 );
               })}
@@ -135,6 +141,7 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
             variant="outline"
             size="sm"
             onClick={onClose}
+            disabled={isLoading}
           >
             <X className="w-4 h-4" />
           </Button>
@@ -157,7 +164,7 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
                   variant="outline"
                   size="sm"
                   onClick={() => setCapacity(Math.max(1, capacity - 1))}
-                  disabled={capacity <= 1}
+                  disabled={capacity <= 1 || isLoading}
                 >
                   -
                 </Button>
@@ -166,7 +173,7 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
                   variant="outline"
                   size="sm"
                   onClick={() => setCapacity(capacity + 1)}
-                  disabled={capacity >= 10}
+                  disabled={capacity >= 10 || isLoading}
                 >
                   +
                 </Button>
@@ -181,7 +188,7 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
                 <Activity className="w-5 h-5 text-blue-600" />
                 <div>
                   <h3 className="font-medium text-gray-900">Estado del cubículo</h3>
-                  <p className="text-sm text-gray-600">Estado actual</p>
+                  <p className="text-sm text-gray-600">Estado actual del espacio</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -189,11 +196,12 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
                   <button
                     key={option.value}
                     onClick={() => setStatus(option.value)}
+                    disabled={isLoading}
                     className={`p-3 rounded-lg border-2 transition-colors ${
                       status === option.value
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <div className="flex items-center space-x-2">
                       <div className={`w-3 h-3 rounded-full ${option.color}`}></div>
@@ -209,64 +217,86 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
           <Card className="p-4">
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
-                <Cpu className="w-5 h-5 text-blue-600" />
+                <Wifi className="w-5 h-5 text-blue-600" />
                 <div>
                   <h3 className="font-medium text-gray-900">Sensores conectados</h3>
-                  <p className="text-sm text-gray-600">Dispositivos activos</p>
+                  <p className="text-sm text-gray-600">Dispositivos IoT activos</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2 text-sm">
                   <Thermometer className="w-4 h-4 text-red-500" />
-                  <span className="text-sm">Temperatura</span>
+                  <span>Sensor de temperatura</span>
+                  <span className="text-green-600">✓ Conectado</span>
                 </div>
-                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-2 text-sm">
                   <Droplets className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm">Humedad</span>
+                  <span>Sensor de humedad</span>
+                  <span className="text-green-600">✓ Conectado</span>
                 </div>
-                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                  <Activity className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">CO2</span>
-                </div>
-                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                  <Wifi className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm">Presencia</span>
+                <div className="flex items-center space-x-2 text-sm">
+                  <Cpu className="w-4 h-4 text-purple-500" />
+                  <span>Sensor de CO2</span>
+                  <span className="text-green-600">✓ Conectado</span>
                 </div>
               </div>
             </div>
           </Card>
 
-          {/* Relocate */}
+          {/* Relocate Section */}
           <Card className="p-4">
-            <div className="flex items-center justify-between">
+            <div className="space-y-3">
               <div className="flex items-center space-x-3">
                 <MapPin className="w-5 h-5 text-blue-600" />
                 <div>
                   <h3 className="font-medium text-gray-900">Recolocar cubículo</h3>
-                  <p className="text-sm text-gray-600">Cambiar posición en el grid</p>
+                  <p className="text-sm text-gray-600">Cambiar la posición en el grid</p>
                 </div>
               </div>
               <Button
                 variant="outline"
                 onClick={handleRelocate}
+                disabled={isLoading}
+                className="w-full"
               >
-                Seleccionar nueva posición
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Seleccionar nueva posición
+                  </>
+                )}
               </Button>
             </div>
           </Card>
 
-          {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-4 border-t">
+          {/* Action Buttons */}
+          <div className="flex space-x-3 pt-4">
             <Button
               variant="outline"
               onClick={onClose}
+              disabled={isLoading}
+              className="flex-1"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSave}
+              disabled={isLoading}
+              className="flex-1"
             >
-              Guardar cambios
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                'Guardar cambios'
+              )}
             </Button>
           </div>
         </div>

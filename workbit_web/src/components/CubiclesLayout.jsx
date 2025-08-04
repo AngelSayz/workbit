@@ -16,7 +16,7 @@ import {
 import { spacesAPI } from '../api/apiService';
 import { useAuth } from '../hooks/useAuth';
 
-const CubiclesLayout = ({ onSpaceClick }) => {
+const CubiclesLayout = ({ onSpaceClick, externalSpaces = null }) => {
   const [spaces, setSpaces] = useState([]);
   const [gridSettings, setGridSettings] = useState({ rows: 5, cols: 8 });
   const [loading, setLoading] = useState(true);
@@ -35,11 +35,14 @@ const CubiclesLayout = ({ onSpaceClick }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   
-
+  // Usar espacios externos si están disponibles, sino usar el estado local
+  const currentSpaces = externalSpaces || spaces;
 
   useEffect(() => {
-    fetchSpacesData();
-  }, []);
+    if (!externalSpaces) {
+      fetchSpacesData();
+    }
+  }, [externalSpaces]);
 
   const fetchSpacesData = async () => {
     try {
@@ -284,7 +287,7 @@ const CubiclesLayout = ({ onSpaceClick }) => {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-600">
-              {spaces.length} cubículos
+              {currentSpaces.length} cubículos
             </span>
             <div className="relative">
               <select
@@ -319,7 +322,7 @@ const CubiclesLayout = ({ onSpaceClick }) => {
                      <rect width="100%" height="100%" fill="url(#grid)" />
 
            {/* Renderizar espacios existentes */}
-           {spaces.map((space) => {
+           {currentSpaces.map((space) => {
             const x = space.position_x * (cellWidth + margin) + margin / 2;
                          const y = space.position_y * (cellHeight + margin) + margin / 2 + 80;
 
