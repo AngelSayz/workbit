@@ -10,7 +10,7 @@ import {
   Plus,
   Save,
   X,
-  Grid3X3,
+  Grid,
   List
 } from 'lucide-react';
 import { spacesAPI } from '../api/apiService';
@@ -296,7 +296,7 @@ const CubiclesLayout = ({ onSpaceClick }) => {
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                 {viewMode === 'layout' ? (
-                  <Grid3X3 className="w-4 h-4 text-gray-400" />
+                  <Grid className="w-4 h-4 text-gray-400" />
                 ) : (
                   <List className="w-4 h-4 text-gray-400" />
                 )}
