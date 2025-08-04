@@ -934,4 +934,156 @@ function calculateHealthScore(systemMetrics, alertsData) {
   return Math.max(0, Math.min(100, score));
 }
 
+// GET /api/dashboard/technician-overview - Dashboard overview for technicians (technician only)
+router.get('/technician-overview',
+  authenticateToken,
+  requireRole(['technician']),
+  async (req, res) => {
+    try {
+      if (!supabase) {
+        return res.status(500).json({
+          error: 'Database connection failed'
+        });
+      }
+
+      const now = new Date();
+      const userId = req.user.id; // ID del técnico actual
+
+      // 1. Get basic spaces info (can't create new ones, but can view and edit)
+      const { data: spaces, error: spacesError } = await supabase
+        .from('spaces')
+        .select('id, name, status, capacity');
+
+      if (spacesError) {
+        console.error('Error fetching spaces:', spacesError);
+        return res.status(500).json({ error: 'Failed to fetch spaces' });
+      }
+
+      // Count spaces by status
+      const spaceStatusCounts = {
+        available: 0,
+        occupied: 0,
+        reserved: 0,
+        maintenance: 0,
+        unavailable: 0
+      };
+      
+      spaces?.forEach(space => {
+        if (spaceStatusCounts.hasOwnProperty(space.status)) {
+          spaceStatusCounts[space.status]++;
+        }
+      });
+
+      // 2. Get technician's assignments by priority
+      const { data: myTasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('id, title, description, priority, status, space_id, created_at, updated_at')
+        .eq('assigned_to', userId)
+        .order('created_at', { ascending: false });
+
+      if (tasksError) {
+        console.error('Error fetching technician tasks:', tasksError);
+      }
+
+      // Count tasks by priority and status
+      const taskStats = {
+        total: myTasks?.length || 0,
+        by_priority: { high: 0, medium: 0, low: 0 },
+        by_status: { pending: 0, in_progress: 0, completed: 0 },
+        pending_high_priority: 0
+      };
+
+      myTasks?.forEach(task => {
+        taskStats.by_priority[task.priority]++;
+        taskStats.by_status[task.status]++;
+        if (task.status !== 'completed' && task.priority === 'high') {
+          taskStats.pending_high_priority++;
+        }
+      });
+
+      // 3. Get recent reservations (for viewing)
+      const { data: recentReservations, error: reservationsError } = await supabase
+        .from('reservations')
+        .select('id, reason, start_time, end_time, status, space_id, owner_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (reservationsError) {
+        console.error('Error fetching reservations:', reservationsError);
+      }
+
+      // 4. Get total users count
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, role_id');
+
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+      }
+
+      const userStats = {
+        total: users?.length || 0,
+        clients: users?.filter(u => u.role_id === 1).length || 0,
+        technicians: users?.filter(u => u.role_id === 3).length || 0,
+        admins: users?.filter(u => u.role_id === 2).length || 0
+      };
+
+      // 5. Get basic system health indicators
+      const unassignedTasksCount = await supabase
+        .from('tasks')
+        .select('id')
+        .is('assigned_to', null)
+        .neq('status', 'completed');
+
+      const maintenanceSpaces = spaces?.filter(s => s.status === 'maintenance').length || 0;
+
+      res.json({
+        success: true,
+        data: {
+          // Basic overview data
+          overview: {
+            spaces: {
+              total: spaces?.length || 0,
+              distribution: spaceStatusCounts,
+              maintenance_count: maintenanceSpaces
+            },
+            users: userStats,
+            reservations: {
+              recent_count: recentReservations?.length || 0,
+              today_count: recentReservations?.filter(r => 
+                new Date(r.created_at).toDateString() === now.toDateString()
+              ).length || 0
+            }
+          },
+
+          // Technician-specific data
+          my_assignments: {
+            stats: taskStats,
+            recent_tasks: myTasks?.slice(0, 5) || [],
+            high_priority_pending: myTasks?.filter(t => 
+              t.priority === 'high' && t.status !== 'completed'
+            ) || []
+          },
+
+          // System alerts for technician attention
+          system_status: {
+            unassigned_tasks: unassignedTasksCount.data?.length || 0,
+            maintenance_spaces: maintenanceSpaces,
+            requires_attention: (unassignedTasksCount.data?.length || 0) + maintenanceSpaces
+          },
+
+          last_updated: now.toISOString()
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching technician dashboard:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch technician dashboard'
+      });
+    }
+  }
+);
+
 module.exports = router; 

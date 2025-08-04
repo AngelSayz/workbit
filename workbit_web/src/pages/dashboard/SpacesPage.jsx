@@ -5,6 +5,7 @@ import SpaceDetailsModal from './SpaceDetailsModal';
 import SpaceStatsModal from './SpaceStatsModal';
 import SpaceAdminModal from './SpaceAdminModal';
 import { spacesAPI } from '../../api/apiService';
+import { useAuth } from '../../hooks/useAuth';
 
 const SpacesPage = () => {
   const [selectedSpace, setSelectedSpace] = useState(null);
@@ -15,6 +16,8 @@ const SpacesPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [allSpaces, setAllSpaces] = useState([]);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const handleSpaceClick = (space) => {
     console.log('SpacesPage - Space clicked:', space);
@@ -135,8 +138,13 @@ const SpacesPage = () => {
       >
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Gestión de Espacios
+            {isAdmin ? 'Gestión de Espacios' : 'Visualización de Espacios'}
           </h1>
+          {!isAdmin && (
+            <p className="text-gray-600">
+              Puedes visualizar y editar los estados de los espacios, pero no crear nuevos
+            </p>
+          )}
         </div>
       </motion.div>
 
@@ -185,6 +193,7 @@ const SpacesPage = () => {
           onClose={handleCloseModals}
           onViewStats={handleViewStats}
           onAdmin={handleAdmin}
+          userRole={user?.role}
         />
       )}
 

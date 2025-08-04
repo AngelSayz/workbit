@@ -6,9 +6,14 @@ import {
   Users, 
   Building, 
   Wrench, 
-  RefreshCw
+  RefreshCw,
+  ClipboardList,
+  AlertTriangle,
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 import { dashboardAPI } from '../../api/apiService';
+import { useAuth } from '../../hooks/useAuth';
 import KPICard from '../../components/dashboard/KPICard';
 import CalendarWidget from '../../components/dashboard/CalendarWidget';
 import AlertsWidget from '../../components/dashboard/AlertsWidget';
@@ -23,6 +28,7 @@ const OverviewPage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedReservationPeriod, setSelectedReservationPeriod] = useState('24h');
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchDashboardData();
@@ -32,7 +38,18 @@ const OverviewPage = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await dashboardAPI.getOverview();
+      let response;
+      
+      // Fetch different data based on user role
+      if (user?.role === 'admin') {
+        response = await dashboardAPI.getOverview();
+      } else if (user?.role === 'technician') {
+        response = await dashboardAPI.getTechnicianOverview();
+      } else {
+        // For other roles, use basic overview or redirect
+        response = await dashboardAPI.getOverview();
+      }
+      
       if (response.success) {
         setDashboardData(response.data);
       } else {
@@ -109,10 +126,20 @@ const OverviewPage = () => {
     );
   }
 
+  // Different data structure for different roles
+  const isAdmin = user?.role === 'admin';
+  const isTechnician = user?.role === 'technician';
+
+  // Admin-specific data
   const kpis = dashboardData?.kpis || {};
   const reservationData = kpis.reservations?.[selectedReservationPeriod] || { completed: 0, active: 0, pending: 0 };
   const usersData = kpis.users || { total: 0, with_upcoming_reservations: 0, active_last_24h: 0 };
   const techniciansData = kpis.technicians || { total: 0, with_tasks: 0, without_tasks: 0, unassigned_tasks: 0 };
+
+  // Technician-specific data
+  const overview = dashboardData?.overview || {};
+  const myAssignments = dashboardData?.my_assignments || {};
+  const systemStatus = dashboardData?.system_status || {};
 
   return (
     <div className="w-full h-full p-6 space-y-6">
@@ -123,8 +150,15 @@ const OverviewPage = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-2">Vista general del sistema WorkBit</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {isTechnician ? 'Dashboard Técnico' : 'Dashboard'}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {isTechnician 
+              ? 'Panel de control para gestión técnica' 
+              : 'Vista general del sistema WorkBit'
+            }
+          </p>
         </div>
         <div className="flex items-center space-x-4">
           <button
@@ -138,74 +172,126 @@ const OverviewPage = () => {
         </div>
       </motion.div>
 
-      {/* KPI Cards Row */}
+      {/* KPI Cards Row - Different for each role */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Cubículos Card - Chart principal */}
-        <KPICard
-          title="Cubículos Totales"
-          value=""
-          icon={Building}
-          color="blue"
-                          chart={
-                  <PieChart
-                    data={[
-                      { label: 'Disponible', value: kpis.spaces?.distribution?.available || 0 },
-                      { label: 'Ocupado', value: kpis.spaces?.distribution?.occupied || 0 },
-                      { label: 'Reservado', value: kpis.spaces?.distribution?.reserved || 0 },
-                      { label: 'Mantenimiento', value: kpis.spaces?.distribution?.maintenance || 0 },
-                      { label: 'No disponible', value: kpis.spaces?.distribution?.unavailable || 0 }
-                    ]}
-                    colors={['#10B981', '#EF4444', '#F59E0B', '#3B82F6', '#6B7280']}
-                    size={150}
-                  />
-                }
-        />
+        {isAdmin ? (
+          <>
+            {/* Admin KPI Cards */}
+            <KPICard
+              title="Cubículos Totales"
+              value=""
+              icon={Building}
+              color="blue"
+              chart={
+                <PieChart
+                  data={[
+                    { label: 'Disponible', value: kpis.spaces?.distribution?.available || 0 },
+                    { label: 'Ocupado', value: kpis.spaces?.distribution?.occupied || 0 },
+                    { label: 'Reservado', value: kpis.spaces?.distribution?.reserved || 0 },
+                    { label: 'Mantenimiento', value: kpis.spaces?.distribution?.maintenance || 0 },
+                    { label: 'No disponible', value: kpis.spaces?.distribution?.unavailable || 0 }
+                  ]}
+                  colors={['#10B981', '#EF4444', '#F59E0B', '#3B82F6', '#6B7280']}
+                  size={150}
+                />
+              }
+            />
 
-        {/* Reservas Card */}
-        <KPICard
-          title="Reservas"
-          value={reservationData.completed + reservationData.active + reservationData.pending}
-          icon={Calendar}
-          color="green"
-          dropdown={{
-            options: [
-              { value: '24h', label: 'Últimas 24h' },
-              { value: '7d', label: 'Última semana' },
-              { value: '30d', label: 'Último mes' }
-            ],
-            onChange: handleReservationPeriodChange
-          }}
-          subItems={[
-            { label: 'Completadas', value: reservationData.completed, color: '#10B981' },
-            { label: 'Activas', value: reservationData.active, color: '#3B82F6' },
-            { label: 'Pendientes', value: reservationData.pending, color: '#F59E0B' }
-          ]}
-        />
+            <KPICard
+              title="Reservas"
+              value={reservationData.completed + reservationData.active + reservationData.pending}
+              icon={Calendar}
+              color="green"
+              dropdown={{
+                options: [
+                  { value: '24h', label: 'Últimas 24h' },
+                  { value: '7d', label: 'Última semana' },
+                  { value: '30d', label: 'Último mes' }
+                ],
+                onChange: handleReservationPeriodChange
+              }}
+              subItems={[
+                { label: 'Completadas', value: reservationData.completed, color: '#10B981' },
+                { label: 'Activas', value: reservationData.active, color: '#3B82F6' },
+                { label: 'Pendientes', value: reservationData.pending, color: '#F59E0B' }
+              ]}
+            />
 
-        {/* Usuarios Card - Con más detalles */}
-        <KPICard
-          title="Clientes"
-          value={usersData.total}
-          icon={Users}
-          color="purple"
-          subItems={[
-            { label: 'Con reservas próximas', value: usersData.with_upcoming_reservations, color: '#8B5CF6' },
-            { label: 'Activos últimas 24h', value: usersData.active_last_24h, color: '#06B6D4' }
-          ]}
-        />
+            <KPICard
+              title="Clientes"
+              value={usersData.total}
+              icon={Users}
+              color="purple"
+              subItems={[
+                { label: 'Con reservas próximas', value: usersData.with_upcoming_reservations, color: '#8B5CF6' },
+                { label: 'Activos últimas 24h', value: usersData.active_last_24h, color: '#06B6D4' }
+              ]}
+            />
 
-        {/* Técnicos Card - Con más detalles */}
-        <KPICard
-          title="Técnicos"
-          value={techniciansData.total}
-          icon={Wrench}
-          color="orange"
-          subItems={[
-            { label: 'Con tareas asignadas', value: techniciansData.with_tasks, color: '#10B981' },
-            { label: 'Sin tareas asignadas', value: techniciansData.without_tasks, color: '#6B7280' },
-            { label: 'Tareas sin asignar', value: techniciansData.unassigned_tasks, color: '#EF4444' }
-          ]}
-        />
+            <KPICard
+              title="Técnicos"
+              value={techniciansData.total}
+              icon={Wrench}
+              color="orange"
+              subItems={[
+                { label: 'Con tareas asignadas', value: techniciansData.with_tasks, color: '#10B981' },
+                { label: 'Sin tareas asignadas', value: techniciansData.without_tasks, color: '#6B7280' },
+                { label: 'Tareas sin asignar', value: techniciansData.unassigned_tasks, color: '#EF4444' }
+              ]}
+            />
+          </>
+        ) : (
+          <>
+            {/* Technician KPI Cards */}
+            <KPICard
+              title="Mis Asignaciones"
+              value={myAssignments.stats?.total || 0}
+              icon={ClipboardList}
+              color="blue"
+              subItems={[
+                { label: 'Alta prioridad', value: myAssignments.stats?.by_priority?.high || 0, color: '#EF4444' },
+                { label: 'Media prioridad', value: myAssignments.stats?.by_priority?.medium || 0, color: '#F59E0B' },
+                { label: 'Baja prioridad', value: myAssignments.stats?.by_priority?.low || 0, color: '#10B981' }
+              ]}
+            />
+
+            <KPICard
+              title="Espacios"
+              value={overview.spaces?.total || 0}
+              icon={Building}
+              color="green"
+              subItems={[
+                { label: 'En mantenimiento', value: overview.spaces?.maintenance_count || 0, color: '#F59E0B' },
+                { label: 'Disponibles', value: overview.spaces?.distribution?.available || 0, color: '#10B981' },
+                { label: 'Ocupados', value: overview.spaces?.distribution?.occupied || 0, color: '#EF4444' }
+              ]}
+            />
+
+            <KPICard
+              title="Usuarios del Sistema"
+              value={overview.users?.total || 0}
+              icon={Users}
+              color="purple"
+              subItems={[
+                { label: 'Clientes', value: overview.users?.clients || 0, color: '#8B5CF6' },
+                { label: 'Técnicos', value: overview.users?.technicians || 0, color: '#F59E0B' },
+                { label: 'Administradores', value: overview.users?.admins || 0, color: '#EF4444' }
+              ]}
+            />
+
+            <KPICard
+              title="Atención Requerida"
+              value={systemStatus.requires_attention || 0}
+              icon={AlertTriangle}
+              color="red"
+              subItems={[
+                { label: 'Tareas sin asignar', value: systemStatus.unassigned_tasks || 0, color: '#EF4444' },
+                { label: 'Espacios en mantenimiento', value: systemStatus.maintenance_spaces || 0, color: '#F59E0B' },
+                { label: 'Reservas hoy', value: overview.reservations?.today_count || 0, color: '#3B82F6' }
+              ]}
+            />
+          </>
+        )}
       </div>
 
       {/* Main Content: Calendar (70%) + Alerts (30%) */}

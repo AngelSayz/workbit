@@ -325,6 +325,12 @@ export const dashboardAPI = {
   getAdvancedStatistics: async (params = {}) => {
     const response = await apiClient.get('/dashboard/advanced-statistics', { params });
     return response.data;
+  },
+
+  // Dashboard para técnicos
+  getTechnicianOverview: async () => {
+    const response = await apiClient.get('/dashboard/technician-overview');
+    return response.data;
   }
 };
 

@@ -95,17 +95,13 @@ function App() {
               } 
             />
             
-            {/* Placeholder Pages */}
+            {/* Spaces Management - Admin and Technician access */}
             <Route 
               path="spaces" 
-              element={
-                <RoleGuard requiredRole="admin">
-                  <SpacesPage />
-                </RoleGuard>
-              } 
+              element={<SpacesPage />} 
             />
             
-            {/* Statistics Page */}
+            {/* Statistics Page - Admin only */}
             <Route 
               path="statistics" 
               element={
@@ -115,17 +111,13 @@ function App() {
               } 
             />
             
-            {/* Reservations Page */}
+            {/* Reservations Page - Admin and Technician access */}
             <Route 
               path="reservations" 
-              element={
-                <RoleGuard requiredRole="admin">
-                  <ReservationsPage />
-                </RoleGuard>
-              } 
+              element={<ReservationsPage />} 
             />
             
-            {/* Staff Management */}
+            {/* Staff Management - Admin only */}
             <Route 
               path="staff" 
               element={
@@ -135,12 +127,10 @@ function App() {
               } 
             />
             
-            {/* Devices Management */}
+            {/* Devices Management - Admin and Technician access */}
             <Route 
               path="devices" 
-              element={
-                <DevicesPage />
-              } 
+              element={<DevicesPage />} 
             />
             
             <Route 
