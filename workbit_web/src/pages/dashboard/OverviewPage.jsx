@@ -151,15 +151,15 @@ const OverviewPage = () => {
   const systemStatus = dashboardData?.system_status || {};
 
   return (
-    <div className="w-full h-full p-6 space-y-6">
+    <div className="w-full h-full p-4 sm:p-6 space-y-6 overflow-x-hidden">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             {isTechnician ? 'Dashboard Técnico' : 'Dashboard'}
           </h1>
           <p className="text-gray-600 mt-2">
@@ -182,7 +182,7 @@ const OverviewPage = () => {
       </motion.div>
 
       {/* KPI Cards Row - Different for each role */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {isAdmin ? (
           <>
             {/* Admin KPI Cards */}
@@ -305,9 +305,9 @@ const OverviewPage = () => {
 
       {/* Main Content: Different layout per role */}
       {isAdmin ? (
-        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-10 gap-4 sm:gap-6">
           {/* Calendar Section (70%) */}
-          <div className="lg:col-span-7">
+          <div className="xl:col-span-7">
             <CalendarWidget
               calendarData={dashboardData?.calendar?.days || []}
               onDateClick={handleCalendarDateClick}
@@ -317,7 +317,7 @@ const OverviewPage = () => {
           </div>
 
           {/* Alerts & Notifications Section (30%) */}
-          <div className="lg:col-span-3">
+          <div className="xl:col-span-3">
             <AlertsWidget
               alerts={alerts}
               notifications={notifications}
@@ -331,13 +331,13 @@ const OverviewPage = () => {
         </div>
       ) : (
         /* Technician Content */
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* My Recent Tasks */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6"
           >
             <div className="flex items-center mb-4">
               <ClipboardList className="w-5 h-5 text-blue-600 mr-2" />
@@ -347,9 +347,9 @@ const OverviewPage = () => {
               <div className="space-y-3">
                 {myAssignments.recent_tasks.map((task, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900">{task.title}</h4>
-                      <p className="text-sm text-gray-600">{task.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 truncate">{task.title}</h4>
+                      <p className="text-sm text-gray-600 truncate">{task.description}</p>
                       <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
                         task.priority === 'high' ? 'bg-red-100 text-red-800' :
                         task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
@@ -358,7 +358,7 @@ const OverviewPage = () => {
                         {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'} prioridad
                       </span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right ml-2 flex-shrink-0">
                       <span className={`inline-block px-2 py-1 text-xs rounded-full ${
                         task.status === 'completed' ? 'bg-green-100 text-green-800' :
                         task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
@@ -383,7 +383,7 @@ const OverviewPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6"
           >
             <div className="flex items-center mb-4">
               <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />
@@ -393,14 +393,14 @@ const OverviewPage = () => {
               <div className="space-y-3">
                 {myAssignments.high_priority_pending.map((task, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-red-900">{task.title}</h4>
-                      <p className="text-sm text-red-700">{task.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-red-900 truncate">{task.title}</h4>
+                      <p className="text-sm text-red-700 truncate">{task.description}</p>
                       <span className="text-xs text-red-600">
                         Creada: {new Date(task.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                    <AlertTriangle className="w-6 h-6 text-red-500 flex-shrink-0 ml-2" />
                   </div>
                 ))}
               </div>
@@ -415,12 +415,12 @@ const OverviewPage = () => {
       )}
 
       {/* Additional Info Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* System Status */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6"
         >
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Estado del Sistema</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -439,7 +439,7 @@ const OverviewPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6"
         >
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumen Rápido</h3>
           <div className="space-y-3">

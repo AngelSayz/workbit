@@ -264,16 +264,17 @@ const CubiclesLayout = ({ onSpaceClick, refreshTrigger = 0 }) => {
   };
   
   const { maxX, maxY } = calculateDynamicDimensions();
-  const svgWidth = Math.max(1400, (maxX + 1) * 280);
-  const svgHeight = Math.max(1000, (maxY + 1) * 320);
+  // Hacer el SVG responsive - usar viewBox en lugar de width/height fijos
+  const svgViewBoxWidth = Math.max(800, (maxX + 1) * 280);
+  const svgViewBoxHeight = Math.max(600, (maxY + 1) * 320);
   const cellWidth = 200;
   const cellHeight = 200;
   const margin = 40;
 
   return (
-    <div className="w-full">
+    <div className="w-full overflow-x-hidden">
       <div className="mb-6 bg-white rounded-lg p-4 border border-gray-200">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex flex-wrap gap-4">
             {['available', 'occupied', 'reserved', 'maintenance', 'unavailable'].map((status) => (
               <div key={status} className="flex items-center gap-2">
@@ -307,9 +308,14 @@ const CubiclesLayout = ({ onSpaceClick, refreshTrigger = 0 }) => {
         </div>
       </div>
 
-             <div className="bg-white rounded-lg border border-gray-200 p-6 overflow-auto" style={{ minHeight: '600px' }}>
+             <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 overflow-hidden" style={{ minHeight: '600px' }}>
                {viewMode === 'layout' ? (
-                 <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width={svgWidth} height={svgHeight} className="mx-auto block">
+                 <div className="w-full overflow-x-auto">
+                   <svg 
+                     viewBox={`0 0 ${svgViewBoxWidth} ${svgViewBoxHeight}`} 
+                     className="w-full h-auto max-w-none"
+                     preserveAspectRatio="xMidYMid meet"
+                   >
           <defs>
             <pattern id="grid" width={cellWidth + margin} height={cellHeight + margin} patternUnits="userSpaceOnUse">
               <rect width={cellWidth + margin} height={cellHeight + margin} fill="none" stroke="#e5e7eb" strokeWidth="1" />
@@ -458,6 +464,7 @@ const CubiclesLayout = ({ onSpaceClick, refreshTrigger = 0 }) => {
              });
            })()}
                   </svg>
+                </div>
                 ) : (
                   <div className="space-y-3">
                     {spaces.map((space) => (

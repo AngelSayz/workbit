@@ -8,6 +8,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -16,6 +17,27 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Dashboard specific styles */
+.dashboard-layout {
+  overflow-x: hidden;
+}
+
+.dashboard-content {
+  overflow-x: hidden;
+}
+
+.dashboard-page {
+  overflow-x: hidden;
+}
+
+/* Prevent horizontal scroll in all dashboard components */
+.dashboard-layout *,
+.dashboard-content *,
+.dashboard-page * {
+  max-width: 100%;
 }
 
 /* Custom scrollbar */
@@ -67,5 +89,19 @@ body {
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  /* Force no horizontal scroll on mobile */
+  html, body, #root, .App {
+    overflow-x: hidden !important;
+  }
+  
+  /* Ensure all containers respect viewport width */
+  .container, .dashboard-layout, .dashboard-content, .dashboard-page {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
   }
 }

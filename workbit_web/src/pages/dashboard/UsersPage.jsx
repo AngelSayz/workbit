@@ -172,7 +172,7 @@ const UsersPage = () => {
   }
 
   return (
-    <div className="w-full h-full p-6 space-y-6">
+    <div className="w-full h-full p-4 sm:p-6 space-y-6 overflow-x-hidden">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -181,7 +181,7 @@ const UsersPage = () => {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             {t('dashboard.users.title')}
           </h1>
           <p className="text-gray-600">
@@ -226,19 +226,19 @@ const UsersPage = () => {
         className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
       >
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('dashboard.users.table.name')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Code Card
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('dashboard.users.table.status')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('dashboard.users.table.actions')}
                 </th>
               </tr>
@@ -252,63 +252,51 @@ const UsersPage = () => {
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   className="hover:bg-gray-50"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-blue-600" />
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <User className="h-5 w-5 text-blue-600" />
+                        </div>
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                      <div className="ml-4 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">
                           {user.name} {user.lastname}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 truncate">
                           {user.email}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          @{user.username}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
+                      {user.cardCode || 'Sin código'}
+                    </span>
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
+                      {user.role === 'user' ? 'Usuario' : user.role === 'technician' ? 'Técnico' : user.role}
+                    </span>
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-900 font-mono">
-                        {user.card_code || 'Sin código'}
-                      </span>
                       <button
                         onClick={() => handleEditCardCode(user)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Editar code card"
+                        className="text-blue-600 hover:text-blue-900 p-1"
+                        title="Editar código de tarjeta"
                       >
-                        <Edit size={14} />
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                      <span className="text-sm text-gray-900">{t('common.active')}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedUser(user);
-                          // Handle edit
-                        }}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Edit size={16} />
+                        <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => {
                           setSelectedUser(user);
                           setShowDeleteModal(true);
                         }}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-600 hover:text-red-900 p-1"
+                        title="Eliminar usuario"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
