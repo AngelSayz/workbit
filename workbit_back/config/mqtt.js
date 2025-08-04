@@ -397,8 +397,30 @@ const publishGuestsAccess = (guests) => {
   }
 };
 
+const publishSpaceStatus = (spaceId, status) => {
+  if (client && client.connected) {
+    const topic = 'workbit/spaces/status';
+    const message = JSON.stringify({
+      space_id: spaceId,
+      status: status,
+      timestamp: new Date().toISOString()
+    });
+    
+    client.publish(topic, message, { qos: 1, retain: false }, (err) => {
+      if (err && process.env.NODE_ENV === 'development') {
+        console.error(`❌ Failed to publish space status to ${topic}:`, err.message);
+      } else {
+        console.log(`✅ Space status published: space ${spaceId} -> ${status}`);
+      }
+    });
+  } else {
+    console.warn('⚠️ MQTT client not connected, cannot publish space status');
+  }
+};
+
 module.exports = {
   client,
   publishAccessResponse,
-  publishGuestsAccess
+  publishGuestsAccess,
+  publishSpaceStatus
 }; 
