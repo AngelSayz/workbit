@@ -422,7 +422,7 @@ router.put('/:id/card-code',
       // Check if user exists
       const { data: existingUser, error: checkError } = await supabase
         .from('users')
-        .select('id, name, lastname')
+        .select('id, name, lastname, card_id')
         .eq('id', id)
         .single();
 
@@ -432,53 +432,87 @@ router.put('/:id/card-code',
         });
       }
 
-      // Check if code card already exists for this user
-      const { data: existingCard, error: cardCheckError } = await supabase
+      // Check if the card code already exists (for any user)
+      const { data: existingCardCode, error: cardCodeCheckError } = await supabase
         .from('codecards')
-        .select('id')
-        .eq('user_id', id)
+        .select('id, code')
+        .eq('code', cardCode)
         .single();
 
-      if (cardCheckError && cardCheckError.code !== 'PGRST116') {
-        console.error('Error checking existing card:', cardCheckError);
+      if (cardCodeCheckError && cardCodeCheckError.code !== 'PGRST116') {
+        console.error('Error checking existing card code:', cardCodeCheckError);
         return res.status(500).json({
           error: 'Failed to check existing card code'
         });
       }
 
       let result;
-      if (existingCard) {
-        // Update existing card code
-        const { data: updatedCard, error: updateError } = await supabase
-          .from('codecards')
-          .update({ code: cardCode })
-          .eq('user_id', id)
-          .select()
+      
+      if (existingCardCode) {
+        // Card code already exists - check if it's assigned to another user
+        const { data: userWithCard, error: userCardError } = await supabase
+          .from('users')
+          .select('id, name, lastname')
+          .eq('card_id', existingCardCode.id)
+          .neq('id', id) // Exclude current user
           .single();
 
-        if (updateError) {
-          console.error('Update card code error:', updateError);
+        if (userCardError && userCardError.code !== 'PGRST116') {
+          console.error('Error checking user with card:', userCardError);
           return res.status(500).json({
-            error: 'Failed to update card code'
+            error: 'Failed to check card assignment'
           });
         }
 
-        result = updatedCard;
-      } else {
-        // Create new card code
-        const { data: newCard, error: createError } = await supabase
-          .from('codecards')
-          .insert({
-            user_id: id,
-            code: cardCode
-          })
+        if (userWithCard) {
+          return res.status(400).json({
+            error: `Card code ${cardCode} is already assigned to user ${userWithCard.name} ${userWithCard.lastname}`
+          });
+        }
+
+        // Card code exists but is not assigned to anyone - assign it to current user
+        const { data: updatedUser, error: updateUserError } = await supabase
+          .from('users')
+          .update({ card_id: existingCardCode.id })
+          .eq('id', id)
           .select()
           .single();
 
-        if (createError) {
-          console.error('Create card code error:', createError);
+        if (updateUserError) {
+          console.error('Update user card_id error:', updateUserError);
+          return res.status(500).json({
+            error: 'Failed to assign card code to user'
+          });
+        }
+
+        result = existingCardCode;
+      } else {
+        // Card code doesn't exist - create new card and assign to user
+        const { data: newCard, error: createCardError } = await supabase
+          .from('codecards')
+          .insert({ code: cardCode })
+          .select()
+          .single();
+
+        if (createCardError) {
+          console.error('Create card code error:', createCardError);
           return res.status(500).json({
             error: 'Failed to create card code'
+          });
+        }
+
+        // Assign the new card to the user
+        const { data: updatedUser, error: updateUserError } = await supabase
+          .from('users')
+          .update({ card_id: newCard.id })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (updateUserError) {
+          console.error('Update user card_id error:', updateUserError);
+          return res.status(500).json({
+            error: 'Failed to assign card code to user'
           });
         }
 
@@ -487,13 +521,24 @@ router.put('/:id/card-code',
 
       res.json({
         message: 'Card code updated successfully',
-        cardCode: result.code
+        data: {
+          user: {
+            id: existingUser.id,
+            name: existingUser.name,
+            lastname: existingUser.lastname
+          },
+          card: {
+            id: result.id,
+            code: result.code
+          }
+        }
       });
 
     } catch (error) {
-      console.error('Update card code error:', error);
+      console.error('Error updating card code:', error);
       res.status(500).json({
-        error: 'Failed to update card code'
+        error: 'Failed to update card code',
+        details: error.message
       });
     }
   }
