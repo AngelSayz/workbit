@@ -667,4 +667,271 @@ function getNotificationMessage(event, spaceName) {
   }
 }
 
+// GET /api/dashboard/advanced-statistics - Advanced statistics for admin (admin only)
+router.get('/advanced-statistics',
+  authenticateToken,
+  requireRole(['admin']),
+  async (req, res) => {
+    try {
+      const { period = '30d' } = req.query;
+      
+      // Calculate date ranges
+      const now = new Date();
+      const days = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 30;
+      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+      // Import MongoDB models
+      const { SpaceUsage, UserActivity, SystemMetrics, EventLog, PerformanceMetrics } = require('../models/Analytics');
+
+      // 1. SPACE ANALYTICS
+      const spaceAnalytics = await SpaceUsage.aggregate([
+        { $match: { date: { $gte: startDate } } },
+        {
+          $group: {
+            _id: '$space_id',
+            space_name: { $first: '$space_name' },
+            total_reservations: { $sum: '$total_reservations' },
+            total_hours_used: { $sum: '$total_hours_used' },
+            avg_occupancy_rate: { $avg: '$occupancy_rate' },
+            avg_session_duration: { $avg: '$average_session_duration' }
+          }
+        },
+        { $sort: { total_reservations: -1 } }
+      ]);
+
+      // Peak hours analysis
+      const peakHoursData = await SpaceUsage.aggregate([
+        { $match: { date: { $gte: startDate } } },
+        { $unwind: '$peak_hours' },
+        {
+          $group: {
+            _id: '$peak_hours.hour',
+            total_usage: { $sum: '$peak_hours.usage_count' }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]);
+
+      // 2. USER BEHAVIOR ANALYTICS
+      const userBehavior = await UserActivity.aggregate([
+        { $match: { date: { $gte: startDate } } },
+        {
+          $group: {
+            _id: null,
+            total_active_users: { $sum: 1 },
+            avg_hours_per_user: { $avg: '$total_hours_used' },
+            avg_reservations_per_user: { $avg: '$total_reservations' }
+          }
+        }
+      ]);
+
+      // Most active users
+      const topUsers = await UserActivity.aggregate([
+        { $match: { date: { $gte: startDate } } },
+        {
+          $group: {
+            _id: '$user_id',
+            username: { $first: '$username' },
+            total_hours: { $sum: '$total_hours_used' },
+            total_reservations: { $sum: '$total_reservations' }
+          }
+        },
+        { $sort: { total_hours: -1 } },
+        { $limit: 10 }
+      ]);
+
+      // 3. SYSTEM PERFORMANCE
+      const systemPerformance = await SystemMetrics.aggregate([
+        { $match: { date: { $gte: startDate } } },
+        {
+          $group: {
+            _id: null,
+            avg_occupancy: { $avg: '$average_occupancy_rate' },
+            total_api_requests: { $sum: '$api_requests' },
+            avg_response_time: { $avg: '$response_times.avg' },
+            total_mqtt_messages: { $sum: { $add: ['$mqtt_messages_sent', '$mqtt_messages_received'] } }
+          }
+        }
+      ]);
+
+      // API Performance by endpoint
+      const apiPerformance = await PerformanceMetrics.aggregate([
+        { $match: { timestamp: { $gte: startDate } } },
+        {
+          $group: {
+            _id: '$endpoint',
+            avg_response_time: { $avg: '$response_time' },
+            total_requests: { $sum: 1 },
+            error_count: { $sum: { $cond: [{ $gte: ['$status_code', 400] }, 1, 0] } }
+          }
+        },
+        { $sort: { total_requests: -1 } },
+        { $limit: 10 }
+      ]);
+
+      // 4. RESERVATION TRENDS
+      const { data: reservationTrends, error: trendsError } = await supabase
+        .from('reservations')
+        .select('created_at, start_time, end_time, status, space_id')
+        .gte('created_at', startDate.toISOString());
+
+      if (trendsError) {
+        console.error('Error fetching reservation trends:', trendsError);
+      }
+
+      // Process reservation trends by day
+      const dailyTrends = {};
+      reservationTrends?.forEach(reservation => {
+        const day = new Date(reservation.created_at).toISOString().split('T')[0];
+        if (!dailyTrends[day]) {
+          dailyTrends[day] = { date: day, reservations: 0, cancelled: 0, confirmed: 0 };
+        }
+        dailyTrends[day].reservations++;
+        if (reservation.status === 'cancelled') dailyTrends[day].cancelled++;
+        if (reservation.status === 'confirmed') dailyTrends[day].confirmed++;
+      });
+
+      // 5. SPACE UTILIZATION EFFICIENCY
+      const { data: spacesData, error: spacesDataError } = await supabase
+        .from('spaces')
+        .select('id, name, capacity, status');
+
+      if (spacesDataError) {
+        console.error('Error fetching spaces data:', spacesDataError);
+      }
+
+      // Calculate space efficiency
+      const spaceEfficiency = spacesData?.map(space => {
+        const analytics = spaceAnalytics.find(sa => sa._id === space.id);
+        return {
+          space_id: space.id,
+          space_name: space.name,
+          capacity: space.capacity,
+          status: space.status,
+          utilization_rate: analytics?.avg_occupancy_rate || 0,
+          total_usage_hours: analytics?.total_hours_used || 0,
+          efficiency_score: analytics ? (analytics.avg_occupancy_rate * analytics.total_reservations) / 100 : 0
+        };
+      }).sort((a, b) => b.efficiency_score - a.efficiency_score);
+
+      // 6. ALERTS AND INCIDENTS
+      const Alert = require('../models/Alert');
+      const alertsAnalysis = await Alert.aggregate([
+        { $match: { createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: '$severity',
+            count: { $sum: 1 },
+            avg_resolution_time: { $avg: { $subtract: ['$resolvedAt', '$createdAt'] } }
+          }
+        }
+      ]);
+
+      // 7. REVENUE ANALYTICS (if applicable)
+      const { data: completedReservations, error: completedError } = await supabase
+        .from('reservations')
+        .select('id, start_time, end_time, space_id')
+        .eq('status', 'confirmed')
+        .lt('end_time', now.toISOString())
+        .gte('start_time', startDate.toISOString());
+
+      if (completedError) {
+        console.error('Error fetching completed reservations:', completedError);
+      }
+
+      // Calculate usage statistics
+      const totalHoursUsed = completedReservations?.reduce((total, reservation) => {
+        const start = new Date(reservation.start_time);
+        const end = new Date(reservation.end_time);
+        return total + (end - start) / (1000 * 60 * 60); // hours
+      }, 0) || 0;
+
+      res.json({
+        success: true,
+        data: {
+          period: period,
+          date_range: {
+            start: startDate.toISOString(),
+            end: now.toISOString()
+          },
+          
+          // Space Analytics
+          space_analytics: {
+            top_spaces: spaceAnalytics.slice(0, 10),
+            space_efficiency: spaceEfficiency?.slice(0, 10) || [],
+            peak_hours: peakHoursData,
+            total_spaces_analyzed: spaceAnalytics.length
+          },
+
+          // User Behavior
+          user_behavior: {
+            summary: userBehavior[0] || {},
+            top_users: topUsers,
+            total_active_users: userBehavior[0]?.total_active_users || 0
+          },
+
+          // System Performance
+          system_performance: {
+            summary: systemPerformance[0] || {},
+            api_performance: apiPerformance,
+            uptime_percentage: 99.5 // This would come from monitoring
+          },
+
+          // Trends
+          reservation_trends: {
+            daily_data: Object.values(dailyTrends),
+            total_hours_used: totalHoursUsed,
+            average_daily_reservations: Object.values(dailyTrends).reduce((sum, day) => sum + day.reservations, 0) / Object.keys(dailyTrends).length || 0
+          },
+
+          // Alerts & Issues
+          alerts_analysis: {
+            by_severity: alertsAnalysis,
+            total_alerts: alertsAnalysis.reduce((sum, alert) => sum + alert.count, 0)
+          },
+
+          // Summary metrics
+          summary: {
+            total_reservations: reservationTrends?.length || 0,
+            total_hours_used: totalHoursUsed,
+            average_occupancy_rate: systemPerformance[0]?.avg_occupancy || 0,
+            system_health_score: calculateHealthScore(systemPerformance[0], alertsAnalysis)
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching advanced statistics:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch advanced statistics'
+      });
+    }
+  }
+);
+
+// Helper function to calculate system health score
+function calculateHealthScore(systemMetrics, alertsData) {
+  let score = 100;
+  
+  if (systemMetrics) {
+    // Deduct points for poor performance
+    if (systemMetrics.avg_response_time > 1000) score -= 10; // > 1 second
+    if (systemMetrics.avg_response_time > 2000) score -= 20; // > 2 seconds
+    
+    // Deduct points for low occupancy
+    if (systemMetrics.avg_occupancy < 30) score -= 15;
+    if (systemMetrics.avg_occupancy < 10) score -= 25;
+  }
+  
+  // Deduct points for alerts
+  alertsData?.forEach(alert => {
+    if (alert._id === 'critical') score -= alert.count * 10;
+    if (alert._id === 'high') score -= alert.count * 5;
+    if (alert._id === 'medium') score -= alert.count * 2;
+  });
+  
+  return Math.max(0, Math.min(100, score));
+}
+
 module.exports = router; 

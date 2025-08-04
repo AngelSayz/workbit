@@ -319,6 +319,12 @@ export const dashboardAPI = {
   getNotifications: async (params = {}) => {
     const response = await apiClient.get('/dashboard/notifications', { params });
     return response.data;
+  },
+
+  // Obtener estadísticas avanzadas
+  getAdvancedStatistics: async (params = {}) => {
+    const response = await apiClient.get('/dashboard/advanced-statistics', { params });
+    return response.data;
   }
 };
 
