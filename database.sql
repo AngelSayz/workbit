@@ -1,3 +1,6 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
 CREATE TABLE public.access_logs (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
   user_id integer NOT NULL,
@@ -6,9 +9,9 @@ CREATE TABLE public.access_logs (
   access_time timestamp without time zone NOT NULL,
   exit_time timestamp without time zone,
   CONSTRAINT access_logs_pkey PRIMARY KEY (id),
-  CONSTRAINT access_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT access_logs_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES public.reservations(id),
   CONSTRAINT access_logs_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id),
-  CONSTRAINT access_logs_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES public.reservations(id)
+  CONSTRAINT access_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.codecards (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -22,6 +25,15 @@ CREATE TABLE public.grid_settings (
   cols integer NOT NULL,
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT grid_settings_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.reports (
+  id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id integer NOT NULL,
+  title character varying NOT NULL,
+  description character varying NOT NULL,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT reports_pkey PRIMARY KEY (id),
+  CONSTRAINT reports_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.reservation_participants (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -59,17 +71,34 @@ CREATE TABLE public.spaces (
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT spaces_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.tasks (
+  id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_by integer NOT NULL,
+  space_id integer NOT NULL,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  status text,
+  title character varying NOT NULL DEFAULT 'Sin título'::character varying,
+  description text,
+  priority character varying NOT NULL DEFAULT 'medium'::character varying CHECK (priority::text = ANY (ARRAY['low'::character varying, 'medium'::character varying, 'high'::character varying]::text[])),
+  assigned_to integer,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT tasks_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id),
+  CONSTRAINT tasks_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(id),
+  CONSTRAINT tasks_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT tasks_users_id_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.users (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
   name character varying NOT NULL,
   lastname character varying NOT NULL,
   username character varying NOT NULL UNIQUE,
   role_id integer NOT NULL,
-  card_id integer NOT NULL,
+  card_id integer,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   user_id uuid UNIQUE,
   CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT users_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT users_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id),
   CONSTRAINT users_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.codecards(id),
-  CONSTRAINT users_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id)
+  CONSTRAINT users_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );

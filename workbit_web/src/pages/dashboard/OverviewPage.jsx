@@ -146,20 +146,18 @@ const OverviewPage = () => {
           value=""
           icon={Building}
           color="blue"
-          chart={
-            <PieChart
-              data={[
-                { label: 'Disponible', value: kpis.spaces?.distribution?.available || 0 },
-                { label: 'Ocupado', value: kpis.spaces?.distribution?.occupied || 0 },
-                { label: 'Reservado', value: kpis.spaces?.distribution?.reserved || 0 },
-                { label: 'Mantenimiento', value: kpis.spaces?.distribution?.maintenance || 0 },
-                { label: 'No disponible', value: kpis.spaces?.distribution?.unavailable || 0 }
-              ]}
-              size={120}
-              strokeWidth={12}
-              showLabels={true}
-            />
-          }
+                          chart={
+                  <PieChart
+                    data={[
+                      { label: 'Disponible', value: kpis.spaces?.distribution?.available || 0 },
+                      { label: 'Ocupado', value: kpis.spaces?.distribution?.occupied || 0 },
+                      { label: 'Reservado', value: kpis.spaces?.distribution?.reserved || 0 },
+                      { label: 'Mantenimiento', value: kpis.spaces?.distribution?.maintenance || 0 },
+                      { label: 'No disponible', value: kpis.spaces?.distribution?.unavailable || 0 }
+                    ]}
+                    size={150}
+                  />
+                }
         />
 
         {/* Reservas Card */}
