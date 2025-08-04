@@ -36,11 +36,14 @@ const CubiclesLayout = ({ onSpaceClick, externalSpaces = null }) => {
   const isAdmin = user?.role === 'admin';
   
   // Usar espacios externos si están disponibles, sino usar el estado local
-  const currentSpaces = externalSpaces || spaces;
+  const currentSpaces = externalSpaces && externalSpaces.length > 0 ? externalSpaces : spaces;
 
   useEffect(() => {
+    // Solo cargar datos si no hay espacios externos
     if (!externalSpaces) {
       fetchSpacesData();
+    } else {
+      setLoading(false);
     }
   }, [externalSpaces]);
 
@@ -275,6 +278,21 @@ const CubiclesLayout = ({ onSpaceClick, externalSpaces = null }) => {
 
   return (
     <div className="w-full">
+      {loading && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-center space-x-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <span className="text-blue-600">Cargando espacios...</span>
+          </div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <span className="text-red-600">{error}</span>
+        </div>
+      )}
+      
       <div className="mb-6 bg-white rounded-lg p-4 border border-gray-200">
         <div className="flex justify-between items-center">
           <div className="flex flex-wrap gap-4">
