@@ -238,10 +238,10 @@ router.get('/charts',
   }
 );
 
-// GET /api/dashboard/overview - Comprehensive dashboard overview (admin only)
+// GET /api/dashboard/overview - Comprehensive dashboard overview (admin and technician)
 router.get('/overview',
   authenticateToken,
-  requireRole(['admin']),
+  requireRole(['admin', 'technician']),
   async (req, res) => {
     try {
       if (!supabase) {
@@ -478,10 +478,10 @@ router.get('/overview',
   }
 );
 
-// GET /api/dashboard/alerts - Get system alerts with filters (admin only)
+// GET /api/dashboard/alerts - Get system alerts with filters (admin and technician)
 router.get('/alerts',
   authenticateToken,
-  requireRole(['admin']),
+  requireRole(['admin', 'technician']),
   async (req, res) => {
     try {
       const { 
@@ -571,10 +571,10 @@ router.get('/alerts',
   }
 );
 
-// GET /api/dashboard/notifications - Get system notifications (admin only)
+// GET /api/dashboard/notifications - Get system notifications (admin and technician)
 router.get('/notifications',
   authenticateToken,
-  requireRole(['admin']),
+  requireRole(['admin', 'technician']),
   async (req, res) => {
     try {
       const { limit = 20 } = req.query;

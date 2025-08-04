@@ -32,8 +32,11 @@ const OverviewPage = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    fetchAlertsAndNotifications();
-  }, []);
+    // Only fetch alerts and notifications for admins
+    if (user?.role === 'admin') {
+      fetchAlertsAndNotifications();
+    }
+  }, [user]);
 
   const fetchDashboardData = async () => {
     try {
@@ -83,10 +86,14 @@ const OverviewPage = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      fetchDashboardData(),
-      fetchAlertsAndNotifications()
-    ]);
+    const promises = [fetchDashboardData()];
+    
+    // Only fetch alerts and notifications for admins
+    if (user?.role === 'admin') {
+      promises.push(fetchAlertsAndNotifications());
+    }
+    
+    await Promise.all(promises);
     setRefreshing(false);
   };
 
@@ -95,10 +102,12 @@ const OverviewPage = () => {
   };
 
   const handleCalendarDateClick = (date, dayData) => {
-    console.log('Date clicked:', date, dayData);
+    // Handle calendar date click for admins
+    console.log('Calendar date clicked:', date, dayData);
   };
 
   const handleAlertClick = (alert) => {
+    // Handle alert click for admins
     console.log('Alert clicked:', alert);
   };
 
@@ -294,31 +303,116 @@ const OverviewPage = () => {
         )}
       </div>
 
-      {/* Main Content: Calendar (70%) + Alerts (30%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-        {/* Calendar Section (70%) */}
-        <div className="lg:col-span-7">
-          <CalendarWidget
-            calendarData={dashboardData?.calendar?.days || []}
-            onDateClick={handleCalendarDateClick}
-            currentMonth={dashboardData?.calendar?.month || new Date().getMonth()}
-            currentYear={dashboardData?.calendar?.year || new Date().getFullYear()}
-          />
-        </div>
+      {/* Main Content: Different layout per role */}
+      {isAdmin ? (
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+          {/* Calendar Section (70%) */}
+          <div className="lg:col-span-7">
+            <CalendarWidget
+              calendarData={dashboardData?.calendar?.days || []}
+              onDateClick={handleCalendarDateClick}
+              currentMonth={dashboardData?.calendar?.month || new Date().getMonth()}
+              currentYear={dashboardData?.calendar?.year || new Date().getFullYear()}
+            />
+          </div>
 
-        {/* Alerts & Notifications Section (30%) */}
-        <div className="lg:col-span-3">
-          <AlertsWidget
-            alerts={alerts}
-            notifications={notifications}
-            onAlertClick={handleAlertClick}
-            onFilterChange={(priority) => {
-              fetchAlertsAndNotifications();
-            }}
-            className="h-full"
-          />
+          {/* Alerts & Notifications Section (30%) */}
+          <div className="lg:col-span-3">
+            <AlertsWidget
+              alerts={alerts}
+              notifications={notifications}
+              onAlertClick={handleAlertClick}
+              onFilterChange={(priority) => {
+                fetchAlertsAndNotifications();
+              }}
+              className="h-full"
+            />
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Technician Content */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* My Recent Tasks */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+          >
+            <div className="flex items-center mb-4">
+              <ClipboardList className="w-5 h-5 text-blue-600 mr-2" />
+              <h2 className="text-xl font-semibold text-gray-900">Mis Tareas Recientes</h2>
+            </div>
+            {myAssignments.recent_tasks && myAssignments.recent_tasks.length > 0 ? (
+              <div className="space-y-3">
+                {myAssignments.recent_tasks.map((task, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <h4 className="font-medium text-gray-900">{task.title}</h4>
+                      <p className="text-sm text-gray-600">{task.description}</p>
+                      <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
+                        task.priority === 'high' ? 'bg-red-100 text-red-800' :
+                        task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'} prioridad
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                        task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {task.status === 'completed' ? 'Completada' : task.status === 'in_progress' ? 'En progreso' : 'Pendiente'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p>No tienes tareas asignadas</p>
+              </div>
+            )}
+          </motion.div>
+
+          {/* High Priority Tasks Alert */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+          >
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />
+              <h2 className="text-xl font-semibold text-gray-900">Tareas Urgentes</h2>
+            </div>
+            {myAssignments.high_priority_pending && myAssignments.high_priority_pending.length > 0 ? (
+              <div className="space-y-3">
+                {myAssignments.high_priority_pending.map((task, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div>
+                      <h4 className="font-medium text-red-900">{task.title}</h4>
+                      <p className="text-sm text-red-700">{task.description}</p>
+                      <span className="text-xs text-red-600">
+                        Creada: {new Date(task.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <CheckCircle className="w-12 h-12 text-green-300 mx-auto mb-4" />
+                <p>No hay tareas urgentes pendientes</p>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
 
       {/* Additional Info Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
