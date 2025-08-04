@@ -26,6 +26,9 @@ const SpacesPage = () => {
 
   const handleAdmin = (space) => {
     console.log('SpacesPage - Admin clicked for space:', space);
+    console.log('SpacesPage - Space ID:', space?.id);
+    console.log('SpacesPage - Space capacity:', space?.capacity);
+    console.log('SpacesPage - Space status:', space?.status);
     setSelectedSpace(space);
     setShowSpaceDetails(false);
     setShowSpaceAdmin(true);
@@ -41,6 +44,9 @@ const SpacesPage = () => {
   const handleUpdateSpace = async (updatedSpace) => {
     try {
       console.log('Actualizando espacio:', updatedSpace);
+      console.log('UpdatedSpace ID:', updatedSpace?.id);
+      console.log('UpdatedSpace capacity:', updatedSpace?.capacity);
+      console.log('UpdatedSpace status:', updatedSpace?.status);
       
       // Preparar datos para actualización
       const updateData = {};
@@ -48,6 +54,7 @@ const SpacesPage = () => {
       if (updatedSpace.status !== undefined) updateData.status = updatedSpace.status;
       if (updatedSpace.name !== undefined) updateData.name = updatedSpace.name;
       
+      console.log('Update data being sent:', updateData);
       const response = await spacesAPI.updateSpaceAdmin(updatedSpace.id, updateData);
       
       if (response.success) {
@@ -64,6 +71,9 @@ const SpacesPage = () => {
   const handleRelocateSpace = async (spaceId, newX, newY) => {
     try {
       console.log('Recolocando espacio:', spaceId, 'a posición:', newX, newY);
+      console.log('SpaceId type:', typeof spaceId);
+      console.log('NewX type:', typeof newX);
+      console.log('NewY type:', typeof newY);
       
       const response = await spacesAPI.relocateSpace(spaceId, newX, newY);
       

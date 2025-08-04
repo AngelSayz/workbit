@@ -159,13 +159,13 @@ const SpaceDetailsModal = ({ space, onClose, onViewStats, onAdmin }) => {
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onAdmin}
-            >
-              Administrar
-            </Button>
+                            <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onAdmin(space)}
+                >
+                  Administrar
+                </Button>
             <Button
               variant="outline"
               size="sm"
