@@ -301,6 +301,24 @@ export const dashboardAPI = {
   getCharts: async () => {
     const response = await apiClient.get('/dashboard/charts');
     return response.data;
+  },
+
+  // Nuevo endpoint principal para la dashboard
+  getOverview: async () => {
+    const response = await apiClient.get('/dashboard/overview');
+    return response.data;
+  },
+
+  // Obtener alertas con filtros
+  getAlerts: async (params = {}) => {
+    const response = await apiClient.get('/dashboard/alerts', { params });
+    return response.data;
+  },
+
+  // Obtener notificaciones del sistema
+  getNotifications: async (params = {}) => {
+    const response = await apiClient.get('/dashboard/notifications', { params });
+    return response.data;
   }
 };
 

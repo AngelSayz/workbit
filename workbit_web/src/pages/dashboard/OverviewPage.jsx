@@ -6,84 +6,85 @@ import {
   Users, 
   Building, 
   Wrench, 
-  CheckCircle, 
-  Clock,
   TrendingUp,
-  BarChart3
+  RefreshCw
 } from 'lucide-react';
 import { dashboardAPI } from '../../api/apiService';
+import KPICard from '../../components/dashboard/KPICard';
+import CalendarWidget from '../../components/dashboard/CalendarWidget';
+import AlertsWidget from '../../components/dashboard/AlertsWidget';
+import PieChart from '../../components/dashboard/PieChart';
 
 const OverviewPage = () => {
-  const [stats, setStats] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedReservationPeriod, setSelectedReservationPeriod] = useState('24h');
   const { t } = useTranslation();
 
   useEffect(() => {
-    fetchStats();
+    fetchDashboardData();
+    fetchAlertsAndNotifications();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await dashboardAPI.getStats();
+      const response = await dashboardAPI.getOverview();
       if (response.success) {
-        setStats(response.data);
+        setDashboardData(response.data);
       } else {
-        setError('Error al cargar las estadísticas');
+        setError('Error al cargar la información del dashboard');
       }
     } catch (err) {
-      console.error('Error fetching stats:', err);
-      setError('Error al cargar las estadísticas');
+      console.error('Error fetching dashboard data:', err);
+      setError('Error al cargar la información del dashboard');
     } finally {
       setLoading(false);
     }
   };
 
-  const statCards = [
-    {
-      title: 'Reservas Completadas',
-      value: stats?.total_completed_reservations || 0,
-      icon: CheckCircle,
-      color: 'bg-green-500',
-      textColor: 'text-green-500'
-    },
-    {
-      title: 'Reservas Futuras',
-      value: stats?.total_future_reservations || 0,
-      icon: Clock,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-500'
-    },
-    {
-      title: 'Usuarios',
-      value: stats?.total_users || 0,
-      icon: Users,
-      color: 'bg-purple-500',
-      textColor: 'text-purple-500'
-    },
-    {
-      title: 'Técnicos',
-      value: stats?.total_technicians || 0,
-      icon: Wrench,
-      color: 'bg-orange-500',
-      textColor: 'text-orange-500'
-    },
-    {
-      title: 'Cubículos',
-      value: stats?.total_spaces || 0,
-      icon: Building,
-      color: 'bg-indigo-500',
-      textColor: 'text-indigo-500'
-    },
-    {
-      title: 'Tareas Pendientes',
-      value: stats?.total_pending_tasks || 0,
-      icon: BarChart3,
-      color: 'bg-red-500',
-      textColor: 'text-red-500'
+  const fetchAlertsAndNotifications = async () => {
+    try {
+      const [alertsResponse, notificationsResponse] = await Promise.all([
+        dashboardAPI.getAlerts({ resolved: 'false', limit: 10 }),
+        dashboardAPI.getNotifications({ limit: 10 })
+      ]);
+
+      if (alertsResponse.success) {
+        setAlerts(alertsResponse.data.alerts || []);
+      }
+      if (notificationsResponse.success) {
+        setNotifications(notificationsResponse.data.notifications || []);
+      }
+    } catch (err) {
+      console.error('Error fetching alerts and notifications:', err);
     }
-  ];
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchDashboardData(),
+      fetchAlertsAndNotifications()
+    ]);
+    setRefreshing(false);
+  };
+
+  const handleReservationPeriodChange = (newPeriod) => {
+    setSelectedReservationPeriod(newPeriod);
+  };
+
+  const handleCalendarDateClick = (date, dayData) => {
+    console.log('Date clicked:', date, dayData);
+  };
+
+  const handleAlertClick = (alert) => {
+    console.log('Alert clicked:', alert);
+  };
 
   if (loading) {
     return (
@@ -99,7 +100,7 @@ const OverviewPage = () => {
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
           <button
-            onClick={fetchStats}
+            onClick={fetchDashboardData}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Reintentar
@@ -108,6 +109,9 @@ const OverviewPage = () => {
       </div>
     );
   }
+
+  const kpis = dashboardData?.kpis || {};
+  const reservationData = kpis.reservations?.[selectedReservationPeriod] || { completed: 0, active: 0, pending: 0 };
 
   return (
     <div className="w-full h-full p-6 space-y-6">
@@ -121,110 +125,163 @@ const OverviewPage = () => {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-2">Vista general del sistema WorkBit</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <TrendingUp className="w-6 h-6 text-blue-600" />
-          <span className="text-sm text-gray-500">Tiempo real</span>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="text-sm">Actualizar</span>
+          </button>
+          <div className="flex items-center space-x-2">
+            <TrendingUp className="w-5 h-5 text-green-600" />
+            <span className="text-sm text-gray-500">Tiempo real</span>
+          </div>
         </div>
       </motion.div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {statCards.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                </div>
-                <div className={`p-3 rounded-full ${stat.color} bg-opacity-10`}>
-                  <Icon className={`w-6 h-6 ${stat.textColor}`} />
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Cubículos Card */}
+        <KPICard
+          title="Cubículos Totales"
+          value={kpis.spaces?.total || 0}
+          icon={Building}
+          color="blue"
+          subItems={[
+            { label: 'Disponible', value: kpis.spaces?.distribution?.available || 0, color: '#10B981' },
+            { label: 'Ocupado', value: kpis.spaces?.distribution?.occupied || 0, color: '#EF4444' },
+            { label: 'Reservado', value: kpis.spaces?.distribution?.reserved || 0, color: '#F59E0B' },
+            { label: 'Mantenimiento', value: kpis.spaces?.distribution?.maintenance || 0, color: '#8B5CF6' },
+            { label: 'No disponible', value: kpis.spaces?.distribution?.unavailable || 0, color: '#6B7280' }
+          ]}
+          chart={
+            <PieChart
+              data={[
+                { label: 'Disponible', value: kpis.spaces?.distribution?.available || 0 },
+                { label: 'Ocupado', value: kpis.spaces?.distribution?.occupied || 0 },
+                { label: 'Reservado', value: kpis.spaces?.distribution?.reserved || 0 },
+                { label: 'Mantenimiento', value: kpis.spaces?.distribution?.maintenance || 0 },
+                { label: 'No disponible', value: kpis.spaces?.distribution?.unavailable || 0 }
+              ]}
+              size={60}
+              strokeWidth={6}
+            />
+          }
+        />
+
+        {/* Reservas Card */}
+        <KPICard
+          title="Reservas"
+          value={reservationData.completed + reservationData.active + reservationData.pending}
+          icon={Calendar}
+          color="green"
+          dropdown={{
+            options: [
+              { value: '24h', label: 'Últimas 24h' },
+              { value: '7d', label: 'Última semana' },
+              { value: '30d', label: 'Último mes' }
+            ],
+            onChange: handleReservationPeriodChange
+          }}
+          subItems={[
+            { label: 'Completadas', value: reservationData.completed, color: '#10B981' },
+            { label: 'Activas', value: reservationData.active, color: '#3B82F6' },
+            { label: 'Pendientes', value: reservationData.pending, color: '#F59E0B' }
+          ]}
+        />
+
+        {/* Usuarios Card */}
+        <KPICard
+          title="Clientes"
+          value={kpis.users || 0}
+          icon={Users}
+          color="purple"
+          trend={{ direction: 'up', value: '+5.2%' }}
+        />
+
+        {/* Técnicos Card */}
+        <KPICard
+          title="Técnicos Activos"
+          value={kpis.technicians || 0}
+          icon={Wrench}
+          color="orange"
+        />
       </div>
 
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-      >
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Acciones Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <a
-            href="/dashboard/spaces"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Building className="w-5 h-5 text-blue-600 mr-3" />
-            <span className="font-medium text-gray-900">Layout de Cubículos</span>
-          </a>
-          <a
-            href="/dashboard/reservations"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Calendar className="w-5 h-5 text-green-600 mr-3" />
-            <span className="font-medium text-gray-900">Gestionar Reservas</span>
-          </a>
-          <a
-            href="/dashboard/users"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Users className="w-5 h-5 text-purple-600 mr-3" />
-            <span className="font-medium text-gray-900">Gestionar Usuarios</span>
-          </a>
-          <a
-            href="/dashboard/staff"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Wrench className="w-5 h-5 text-orange-600 mr-3" />
-            <span className="font-medium text-gray-900">Gestionar Staff</span>
-          </a>
+      {/* Main Content: Calendar (70%) + Alerts (30%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+        {/* Calendar Section (70%) */}
+        <div className="lg:col-span-7">
+          <CalendarWidget
+            calendarData={dashboardData?.calendar?.days || []}
+            onDateClick={handleCalendarDateClick}
+            currentMonth={dashboardData?.calendar?.month || new Date().getMonth()}
+            currentYear={dashboardData?.calendar?.year || new Date().getFullYear()}
+          />
         </div>
-      </motion.div>
 
-      {/* Recent Activity */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-        className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-      >
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Actividad Reciente</h2>
-        <div className="space-y-4">
-          <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-            <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Sistema actualizado</p>
-              <p className="text-xs text-gray-500">Hace 5 minutos</p>
-            </div>
-          </div>
-          <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-            <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Nueva reserva creada</p>
-              <p className="text-xs text-gray-500">Hace 15 minutos</p>
-            </div>
-          </div>
-          <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-            <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Tarea asignada</p>
-              <p className="text-xs text-gray-500">Hace 1 hora</p>
-            </div>
-          </div>
+        {/* Alerts & Notifications Section (30%) */}
+        <div className="lg:col-span-3">
+          <AlertsWidget
+            alerts={alerts}
+            notifications={notifications}
+            onAlertClick={handleAlertClick}
+            onFilterChange={(priority) => {
+              fetchAlertsAndNotifications();
+            }}
+            className="h-full"
+          />
         </div>
-      </motion.div>
+      </div>
+
+      {/* Additional Info Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* System Status */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Estado del Sistema</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">{((kpis.spaces?.distribution?.available || 0) / (kpis.spaces?.total || 1) * 100).toFixed(1)}%</div>
+              <div className="text-sm text-green-700">Disponibilidad</div>
+            </div>
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">{alerts.length}</div>
+              <div className="text-sm text-blue-700">Alertas Activas</div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Quick Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumen Rápido</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Reservas hoy</span>
+              <span className="text-sm font-medium">{reservationData.active + reservationData.pending}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Ocupación actual</span>
+              <span className="text-sm font-medium">{kpis.spaces?.distribution?.occupied || 0} espacios</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Última actualización</span>
+              <span className="text-xs text-gray-500">
+                {dashboardData?.last_updated ? new Date(dashboardData.last_updated).toLocaleTimeString('es-ES') : 'N/A'}
+              </span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };
