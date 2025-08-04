@@ -3,7 +3,7 @@ const { body, query, param, validationResult } = require('express-validator');
 const { parseISO, isValid, format, isBefore, isAfter } = require('date-fns');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireRole } = require('../middleware/auth');
-const { publishReservationUpdate } = require('../config/mqtt');
+const { publishReservationUpdate, publishCredentials } = require('../config/mqtt');
 const router = express.Router();
 
 // GET /api/reservations - Get all reservations (admin/technician) or user's reservations
@@ -559,6 +559,421 @@ router.delete('/:id', async (req, res) => {
     console.error('Cancel reservation error:', error);
     res.status(500).json({
       error: 'Failed to cancel reservation'
+    });
+  }
+});
+
+// ================= SISTEMA DE CREDENCIALES RFID AUTOMÁTICAS =================
+
+/**
+ * @swagger
+ * /api/reservations/{id}/credentials:
+ *   post:
+ *     summary: Enviar credenciales RFID para una reserva
+ *     description: Envía automáticamente las credenciales RFID al ESP32 del espacio correspondiente
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la reserva
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - authorized_cards
+ *             properties:
+ *               authorized_cards:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 maxItems: 15
+ *                 description: Lista de UIDs de tarjetas RFID autorizadas (máximo 15)
+ *               master_cards:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Lista de tarjetas maestras (opcional, usa defaults si no se especifica)
+ *               force_update:
+ *                 type: boolean
+ *                 default: false
+ *                 description: Forzar actualización incluso si ya existen credenciales
+ *     responses:
+ *       200:
+ *         description: Credenciales enviadas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     reservation_id:
+ *                       type: integer
+ *                     space_id:
+ *                       type: integer
+ *                     authorized_cards:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     master_cards:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     valid_from:
+ *                       type: string
+ *                       format: date-time
+ *                     valid_until:
+ *                       type: string
+ *                       format: date-time
+ *                     mqtt_published:
+ *                       type: boolean
+ *       400:
+ *         description: Datos inválidos
+ *       404:
+ *         description: Reserva no encontrada
+ *       500:
+ *         description: Error del servidor
+ */
+router.post('/:id/credentials', [
+  param('id').isInt().withMessage('Reservation ID must be an integer'),
+  body('authorized_cards').isArray().withMessage('Authorized cards must be an array'),
+  body('authorized_cards.*').isString().withMessage('Card UID must be a string'),
+  body('master_cards').optional().isArray().withMessage('Master cards must be an array'),
+  body('force_update').optional().isBoolean().withMessage('Force update must be boolean')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation errors',
+        details: errors.array()
+      });
+    }
+
+    const reservationId = parseInt(req.params.id);
+    const { 
+      authorized_cards, 
+      master_cards = ["MASTER001", "MASTER002", "ADMIN123"], 
+      force_update = false 
+    } = req.body;
+
+    // Validar límite de tarjetas
+    if (authorized_cards.length > 15) {
+      return res.status(400).json({
+        success: false,
+        error: 'Maximum 15 authorized cards allowed per reservation'
+      });
+    }
+
+    // Validar que las tarjetas no estén vacías
+    if (authorized_cards.some(card => !card || !card.trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Card UIDs cannot be empty'
+      });
+    }
+
+    // Obtener información de la reserva
+    const { data: reservation, error: reservationError } = await supabase
+      .from('reservations')
+      .select(`
+        id,
+        space_id,
+        start_time,
+        end_time,
+        status,
+        reason,
+        spaces(id, name, capacity),
+        users!reservations_owner_id_fkey(id, name, username)
+      `)
+      .eq('id', reservationId)
+      .single();
+
+    if (reservationError || !reservation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reservation not found'
+      });
+    }
+
+    // Verificar que la reserva esté activa
+    const now = new Date();
+    const startTime = new Date(reservation.start_time);
+    const endTime = new Date(reservation.end_time);
+
+    if (reservation.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot send credentials for cancelled reservation'
+      });
+    }
+
+    if (endTime < now && !force_update) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot send credentials for past reservation. Use force_update=true to override.'
+      });
+    }
+
+    // Obtener todas las reservas activas para el mismo espacio
+    const { data: spaceReservations, error: spaceReservationsError } = await supabase
+      .from('reservations')
+      .select(`
+        id,
+        start_time,
+        end_time,
+        users!reservations_owner_id_fkey(id, username)
+      `)
+      .eq('space_id', reservation.space_id)
+      .eq('status', 'active')
+      .gte('end_time', now.toISOString());
+
+    if (spaceReservationsError) {
+      console.warn('Warning: Could not fetch other reservations for space', spaceReservationsError);
+    }
+
+    // Construir payload de credenciales según especificaciones
+    const credentialsPayload = {
+      space_id: reservation.space_id,
+      reservations: [
+        {
+          reservation_id: `res_${reservationId}`,
+          authorized_cards: authorized_cards,
+          valid_from: startTime.toISOString(),
+          valid_until: endTime.toISOString(),
+          owner: reservation.users?.username || 'unknown'
+        }
+      ],
+      master_cards: master_cards,
+      timestamp: new Date().toISOString(),
+      expires_at: endTime.toISOString(),
+      // Información adicional
+      space_info: {
+        name: reservation.spaces?.name,
+        capacity: reservation.spaces?.capacity
+      },
+      total_active_reservations: spaceReservations?.length || 1
+    };
+
+    // Agregar otras reservas activas si existen
+    if (spaceReservations && spaceReservations.length > 1) {
+      const otherReservations = spaceReservations
+        .filter(r => r.id !== reservationId)
+        .map(r => ({
+          reservation_id: `res_${r.id}`,
+          authorized_cards: [], // Placeholder - en producción esto vendría de otra fuente
+          valid_from: r.start_time,
+          valid_until: r.end_time,
+          owner: r.users?.username || 'unknown'
+        }));
+
+      credentialsPayload.reservations.push(...otherReservations);
+    }
+
+    // Publicar credenciales por MQTT
+    let mqttPublished = false;
+    try {
+      publishCredentials(reservation.space_id, credentialsPayload);
+      mqttPublished = true;
+      console.log(`✅ Credentials published for reservation ${reservationId} in space ${reservation.space_id}`);
+    } catch (mqttError) {
+      console.error('❌ Error publishing credentials via MQTT:', mqttError.message);
+    }
+
+    // Log activity
+    try {
+      if (req.user) {
+        const { logActivity } = require('../utils/helpers');
+        await logActivity(req.user.id, 'credentials_sent', {
+          reservation_id: reservationId,
+          space_id: reservation.space_id,
+          space_name: reservation.spaces?.name,
+          authorized_cards_count: authorized_cards.length,
+          master_cards_count: master_cards.length,
+          mqtt_published: mqttPublished
+        });
+      }
+    } catch (logError) {
+      console.warn('Warning: Could not log activity:', logError.message);
+    }
+
+    res.json({
+      success: true,
+      message: `Credentials sent successfully for reservation in ${reservation.spaces?.name || 'space'}`,
+      data: {
+        reservation_id: reservationId,
+        space_id: reservation.space_id,
+        space_name: reservation.spaces?.name,
+        authorized_cards: authorized_cards,
+        master_cards: master_cards,
+        valid_from: startTime.toISOString(),
+        valid_until: endTime.toISOString(),
+        mqtt_published: mqttPublished,
+        mqtt_topic: `workbit/access/credentials/${reservation.space_id}`,
+        expires_in_minutes: Math.round((endTime - now) / (1000 * 60)),
+        total_reservations_updated: credentialsPayload.reservations.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error sending credentials:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error sending credentials',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/reservations/spaces/{spaceId}/credentials:
+ *   get:
+ *     summary: Obtener credenciales activas de un espacio
+ *     description: Retorna todas las credenciales RFID activas para un espacio específico
+ *     tags: [Reservations]
+ *     parameters:
+ *       - in: path
+ *         name: spaceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del espacio
+ *       - in: query
+ *         name: include_expired
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Incluir credenciales expiradas
+ *     responses:
+ *       200:
+ *         description: Credenciales obtenidas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     space_id:
+ *                       type: integer
+ *                     active_reservations:
+ *                       type: array
+ *                     master_cards:
+ *                       type: array
+ *                     total_authorized_cards:
+ *                       type: integer
+ *       404:
+ *         description: Espacio no encontrado
+ *       500:
+ *         description: Error del servidor
+ */
+router.get('/spaces/:spaceId/credentials', async (req, res) => {
+  try {
+    const spaceId = parseInt(req.params.spaceId);
+    const { include_expired = false } = req.query;
+
+    // Validaciones
+    if (isNaN(spaceId) || spaceId <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Space ID must be a valid positive integer'
+      });
+    }
+
+    // Verificar que el espacio existe
+    const { data: space, error: spaceError } = await supabase
+      .from('spaces')
+      .select('id, name, capacity')
+      .eq('id', spaceId)
+      .single();
+
+    if (spaceError || !space) {
+      return res.status(404).json({
+        success: false,
+        error: 'Space not found'
+      });
+    }
+
+    // Construir query para reservas
+    let reservationsQuery = supabase
+      .from('reservations')
+      .select(`
+        id,
+        start_time,
+        end_time,
+        status,
+        reason,
+        users!reservations_owner_id_fkey(id, name, username)
+      `)
+      .eq('space_id', spaceId)
+      .eq('status', 'active');
+
+    // Filtrar por tiempo si no se incluyen expiradas
+    if (!include_expired) {
+      const now = new Date().toISOString();
+      reservationsQuery = reservationsQuery.gte('end_time', now);
+    }
+
+    const { data: reservations, error: reservationsError } = await reservationsQuery;
+
+    if (reservationsError) {
+      throw reservationsError;
+    }
+
+    // Simular credenciales (en producción esto vendría de otra tabla/fuente)
+    const activeReservations = reservations.map(reservation => ({
+      reservation_id: `res_${reservation.id}`,
+      owner: reservation.users?.username || 'unknown',
+      authorized_cards: [], // Placeholder - necesitaría venir de otra fuente
+      valid_from: reservation.start_time,
+      valid_until: reservation.end_time,
+      is_active: new Date(reservation.end_time) > new Date(),
+      minutes_remaining: Math.max(0, Math.round((new Date(reservation.end_time) - new Date()) / (1000 * 60)))
+    }));
+
+    const masterCards = ["MASTER001", "MASTER002", "ADMIN123"];
+    const totalAuthorizedCards = activeReservations.reduce((sum, res) => sum + res.authorized_cards.length, 0);
+
+    res.json({
+      success: true,
+      data: {
+        space_id: spaceId,
+        space_name: space.name,
+        space_capacity: space.capacity,
+        active_reservations: activeReservations,
+        master_cards: masterCards,
+        total_authorized_cards: totalAuthorizedCards,
+        total_cards: totalAuthorizedCards + masterCards.length,
+        max_cards_allowed: 15,
+        last_updated: new Date().toISOString(),
+        include_expired: include_expired
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching space credentials:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching space credentials',
+      details: error.message
     });
   }
 });

@@ -2,6 +2,7 @@ const mqtt = require('mqtt');
 const AccessLog = require('../models/AccessLog');
 const Device = require('../models/Device');
 const DeviceReading = require('../models/DeviceReading');
+const Alert = require('../models/Alert');
 
 // Configuración MQTT optimizada para EMQX
 const mqttOptions = {
@@ -52,10 +53,14 @@ function createMqttClient() {
       
       // Subscribe to relevant topics
       const topics = [
-        'workbit/access/request',       // RFID access requests
-        'workbit/sensors/infrared',     // Infrared sensor data
-        'workbit/devices/add',          // Device registration
-        'workbit/devices/+/readings'    // Device sensor readings
+        'workbit/access/request',           // RFID access requests
+        'workbit/sensors/infrared',         // Infrared sensor data (legacy)
+        'workbit/sensors/environmental_data', // Environmental sensor data (standardized)
+        'workbit/devices/add',              // Device registration
+        'workbit/devices/+/readings',       // Device sensor readings (standardized)
+        'workbit/access/credentials/+',     // RFID credentials by space_id
+        'workbit/alerts/+',                 // Alerts by space_id
+        'workbit/access/guests'             // Guest access updates (legacy)
       ];
       
       topics.forEach(topic => {
@@ -167,23 +172,37 @@ if (process.env.MQTT_BROKER_URL) {
 
 // Handle incoming MQTT messages
 function handleMqttMessage(topic, data) {
-  switch (topic) {
-    case 'workbit/access/request':
-      handleAccessRequest(data);
-      break;
-    case 'workbit/sensors/infrared':
-      handleInfraredSensorData(data);
-      break;
-    case 'workbit/devices/add':
-      handleDeviceRegistration(data);
-      break;
-    default:
-      // Handle device readings with pattern matching
-      if (topic.match(/^workbit\/devices\/.+\/readings$/)) {
-        handleDeviceReadings(topic, data);
-      } else if (process.env.NODE_ENV === 'development') {
-        console.log(`📬 Unhandled MQTT topic: ${topic}`);
-      }
+  try {
+    switch (topic) {
+      case 'workbit/access/request':
+        handleAccessRequest(data);
+        break;
+      case 'workbit/sensors/infrared':
+        handleInfraredSensorData(data);
+        break;
+      case 'workbit/sensors/environmental_data':
+        handleEnvironmentalData(data);
+        break;
+      case 'workbit/devices/add':
+        handleDeviceRegistration(data);
+        break;
+      case 'workbit/access/guests':
+        handleGuestAccess(data);
+        break;
+      default:
+        // Handle pattern-based topics
+        if (topic.match(/^workbit\/devices\/.+\/readings$/)) {
+          handleDeviceReadings(topic, data);
+        } else if (topic.match(/^workbit\/access\/credentials\/\d+$/)) {
+          handleCredentialsUpdate(topic, data);
+        } else if (topic.match(/^workbit\/alerts\/\d+$/)) {
+          handleSpaceAlert(topic, data);
+        } else if (process.env.NODE_ENV === 'development') {
+          console.log(`📬 Unhandled MQTT topic: ${topic}`);
+        }
+    }
+  } catch (error) {
+    console.error(`❌ Error handling MQTT message on topic ${topic}:`, error.message);
   }
 }
 
@@ -359,6 +378,315 @@ async function handleDeviceRegistration(data) {
   }
 }
 
+// ================= NUEVOS HANDLERS ESTANDARIZADOS =================
+
+// Handler para datos ambientales del módulo de monitoreo
+async function handleEnvironmentalData(data) {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🌡️ Environmental data received:`, data);
+    }
+
+    const { space_id, device_id, timestamp, co2_sensor, temperature_sensor, humidity_sensor, led_status } = data;
+    
+    if (!space_id || !device_id) {
+      console.error('❌ Missing required fields in environmental data');
+      return;
+    }
+
+    // Crear array de readings estandarizado
+    const readings = [];
+
+    // Procesar sensor de CO2
+    if (co2_sensor) {
+      const quality = getEnvironmentalQuality(co2_sensor.value, 'co2');
+      readings.push({
+        sensor_name: 'CO2',
+        sensor_type: 'co2',
+        value: co2_sensor.value,
+        unit: co2_sensor.unit,
+        quality: quality
+      });
+
+      // Generar alerta si es crítico
+      if (quality === 'critical') {
+        await Alert.createSpaceAlert({
+          space_id: parseInt(space_id),
+          alert_type: 'co2_critical',
+          severity: 'critical',
+          value: co2_sensor.value,
+          message: `Niveles de CO₂ críticos: ${co2_sensor.value} ppm`,
+          device_id,
+          sensor_data: {
+            sensor_type: 'co2',
+            sensor_value: co2_sensor.value,
+            sensor_unit: co2_sensor.unit,
+            threshold_value: 1200
+          }
+        });
+      }
+    }
+
+    // Procesar sensor de temperatura
+    if (temperature_sensor) {
+      const quality = getEnvironmentalQuality(temperature_sensor.value, 'temperature');
+      readings.push({
+        sensor_name: 'Temperatura',
+        sensor_type: 'temperature',
+        value: temperature_sensor.value,
+        unit: temperature_sensor.unit,
+        quality: quality
+      });
+
+      if (quality === 'critical') {
+        await Alert.createSpaceAlert({
+          space_id: parseInt(space_id),
+          alert_type: 'temperature_critical',
+          severity: 'high',
+          value: temperature_sensor.value,
+          message: `Temperatura fuera de rango: ${temperature_sensor.value}°C`,
+          device_id,
+          sensor_data: {
+            sensor_type: 'temperature',
+            sensor_value: temperature_sensor.value,
+            sensor_unit: temperature_sensor.unit
+          }
+        });
+      }
+    }
+
+    // Procesar sensor de humedad
+    if (humidity_sensor) {
+      const quality = getEnvironmentalQuality(humidity_sensor.value, 'humidity');
+      readings.push({
+        sensor_name: 'Humedad',
+        sensor_type: 'humidity',
+        value: humidity_sensor.value,
+        unit: humidity_sensor.unit,
+        quality: quality
+      });
+
+      if (quality === 'critical') {
+        await Alert.createSpaceAlert({
+          space_id: parseInt(space_id),
+          alert_type: 'humidity_critical',
+          severity: 'medium',
+          value: humidity_sensor.value,
+          message: `Humedad fuera de rango: ${humidity_sensor.value}%`,
+          device_id,
+          sensor_data: {
+            sensor_type: 'humidity',
+            sensor_value: humidity_sensor.value,
+            sensor_unit: humidity_sensor.unit
+          }
+        });
+      }
+    }
+
+    // Guardar readings en la base de datos
+    if (readings.length > 0) {
+      const deviceReading = new DeviceReading({
+        device_id,
+        space_id: parseInt(space_id),
+        readings: readings,
+        device_status: 'online',
+        raw_data: data
+      });
+
+      await deviceReading.save();
+
+      // Actualizar device last_seen
+      await Device.findOneAndUpdate(
+        { device_id },
+        { 
+          last_seen: new Date(),
+          last_data: data,
+          status: 'active'
+        }
+      );
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ Environmental reading saved for device ${device_id}: ${readings.length} sensors`);
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Error handling environmental data:', error.message);
+  }
+}
+
+// Handler para eventos IR estandarizados (con conteo de personas)
+async function handleInfraredSensorData(data) {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`👥 Infrared sensor data:`, data);
+    }
+
+    const { space_id, device_id, sensor_id, sensor_type, event, people_inside, timestamp } = data;
+    
+    if (!space_id || !event || people_inside === undefined) {
+      console.error('❌ Missing required fields in infrared data');
+      return;
+    }
+
+    // Validar capacidad
+    const maxCapacity = 8;
+    if (people_inside > maxCapacity) {
+      await Alert.createSpaceAlert({
+        space_id: parseInt(space_id),
+        alert_type: 'capacity_exceeded',
+        severity: 'high',
+        value: people_inside,
+        message: `Capacidad excedida: ${people_inside} personas (máximo ${maxCapacity})`,
+        device_id,
+        people_count: people_inside
+      });
+    }
+
+    // Crear reading estandarizado
+    const reading = {
+      sensor_name: 'Presencia',
+      sensor_type: 'infrared_pair',
+      value: people_inside,
+      unit: 'personas',
+      event: event,
+      quality: people_inside <= maxCapacity ? 'good' : 'critical'
+    };
+
+    const deviceReading = new DeviceReading({
+      device_id,
+      space_id: parseInt(space_id),
+      readings: [reading],
+      people_count: people_inside,
+      last_people_update: new Date(),
+      device_status: 'online',
+      raw_data: data
+    });
+
+    await deviceReading.save();
+
+    // Actualizar device
+    await Device.findOneAndUpdate(
+      { device_id },
+      { 
+        last_seen: new Date(),
+        last_data: data,
+        status: 'active'
+      }
+    );
+
+    console.log(`✅ IR Event logged: ${event} in space ${space_id}, people: ${people_inside}`);
+
+  } catch (error) {
+    console.error('❌ Error handling infrared sensor data:', error.message);
+  }
+}
+
+// Handler para actualizaciones de credenciales
+async function handleCredentialsUpdate(topic, data) {
+  try {
+    const spaceId = topic.split('/')[3]; // workbit/access/credentials/SPACE_ID
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔑 Credentials update for space ${spaceId}:`, data);
+    }
+
+    // Aquí se podría implementar lógica adicional para almacenar 
+    // las credenciales en caché o registrar el evento
+    console.log(`✅ Credentials updated for space ${spaceId}`);
+
+  } catch (error) {
+    console.error('❌ Error handling credentials update:', error.message);
+  }
+}
+
+// Handler para alertas de espacios
+async function handleSpaceAlert(topic, data) {
+  try {
+    const spaceId = topic.split('/')[2]; // workbit/alerts/SPACE_ID
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`⚠️ Space alert for space ${spaceId}:`, data);
+    }
+
+    const { alert_type, value, message, timestamp } = data;
+
+    if (alert_type && message) {
+      await Alert.createSpaceAlert({
+        space_id: parseInt(spaceId),
+        alert_type,
+        severity: getSeverityFromAlertType(alert_type),
+        value,
+        message,
+        device_id: data.device_id
+      });
+
+      console.log(`⚠️ Alert created: ${alert_type} in space ${spaceId}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Error handling space alert:', error.message);
+  }
+}
+
+// Handler para acceso de invitados (legacy)
+async function handleGuestAccess(data) {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`👤 Guest access update:`, data);
+    }
+    // Mantener compatibilidad con sistema legacy
+  } catch (error) {
+    console.error('❌ Error handling guest access:', error.message);
+  }
+}
+
+// ================= FUNCIONES AUXILIARES =================
+
+// Calcular calidad basada en umbrales estandarizados
+function getEnvironmentalQuality(value, sensorType) {
+  const thresholds = {
+    co2: { good: [0, 800], warning: [800, 1200], critical: [1200, Infinity] },
+    temperature: { good: [20, 25], warning: [18, 28], critical: [-Infinity, 18, 28, Infinity] },
+    humidity: { good: [40, 60], warning: [30, 70], critical: [-Infinity, 30, 70, Infinity] }
+  };
+
+  const threshold = thresholds[sensorType];
+  if (!threshold) return 'unknown';
+
+  if (sensorType === 'co2') {
+    if (value < threshold.good[1]) return 'good';
+    if (value < threshold.warning[1]) return 'warning';
+    return 'critical';
+  } else if (sensorType === 'temperature') {
+    if (value >= threshold.good[0] && value <= threshold.good[1]) return 'good';
+    if (value >= threshold.warning[0] && value <= threshold.warning[1]) return 'warning';
+    return 'critical';
+  } else if (sensorType === 'humidity') {
+    if (value >= threshold.good[0] && value <= threshold.good[1]) return 'good';
+    if (value >= threshold.warning[0] && value <= threshold.warning[1]) return 'warning';
+    return 'critical';
+  }
+
+  return 'unknown';
+}
+
+// Determinar severidad basada en tipo de alerta
+function getSeverityFromAlertType(alertType) {
+  const severityMap = {
+    'capacity_exceeded': 'high',
+    'co2_critical': 'critical',
+    'detection_error': 'medium',
+    'temperature_critical': 'high',
+    'humidity_critical': 'medium',
+    'device_offline': 'medium'
+  };
+
+  return severityMap[alertType] || 'medium';
+}
+
+// ================= FUNCIONES PUBLICACIÓN =================
+
 // Helper functions to publish messages
 const publishAccessResponse = (cardCode, accessGranted) => {
   if (client && client.connected) {
@@ -418,9 +746,90 @@ const publishSpaceStatus = (spaceId, status) => {
   }
 };
 
+// ================= NUEVAS FUNCIONES DE PUBLICACIÓN ESTANDARIZADAS =================
+
+// Publicar credenciales RFID por espacio (según especificaciones)
+const publishCredentials = (spaceId, credentials) => {
+  if (client && client.connected) {
+    const topic = `workbit/access/credentials/${spaceId}`;
+    const message = JSON.stringify({
+      space_id: parseInt(spaceId),
+      reservations: credentials.reservations || [],
+      master_cards: credentials.master_cards || ["MASTER001", "MASTER002", "ADMIN123"],
+      timestamp: new Date().toISOString(),
+      expires_at: credentials.expires_at
+    });
+    
+    client.publish(topic, message, { qos: 1, retain: true }, (err) => {
+      if (err && process.env.NODE_ENV === 'development') {
+        console.error(`❌ Failed to publish credentials to ${topic}:`, err.message);
+      } else {
+        console.log(`✅ Credentials published for space ${spaceId}: ${credentials.reservations?.length || 0} reservations`);
+      }
+    });
+  } else {
+    console.warn('⚠️ MQTT client not connected, cannot publish credentials');
+  }
+};
+
+// Publicar alerta por espacio (según especificaciones)
+const publishAlert = (spaceId, alertData) => {
+  if (client && client.connected) {
+    const topic = `workbit/alerts/${spaceId}`;
+    const message = JSON.stringify({
+      space_id: parseInt(spaceId),
+      alert_type: alertData.alert_type,
+      value: alertData.value,
+      message: alertData.message,
+      severity: alertData.severity || 'medium',
+      device_id: alertData.device_id,
+      timestamp: new Date().toISOString()
+    });
+    
+    client.publish(topic, message, { qos: 1, retain: false }, (err) => {
+      if (err && process.env.NODE_ENV === 'development') {
+        console.error(`❌ Failed to publish alert to ${topic}:`, err.message);
+      } else {
+        console.log(`✅ Alert published for space ${spaceId}: ${alertData.alert_type}`);
+      }
+    });
+  } else {
+    console.warn('⚠️ MQTT client not connected, cannot publish alert');
+  }
+};
+
+// Publicar actualización de conteo de personas
+const publishPeopleCount = (spaceId, peopleCount, event) => {
+  if (client && client.connected) {
+    const topic = `workbit/spaces/${spaceId}/occupancy`;
+    const message = JSON.stringify({
+      space_id: parseInt(spaceId),
+      people_count: peopleCount,
+      event: event, // 'entry', 'exit', 'update'
+      max_capacity: 8,
+      occupancy_percentage: Math.round((peopleCount / 8) * 100),
+      timestamp: new Date().toISOString()
+    });
+    
+    client.publish(topic, message, { qos: 1, retain: true }, (err) => {
+      if (err && process.env.NODE_ENV === 'development') {
+        console.error(`❌ Failed to publish people count to ${topic}:`, err.message);
+      } else {
+        console.log(`✅ People count published for space ${spaceId}: ${peopleCount} people`);
+      }
+    });
+  } else {
+    console.warn('⚠️ MQTT client not connected, cannot publish people count');
+  }
+};
+
 module.exports = {
   client,
   publishAccessResponse,
   publishGuestsAccess,
-  publishSpaceStatus
+  publishSpaceStatus,
+  // Nuevas funciones estandarizadas
+  publishCredentials,
+  publishAlert,
+  publishPeopleCount
 }; 

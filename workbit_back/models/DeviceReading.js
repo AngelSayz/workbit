@@ -28,8 +28,15 @@ const deviceReadingSchema = new mongoose.Schema({
     unit: String,
     quality: {
       type: String,
-      enum: ['good', 'fair', 'poor'],
+      enum: ['good', 'warning', 'critical', 'unknown'],
       default: 'good'
+    },
+    event: {
+      type: String,
+      enum: ['entry', 'exit', 'detection_error'],
+      required: function() {
+        return this.sensor_type === 'infrared_pair';
+      }
     }
   }],
   timestamp: {
@@ -51,6 +58,17 @@ const deviceReadingSchema = new mongoose.Schema({
     type: Number,
     min: -100,
     max: 0
+  },
+  // Campos para conteo centralizado de personas
+  people_count: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 8
+  },
+  last_people_update: {
+    type: Date,
+    default: Date.now
   },
   raw_data: {
     type: mongoose.Schema.Types.Mixed

@@ -3,7 +3,9 @@ const { query, param, validationResult } = require('express-validator');
 const { format, parseISO, isValid } = require('date-fns');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireRole } = require('../middleware/auth');
-const { publishSpaceStatus } = require('../config/mqtt');
+const { publishSpaceStatus, publishPeopleCount, publishAlert } = require('../config/mqtt');
+const DeviceReading = require('../models/DeviceReading');
+const Alert = require('../models/Alert');
 const router = express.Router();
 
 // POST /api/spaces - Create new space (admin only)
@@ -752,5 +754,372 @@ router.get('/status/summary', async (req, res) => {
  *       500:
  *         description: Error del servidor
  */
+
+// ================= SISTEMA CENTRALIZADO DE CONTEO DE PERSONAS =================
+
+/**
+ * @swagger
+ * /api/spaces/{id}/people-count:
+ *   put:
+ *     summary: Actualizar conteo de personas en espacio
+ *     description: Actualiza el conteo de personas de un espacio específico y valida capacidad
+ *     tags: [Spaces]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del espacio
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - people_count
+ *               - event
+ *             properties:
+ *               people_count:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 8
+ *                 description: Número actual de personas en el espacio
+ *               event:
+ *                 type: string
+ *                 enum: [entry, exit, update, manual]
+ *                 description: Tipo de evento que causó el cambio
+ *               device_id:
+ *                 type: string
+ *                 description: ID del dispositivo que reportó el cambio
+ *     responses:
+ *       200:
+ *         description: Conteo actualizado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     space_id:
+ *                       type: integer
+ *                     previous_count:
+ *                       type: integer
+ *                     current_count:
+ *                       type: integer
+ *                     event:
+ *                       type: string
+ *                     capacity_status:
+ *                       type: string
+ *                       enum: [normal, near_full, full, exceeded]
+ *                     alert_generated:
+ *                       type: boolean
+ *       400:
+ *         description: Datos inválidos
+ *       404:
+ *         description: Espacio no encontrado
+ *       500:
+ *         description: Error del servidor
+ */
+router.put('/:id/people-count', async (req, res) => {
+  try {
+    const spaceId = parseInt(req.params.id);
+    const { people_count, event = 'update', device_id } = req.body;
+
+    // Validaciones
+    if (isNaN(spaceId) || spaceId <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Space ID must be a valid positive integer'
+      });
+    }
+
+    if (typeof people_count !== 'number' || people_count < 0 || people_count > 8) {
+      return res.status(400).json({
+        success: false,
+        error: 'People count must be a number between 0 and 8'
+      });
+    }
+
+    const validEvents = ['entry', 'exit', 'update', 'manual'];
+    if (!validEvents.includes(event)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid event type',
+        validEvents
+      });
+    }
+
+    // Verificar que el espacio existe
+    const { data: space, error: spaceError } = await supabase
+      .from('spaces')
+      .select('id, name, capacity')
+      .eq('id', spaceId)
+      .single();
+
+    if (spaceError || !space) {
+      return res.status(404).json({
+        success: false,
+        error: 'Space not found'
+      });
+    }
+
+    // Obtener conteo anterior
+    const previousReading = await DeviceReading.findOne({
+      space_id: spaceId,
+      'readings.sensor_type': 'infrared_pair'
+    }).sort({ timestamp: -1 });
+
+    const previousCount = previousReading?.people_count || 0;
+
+    // Determinar estado de capacidad
+    const maxCapacity = space.capacity || 8;
+    let capacityStatus = 'normal';
+    let alertGenerated = false;
+
+    if (people_count > maxCapacity) {
+      capacityStatus = 'exceeded';
+      alertGenerated = true;
+      
+      // Generar alerta de capacidad excedida
+      await Alert.createSpaceAlert({
+        space_id: spaceId,
+        alert_type: 'capacity_exceeded',
+        severity: 'high',
+        value: people_count,
+        message: `Capacidad excedida en ${space.name}: ${people_count} personas (máximo ${maxCapacity})`,
+        device_id,
+        people_count
+      });
+
+      // Publicar alerta por MQTT
+      publishAlert(spaceId, {
+        alert_type: 'capacity_exceeded',
+        value: people_count,
+        message: `Capacidad excedida: ${people_count} personas`,
+        severity: 'high',
+        device_id
+      });
+
+    } else if (people_count === maxCapacity) {
+      capacityStatus = 'full';
+    } else if (people_count >= maxCapacity * 0.8) {
+      capacityStatus = 'near_full';
+    }
+
+    // Crear nuevo reading con conteo actualizado
+    const reading = {
+      sensor_name: 'Presencia',
+      sensor_type: 'infrared_pair',
+      value: people_count,
+      unit: 'personas',
+      event: event,
+      quality: people_count <= maxCapacity ? 'good' : 'critical'
+    };
+
+    const deviceReading = new DeviceReading({
+      device_id: device_id || 'manual_update',
+      space_id: spaceId,
+      readings: [reading],
+      people_count: people_count,
+      last_people_update: new Date(),
+      device_status: 'online',
+      raw_data: { event, source: 'api_update' }
+    });
+
+    await deviceReading.save();
+
+    // Publicar actualización por MQTT
+    publishPeopleCount(spaceId, people_count, event);
+
+    // Log activity si hay usuario autenticado
+    try {
+      if (req.user) {
+        const { logActivity } = require('../utils/helpers');
+        await logActivity(req.user.id, 'people_count_updated', {
+          space_id: spaceId,
+          space_name: space.name,
+          previous_count: previousCount,
+          new_count: people_count,
+          event: event,
+          capacity_status: capacityStatus
+        });
+      }
+    } catch (logError) {
+      console.warn('Warning: Could not log activity:', logError.message);
+    }
+
+    console.log(`✅ People count updated for space ${spaceId}: ${previousCount} → ${people_count} (${event})`);
+
+    res.json({
+      success: true,
+      message: `People count updated successfully for ${space.name}`,
+      data: {
+        space_id: spaceId,
+        space_name: space.name,
+        previous_count: previousCount,
+        current_count: people_count,
+        event: event,
+        capacity_status: capacityStatus,
+        max_capacity: maxCapacity,
+        occupancy_percentage: Math.round((people_count / maxCapacity) * 100),
+        alert_generated: alertGenerated,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating people count:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error updating people count',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/spaces/{id}/alerts:
+ *   get:
+ *     summary: Obtener alertas de un espacio
+ *     description: Retorna las alertas activas e históricas de un espacio específico
+ *     tags: [Spaces]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del espacio
+ *       - in: query
+ *         name: resolved
+ *         schema:
+ *           type: boolean
+ *         description: Filtrar por alertas resueltas/no resueltas
+ *       - in: query
+ *         name: severity
+ *         schema:
+ *           type: string
+ *           enum: [low, medium, high, critical]
+ *         description: Filtrar por severidad
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Número máximo de alertas a retornar
+ *     responses:
+ *       200:
+ *         description: Alertas obtenidas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     space_info:
+ *                       type: object
+ *                     alerts:
+ *                       type: array
+ *                     active_count:
+ *                       type: integer
+ *                     total_count:
+ *                       type: integer
+ *       404:
+ *         description: Espacio no encontrado
+ *       500:
+ *         description: Error del servidor
+ */
+router.get('/:id/alerts', async (req, res) => {
+  try {
+    const spaceId = parseInt(req.params.id);
+    const { resolved, severity, limit = 50 } = req.query;
+
+    // Validaciones
+    if (isNaN(spaceId) || spaceId <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Space ID must be a valid positive integer'
+      });
+    }
+
+    // Verificar que el espacio existe
+    const { data: space, error: spaceError } = await supabase
+      .from('spaces')
+      .select('id, name, capacity')
+      .eq('id', spaceId)
+      .single();
+
+    if (spaceError || !space) {
+      return res.status(404).json({
+        success: false,
+        error: 'Space not found'
+      });
+    }
+
+    // Construir filtros
+    let filter = { space_id: spaceId };
+    
+    if (resolved !== undefined) {
+      filter.resolved = resolved === 'true';
+    }
+    
+    if (severity) {
+      filter.severity = severity;
+    }
+
+    // Obtener alertas
+    const alerts = await Alert.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    // Obtener conteo de alertas activas
+    const activeCount = await Alert.countDocuments({
+      space_id: spaceId,
+      resolved: false
+    });
+
+    res.json({
+      success: true,
+      data: {
+        space_info: {
+          id: space.id,
+          name: space.name,
+          capacity: space.capacity
+        },
+        alerts: alerts,
+        active_count: activeCount,
+        total_count: alerts.length,
+        filters_applied: {
+          resolved: resolved !== undefined ? (resolved === 'true') : 'all',
+          severity: severity || 'all',
+          limit: parseInt(limit)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching space alerts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching space alerts',
+      details: error.message
+    });
+  }
+});
 
 module.exports = router; 
