@@ -43,6 +43,7 @@ const deviceSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    sensor_id: String,
     unit: String,
     description: String
   }],

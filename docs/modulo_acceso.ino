@@ -23,7 +23,7 @@ PubSubClient client(espClient);
 // ---------------- IDENTIFICADORES ----------------
 // Variable global para el space_id que se leerá de EEPROM
 char* current_space_id_ptr = nullptr;
-const char* device_id = "esp32_01";
+const char* device_id = "access_001";
 const char* rfid_sensor_id = "rfid_001";
 const char* ir_sensor_id = "ir_001";
 const char* config_topic_prefix = "workbit/devices/";
@@ -272,19 +272,23 @@ void publishDeviceConfig() {
     DynamicJsonDocument doc(1024);
 
     // Información básica del dispositivo
-    doc["device_id"] = "env_001";
+    doc["device_id"] = device_id;
     doc["name"] = "Sistema de Control de Acceso";
     doc["type"] = "access_control";
-    doc["space_id"] = (current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? current_space_id_ptr : "cubiculo_1";
-    doc["space_name"] = "Oficina 1";
+    doc["space_id"] = (current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? atoi(current_space_id_ptr) : 1;
+    doc["space_name"] = "Cubículo " + String((current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? current_space_id_ptr : "1");
     
-    // Tópicos de MQTT
+    // Tópico principal MQTT
+    String main_topic = "workbit/devices/" + String(device_id);
+    doc["mqtt_topic"] = main_topic;
+    
+    // Tópicos de MQTT adicionales
     JsonObject mqtt_topics = doc.createNestedObject("mqtt_topics");
     mqtt_topics["request"] = request_topic;
     mqtt_topics["response"] = response_topic;
     mqtt_topics["guests"] = guest_update_topic;
     mqtt_topics["events"] = "workbit/sensors/infrared";
-    mqtt_topics["mqtt_topic"] = "workbit/devices/env_001";
+    mqtt_topics["main"] = main_topic;
 
     // Array de sensores
     JsonArray sensors = doc.createNestedArray("sensors");
@@ -292,16 +296,16 @@ void publishDeviceConfig() {
     JsonObject s1 = sensors.createNestedObject();
     s1["name"] = "Lector RFID";
     s1["type"] = "rfid";
+    s1["sensor_id"] = rfid_sensor_id;
     s1["unit"] = "UID";
     s1["description"] = "Sensor para la lectura de tarjetas RFID (MFRC522)";
-    s1["sensor_id"] = rfid_sensor_id;
 
     JsonObject s2 = sensors.createNestedObject();
     s2["name"] = "Sensores Infrarrojos";
     s2["type"] = "infrared_pair";
-    s2["unit"] = "N/A";
-    s2["description"] = "Par de sensores infrarrojos para conteo de personas";
     s2["sensor_id"] = ir_sensor_id;
+    s2["unit"] = "count";
+    s2["description"] = "Par de sensores infrarrojos para conteo de personas";
 
     // Información de Hardware
     JsonObject hw = doc.createNestedObject("hardware_info");
@@ -311,7 +315,7 @@ void publishDeviceConfig() {
     hw["ip_address"] = WiFi.localIP().toString();
 
     // Ubicación del dispositivo
-    doc["location"] = "Puerta del cubiculo";
+    doc["location"] = "Puerta del cubículo " + String((current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? current_space_id_ptr : "1");
 
      char buffer[1024];
     serializeJson(doc, buffer);

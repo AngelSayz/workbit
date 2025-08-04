@@ -310,11 +310,38 @@ async function handleDeviceRegistration(data) {
     }
 
     // Validate required fields
-    const { device_id, name, type, space_id, space_name, sensors, mqtt_topic } = data;
+    const { device_id, name, type, sensors } = data;
     
-    if (!device_id || !name || !type || !space_id || !space_name || !mqtt_topic) {
-      console.error('❌ Missing required fields in device registration');
+    // Convert space_id to number if it's a string
+    const space_id = typeof data.space_id === 'string' ? parseInt(data.space_id) : data.space_id;
+    const space_name = data.space_name;
+    
+    // Extract mqtt_topic from either mqtt_topic field or mqtt_topics object
+    let mqtt_topic = data.mqtt_topic;
+    if (!mqtt_topic && data.mqtt_topics) {
+      // If mqtt_topics object is provided, use the main topic or the first available topic
+      mqtt_topic = data.mqtt_topics.mqtt_topic || 
+                   data.mqtt_topics.events || 
+                   Object.values(data.mqtt_topics)[0];
+    }
+    
+    if (!device_id || !name || !type || !space_id || !space_name) {
+      console.error('❌ Missing required fields in device registration:', {
+        device_id: device_id || 'MISSING',
+        name: name || 'MISSING',
+        type: type || 'MISSING',
+        space_id: space_id || 'MISSING',
+        space_name: space_name || 'MISSING',
+        mqtt_topic: mqtt_topic || 'GENERATED'
+      });
+      console.error('📋 Full data received:', JSON.stringify(data, null, 2));
       return;
+    }
+
+    // Generate default mqtt_topic if still missing
+    if (!mqtt_topic) {
+      mqtt_topic = `workbit/devices/${device_id}`;
+      console.log(`🔧 Generated default mqtt_topic: ${mqtt_topic}`);
     }
 
     // Check if device already exists
@@ -331,13 +358,22 @@ async function handleDeviceRegistration(data) {
       existingDevice.space_name = space_name;
       existingDevice.name = name; // Allow name updates too
       existingDevice.sensors = sensors || existingDevice.sensors;
+      existingDevice.mqtt_topic = mqtt_topic;
+      existingDevice.mqtt_topics = data.mqtt_topics || existingDevice.mqtt_topics || {};
       existingDevice.hardware_info = {
         model: data.hardware_info?.model || existingDevice.hardware_info?.model || 'Unknown',
         firmware_version: data.hardware_info?.firmware_version || existingDevice.hardware_info?.firmware_version || 'Unknown',
         mac_address: data.hardware_info?.mac_address || existingDevice.hardware_info?.mac_address || '',
         ip_address: data.hardware_info?.ip_address || existingDevice.hardware_info?.ip_address || ''
       };
-      existingDevice.location = data.location || existingDevice.location;
+      // Handle location field - can be string or object
+      if (data.location) {
+        if (typeof data.location === 'string') {
+          existingDevice.location = { room: data.location };
+        } else {
+          existingDevice.location = data.location;
+        }
+      }
       
       await existingDevice.save();
       
@@ -360,13 +396,14 @@ async function handleDeviceRegistration(data) {
       space_name,
       sensors: sensors || [],
       mqtt_topic,
+      mqtt_topics: data.mqtt_topics || {},
       hardware_info: {
         model: data.hardware_info?.model || 'Unknown',
         firmware_version: data.hardware_info?.firmware_version || 'Unknown',
         mac_address: data.hardware_info?.mac_address || '',
         ip_address: data.hardware_info?.ip_address || ''
       },
-      location: data.location || {},
+      location: typeof data.location === 'string' ? { room: data.location } : (data.location || {}),
       last_data: data
     });
 
