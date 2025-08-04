@@ -14,6 +14,7 @@ const SpacesPage = () => {
   const [notification, setNotification] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [allSpaces, setAllSpaces] = useState([]);
 
   const handleSpaceClick = (space) => {
     console.log('SpacesPage - Space clicked:', space);
@@ -41,6 +42,21 @@ const SpacesPage = () => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
+
+  const fetchAllSpaces = async () => {
+    try {
+      const response = await spacesAPI.getGridSpaces();
+      if (response.success) {
+        setAllSpaces(response.data.spaces || []);
+      }
+    } catch (error) {
+      console.error('Error fetching all spaces:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllSpaces();
+  }, [refreshTrigger]);
 
   const handleCloseModals = () => {
     setShowSpaceDetails(false);
@@ -185,6 +201,7 @@ const SpacesPage = () => {
           onClose={handleCloseModals}
           onUpdateSpace={handleUpdateSpace}
           onRelocate={handleRelocateSpace}
+          allSpaces={allSpaces}
         />
       )}
     </div>
