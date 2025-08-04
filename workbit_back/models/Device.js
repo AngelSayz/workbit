@@ -75,6 +75,10 @@ const deviceSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  mqtt_topics: {
+    type: Object,
+    default: {}
+  },
   registration_date: {
     type: Date,
     default: Date.now
