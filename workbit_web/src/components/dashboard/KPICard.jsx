@@ -157,7 +157,7 @@ const KPICard = ({
 
       {/* Embedded Chart */}
       {chart && (
-        <div className="mt-4 flex flex-col items-center pb-8">
+        <div className="mt-4 flex flex-col items-center pb-16">
           <div className="mb-4">
             {chart}
           </div>
