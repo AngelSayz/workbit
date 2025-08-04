@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle } from 'lucide-react';
 import CubiclesLayout from '../../components/CubiclesLayout';
 import SpaceDetailsModal from './SpaceDetailsModal';
 import SpaceStatsModal from './SpaceStatsModal';
@@ -12,41 +11,9 @@ const SpacesPage = () => {
   const [showSpaceDetails, setShowSpaceDetails] = useState(false);
   const [showSpaceStats, setShowSpaceStats] = useState(false);
   const [showSpaceAdmin, setShowSpaceAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [spaces, setSpaces] = useState([]); // Estado local para los espacios
-
-  // Función para mostrar notificaciones
-  const showNotification = (message, type = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
-  // Función para cargar espacios inicialmente
-  const fetchSpaces = async () => {
-    try {
-      const response = await spacesAPI.getGridSpaces();
-      if (response.success) {
-        setSpaces(response.data.spaces || []);
-      }
-    } catch (error) {
-      console.error('Error fetching spaces:', error);
-    }
-  };
-
-  // Cargar espacios al montar el componente
-  useEffect(() => {
-    fetchSpaces();
-  }, []);
-
-  // Función para actualizar el estado local de espacios
-  const updateLocalSpace = (updatedSpace) => {
-    setSpaces(prevSpaces => 
-      prevSpaces.map(space => 
-        space.id === updatedSpace.id ? updatedSpace : space
-      )
-    );
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleSpaceClick = (space) => {
     console.log('SpacesPage - Space clicked:', space);
@@ -68,6 +35,11 @@ const SpacesPage = () => {
     setSelectedSpace(space);
     setShowSpaceDetails(false);
     setShowSpaceAdmin(true);
+  };
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
   };
 
   const handleCloseModals = () => {
@@ -96,14 +68,9 @@ const SpacesPage = () => {
       
       if (response.success) {
         console.log('Espacio actualizado exitosamente:', response.space);
-        // Actualizar estado local
-        updateLocalSpace(response.space);
-        // Actualizar el espacio seleccionado si es el mismo
-        if (selectedSpace && selectedSpace.id === updatedSpace.id) {
-          setSelectedSpace(response.space);
-        }
-        showNotification('Espacio actualizado exitosamente');
-        handleCloseModals();
+        showNotification('Espacio actualizado exitosamente', 'success');
+        // Forzar actualización del grid
+        setRefreshTrigger(prev => prev + 1);
       }
     } catch (error) {
       console.error('Error al actualizar espacio:', error);
@@ -125,14 +92,9 @@ const SpacesPage = () => {
       
       if (response.success) {
         console.log('Espacio recolocado exitosamente:', response.space);
-        // Actualizar estado local
-        updateLocalSpace(response.space);
-        // Actualizar el espacio seleccionado si es el mismo
-        if (selectedSpace && selectedSpace.id === spaceId) {
-          setSelectedSpace(response.space);
-        }
-        showNotification('Espacio recolocado exitosamente');
-        handleCloseModals();
+        showNotification('Espacio recolocado exitosamente', 'success');
+        // Forzar actualización del grid
+        setRefreshTrigger(prev => prev + 1);
       }
     } catch (error) {
       console.error('Error al recolocar espacio:', error);
@@ -162,27 +124,6 @@ const SpacesPage = () => {
         </div>
       </motion.div>
 
-      {/* Notificación */}
-      {notification && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center space-x-2 ${
-            notification.type === 'success' 
-              ? 'bg-green-500 text-white' 
-              : 'bg-red-500 text-white'
-          }`}
-        >
-          {notification.type === 'success' ? (
-            <CheckCircle className="w-4 h-4" />
-          ) : (
-            <XCircle className="w-4 h-4" />
-          )}
-          <span>{notification.message}</span>
-        </motion.div>
-      )}
-
       {/* Layout Visual */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -191,9 +132,35 @@ const SpacesPage = () => {
         className="bg-white rounded-lg border border-gray-200"
       >
         <div className="p-6">
-          <CubiclesLayout onSpaceClick={handleSpaceClick} externalSpaces={spaces} />
+          <CubiclesLayout onSpaceClick={handleSpaceClick} refreshTrigger={refreshTrigger} />
         </div>
       </motion.div>
+
+      {/* Notification */}
+      {notification && (
+        <motion.div
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -50 }}
+          className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+            notification.type === 'success' 
+              ? 'bg-green-500 text-white' 
+              : 'bg-red-500 text-white'
+          }`}
+        >
+          {notification.message}
+        </motion.div>
+      )}
+
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="text-gray-700">Procesando...</span>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       {showSpaceDetails && selectedSpace && (
@@ -218,7 +185,6 @@ const SpacesPage = () => {
           onClose={handleCloseModals}
           onUpdateSpace={handleUpdateSpace}
           onRelocate={handleRelocateSpace}
-          isLoading={isLoading}
         />
       )}
     </div>

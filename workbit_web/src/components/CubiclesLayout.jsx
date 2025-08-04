@@ -16,7 +16,7 @@ import {
 import { spacesAPI } from '../api/apiService';
 import { useAuth } from '../hooks/useAuth';
 
-const CubiclesLayout = ({ onSpaceClick, externalSpaces = null }) => {
+const CubiclesLayout = ({ onSpaceClick, refreshTrigger = 0 }) => {
   const [spaces, setSpaces] = useState([]);
   const [gridSettings, setGridSettings] = useState({ rows: 5, cols: 8 });
   const [loading, setLoading] = useState(true);
@@ -35,17 +35,11 @@ const CubiclesLayout = ({ onSpaceClick, externalSpaces = null }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   
-  // Usar espacios externos si están disponibles, sino usar el estado local
-  const currentSpaces = externalSpaces && externalSpaces.length > 0 ? externalSpaces : spaces;
+
 
   useEffect(() => {
-    // Solo cargar datos si no hay espacios externos
-    if (!externalSpaces) {
-      fetchSpacesData();
-    } else {
-      setLoading(false);
-    }
-  }, [externalSpaces]);
+    fetchSpacesData();
+  }, [refreshTrigger]);
 
   const fetchSpacesData = async () => {
     try {
@@ -278,21 +272,6 @@ const CubiclesLayout = ({ onSpaceClick, externalSpaces = null }) => {
 
   return (
     <div className="w-full">
-      {loading && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center justify-center space-x-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-            <span className="text-blue-600">Cargando espacios...</span>
-          </div>
-        </div>
-      )}
-      
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <span className="text-red-600">{error}</span>
-        </div>
-      )}
-      
       <div className="mb-6 bg-white rounded-lg p-4 border border-gray-200">
         <div className="flex justify-between items-center">
           <div className="flex flex-wrap gap-4">
@@ -305,7 +284,7 @@ const CubiclesLayout = ({ onSpaceClick, externalSpaces = null }) => {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-600">
-              {currentSpaces.length} cubículos
+              {spaces.length} cubículos
             </span>
             <div className="relative">
               <select
@@ -340,7 +319,7 @@ const CubiclesLayout = ({ onSpaceClick, externalSpaces = null }) => {
                      <rect width="100%" height="100%" fill="url(#grid)" />
 
            {/* Renderizar espacios existentes */}
-           {currentSpaces.map((space) => {
+           {spaces.map((space) => {
             const x = space.position_x * (cellWidth + margin) + margin / 2;
                          const y = space.position_y * (cellHeight + margin) + margin / 2 + 80;
 
