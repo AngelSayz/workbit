@@ -22,12 +22,6 @@ const SpacesPage = () => {
     setShowSpaceStats(true);
   };
 
-  const handleViewStats = (space) => {
-    setSelectedSpace(space);
-    setShowSpaceDetails(false);
-    setShowSpaceStats(true);
-  };
-
   const handleAdmin = (space) => {
     setSelectedSpace(space);
     setShowSpaceDetails(false);
