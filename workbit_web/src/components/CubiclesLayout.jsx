@@ -268,17 +268,9 @@ const CubiclesLayout = ({ onSpaceClick }) => {
 
   return (
     <div className="w-full">
-             <div className="mb-6">
-         <h2 className="text-2xl font-bold text-gray-900 mb-2">Layout de Cubículos</h2>
-         <p className="text-gray-600">Vista visual de todos los espacios disponibles ({spaces.length} cubículos)</p>
-         {isAdmin && (
-           <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-             <p className="text-sm text-blue-700">
-               💡 <strong>Modo Administrador:</strong> Haz clic en cualquier espacio vacío (con borde punteado) para agregar nuevos cubículos. El grid se expandirá automáticamente según sea necesario.
-             </p>
-           </div>
-         )}
-       </div>
+      <div className="mb-6">
+        <p className="text-gray-600">({spaces.length} cubículos)</p>
+      </div>
 
       <div className="mb-6 bg-white rounded-lg p-4 border border-gray-200">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Leyenda de Estados</h3>
