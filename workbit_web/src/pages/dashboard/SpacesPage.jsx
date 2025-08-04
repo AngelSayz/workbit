@@ -4,6 +4,7 @@ import CubiclesLayout from '../../components/CubiclesLayout';
 import SpaceDetailsModal from './SpaceDetailsModal';
 import SpaceStatsModal from './SpaceStatsModal';
 import SpaceAdminModal from './SpaceAdminModal';
+import { spacesAPI } from '../../api/apiService';
 
 const SpacesPage = () => {
   const [selectedSpace, setSelectedSpace] = useState(null);
@@ -35,16 +36,47 @@ const SpacesPage = () => {
     setSelectedSpace(null);
   };
 
-  const handleUpdateSpace = (updatedSpace) => {
-    // Aquí se actualizaría el espacio en la base de datos
-    console.log('Actualizando espacio:', updatedSpace);
-    // TODO: Implementar actualización en la API
+  const handleUpdateSpace = async (updatedSpace) => {
+    try {
+      console.log('Actualizando espacio:', updatedSpace);
+      
+      // Preparar datos para actualización
+      const updateData = {};
+      if (updatedSpace.capacity !== undefined) updateData.capacity = updatedSpace.capacity;
+      if (updatedSpace.status !== undefined) updateData.status = updatedSpace.status;
+      if (updatedSpace.name !== undefined) updateData.name = updatedSpace.name;
+      
+      const response = await spacesAPI.updateSpaceAdmin(updatedSpace.id, updateData);
+      
+      if (response.success) {
+        console.log('Espacio actualizado exitosamente:', response.space);
+        // Aquí podrías actualizar el estado local si es necesario
+        // Por ahora, el grid se recargará automáticamente
+      }
+    } catch (error) {
+      console.error('Error al actualizar espacio:', error);
+      // Aquí podrías mostrar una notificación de error al usuario
+    }
   };
 
-  const handleRelocateSpace = (spaceId, newX, newY) => {
-    // Aquí se actualizaría la posición del espacio en la base de datos
-    console.log('Recolocando espacio:', spaceId, 'a posición:', newX, newY);
-    // TODO: Implementar actualización de posición en la API
+  const handleRelocateSpace = async (spaceId, newX, newY) => {
+    try {
+      console.log('Recolocando espacio:', spaceId, 'a posición:', newX, newY);
+      
+      const response = await spacesAPI.relocateSpace(spaceId, newX, newY);
+      
+      if (response.success) {
+        console.log('Espacio recolocado exitosamente:', response.space);
+        // Aquí podrías actualizar el estado local si es necesario
+        // Por ahora, el grid se recargará automáticamente
+      }
+    } catch (error) {
+      console.error('Error al recolocar espacio:', error);
+      // Aquí podrías mostrar una notificación de error al usuario
+      if (error.response?.status === 409) {
+        alert('Ya existe un espacio en esa posición. Por favor, selecciona otra posición.');
+      }
+    }
   };
 
   return (

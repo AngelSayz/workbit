@@ -348,8 +348,185 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// PUT /api/spaces/:id - Update space (admin/technician only)
+router.put('/:id', 
+  authenticateToken, 
+  requireRole(['admin', 'technician']),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, capacity, status } = req.body;
+
+      // Validaciones básicas
+      if (name && !name.trim()) {
+        return res.status(400).json({
+          error: 'Space name cannot be empty'
+        });
+      }
+
+      if (capacity && (capacity < 1 || capacity > 10)) {
+        return res.status(400).json({
+          error: 'Capacity must be between 1 and 10'
+        });
+      }
+
+      if (status) {
+        const validStatuses = ['available', 'unavailable', 'occupied', 'reserved', 'maintenance'];
+        if (!validStatuses.includes(status)) {
+          return res.status(400).json({
+            error: 'Invalid status',
+            validStatuses
+          });
+        }
+      }
+
+      if (!supabase) {
+        return res.status(500).json({
+          error: 'Database connection failed'
+        });
+      }
+
+      // Preparar datos para actualización
+      const updateData = {};
+      if (name !== undefined) updateData.name = name.trim();
+      if (capacity !== undefined) updateData.capacity = capacity;
+      if (status !== undefined) updateData.status = status;
+      updateData.updated_at = new Date().toISOString();
+
+      const { data: updatedSpace, error } = await supabase
+        .from('spaces')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Update space error:', error);
+        return res.status(500).json({
+          error: 'Failed to update space'
+        });
+      }
+
+      if (!updatedSpace) {
+        return res.status(404).json({
+          error: 'Space not found'
+        });
+      }
+
+      // Publish status update via MQTT if status changed
+      if (status) {
+        publishSpaceStatus(id, status);
+      }
+
+      res.json({
+        success: true,
+        message: 'Space updated successfully',
+        space: updatedSpace
+      });
+
+    } catch (error) {
+      console.error('Update space error:', error);
+      res.status(500).json({
+        error: 'Failed to update space'
+      });
+    }
+  }
+);
+
+// PUT /api/spaces/:id/position - Update space position (admin/technician only)
+router.put('/:id/position', 
+  authenticateToken, 
+  requireRole(['admin', 'technician']),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { position_x, position_y } = req.body;
+
+      // Validaciones básicas
+      if (typeof position_x !== 'number' || typeof position_y !== 'number') {
+        return res.status(400).json({
+          error: 'Position coordinates must be numbers'
+        });
+      }
+
+      if (position_x < 0 || position_x > 7 || position_y < 0 || position_y > 4) {
+        return res.status(400).json({
+          error: 'Position coordinates must be within grid bounds (0-7 for X, 0-4 for Y)'
+        });
+      }
+
+      if (!supabase) {
+        return res.status(500).json({
+          error: 'Database connection failed'
+        });
+      }
+
+      // Verificar si ya existe un espacio en esa posición (excluyendo el espacio actual)
+      const { data: existingSpace, error: checkError } = await supabase
+        .from('spaces')
+        .select('id, name')
+        .eq('position_x', position_x)
+        .eq('position_y', position_y)
+        .neq('id', id)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Check existing space error:', checkError);
+        return res.status(500).json({
+          error: 'Failed to check existing space'
+        });
+      }
+
+      if (existingSpace) {
+        return res.status(409).json({
+          error: `A space already exists at this position (${existingSpace.name})`
+        });
+      }
+
+      // Actualizar la posición
+      const { data: updatedSpace, error } = await supabase
+        .from('spaces')
+        .update({ 
+          position_x, 
+          position_y,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Update space position error:', error);
+        return res.status(500).json({
+          error: 'Failed to update space position'
+        });
+      }
+
+      if (!updatedSpace) {
+        return res.status(404).json({
+          error: 'Space not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Space position updated successfully',
+        space: updatedSpace
+      });
+
+    } catch (error) {
+      console.error('Update space position error:', error);
+      res.status(500).json({
+        error: 'Failed to update space position'
+      });
+    }
+  }
+);
+
 // PUT /api/spaces/:id/status - Update space status (admin/technician only)
 router.put('/:id/status', 
+  authenticateToken,
+  requireRole(['admin', 'technician']),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -371,7 +548,10 @@ router.put('/:id/status',
 
       const { data: updatedSpace, error } = await supabase
         .from('spaces')
-        .update({ status })
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id)
         .select()
         .single();
@@ -393,6 +573,7 @@ router.put('/:id/status',
       publishSpaceStatus(id, status);
 
       res.json({
+        success: true,
         message: 'Space status updated successfully',
         space: updatedSpace
       });
@@ -445,5 +626,134 @@ router.get('/status/summary', async (req, res) => {
     });
   }
 });
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     SpaceUpdate:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre del espacio
+ *         capacity:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 10
+ *           description: Capacidad de personas
+ *         status:
+ *           type: string
+ *           enum: [available, unavailable, occupied, reserved, maintenance]
+ *           description: Estado del espacio
+ *     SpacePosition:
+ *       type: object
+ *       required:
+ *         - position_x
+ *         - position_y
+ *       properties:
+ *         position_x:
+ *           type: integer
+ *           minimum: 0
+ *           maximum: 7
+ *           description: Posición X en el grid
+ *         position_y:
+ *           type: integer
+ *           minimum: 0
+ *           maximum: 4
+ *           description: Posición Y en el grid
+ * 
+ * /api/spaces/{id}:
+ *   put:
+ *     summary: Actualizar espacio
+ *     description: Actualiza la información de un espacio (nombre, capacidad, estado)
+ *     tags: [Spaces]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del espacio
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SpaceUpdate'
+ *     responses:
+ *       200:
+ *         description: Espacio actualizado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 space:
+ *                   $ref: '#/components/schemas/Space'
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Acceso denegado
+ *       404:
+ *         description: Espacio no encontrado
+ *       500:
+ *         description: Error del servidor
+ * 
+ * /api/spaces/{id}/position:
+ *   put:
+ *     summary: Actualizar posición del espacio
+ *     description: Cambia la posición de un espacio en el grid
+ *     tags: [Spaces]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del espacio
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SpacePosition'
+ *     responses:
+ *       200:
+ *         description: Posición actualizada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 space:
+ *                   $ref: '#/components/schemas/Space'
+ *       400:
+ *         description: Coordenadas inválidas
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Acceso denegado
+ *       404:
+ *         description: Espacio no encontrado
+ *       409:
+ *         description: Ya existe un espacio en esa posición
+ *       500:
+ *         description: Error del servidor
+ */
 
 module.exports = router; 

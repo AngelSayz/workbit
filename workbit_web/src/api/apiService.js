@@ -243,6 +243,17 @@ export const spacesAPI = {
     return response.data;
   },
   
+  // Nuevos métodos para administración de espacios
+  updateSpaceAdmin: async (spaceId, spaceData) => {
+    const response = await apiClient.put(`/spaces/${spaceId}`, spaceData);
+    return response.data;
+  },
+  
+  relocateSpace: async (spaceId, position_x, position_y) => {
+    const response = await apiClient.put(`/spaces/${spaceId}/position`, { position_x, position_y });
+    return response.data;
+  },
+  
   updateGridSettings: async (gridSettings) => {
     const response = await apiClient.put('/grid', gridSettings);
     return response.data;
