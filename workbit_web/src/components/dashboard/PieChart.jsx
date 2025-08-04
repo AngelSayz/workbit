@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react';
-import Highcharts from 'highcharts';
-import HighchartsReact from 'highcharts-react-official';
+import { useRef } from 'react';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const PieChart = ({ 
   data = [], 
@@ -23,57 +25,44 @@ const PieChart = ({
     );
   }
 
-  const chartOptions = {
-    chart: {
-      type: 'pie',
-      height: size,
-      width: size,
-      backgroundColor: 'transparent',
-      style: {
-        fontFamily: 'Inter, sans-serif'
+  const chartData = {
+    labels: data.map(item => item.label),
+    datasets: [
+      {
+        data: data.map(item => item.value),
+        backgroundColor: data.map((item, index) => colors[index % colors.length]),
+        borderWidth: 0,
+        cutout: '70%'
       }
-    },
-    title: {
-      text: null
-    },
-    plotOptions: {
-      pie: {
-        allowPointSelect: false,
-        cursor: 'default',
-        dataLabels: {
-          enabled: false
-        },
-        showInLegend: false,
-        size: '85%',
-        center: ['50%', '50%']
+    ]
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.parsed;
+            const percentage = ((value / total) * 100).toFixed(1);
+            return `${label}: ${value} (${percentage}%)`;
+          }
+        }
       }
-    },
-    series: [{
-      name: 'Cubículos',
-      colorByPoint: true,
-      data: data.map((item, index) => ({
-        name: item.label,
-        y: item.value,
-        color: colors[index % colors.length]
-      }))
-    }],
-    tooltip: {
-      pointFormat: '{series.name}: <b>{point.y}</b> ({point.percentage:.1f}%)'
-    },
-    credits: {
-      enabled: false
-    },
-    legend: {
-      enabled: false
     }
   };
 
   return (
-    <div className={`relative ${className}`}>
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={chartOptions}
+    <div className={`relative ${className}`} style={{ width: size, height: size }}>
+      <Doughnut
         ref={chartRef}
+        data={chartData}
+        options={options}
       />
       {/* Total en el centro */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
