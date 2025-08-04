@@ -391,7 +391,6 @@ router.put('/:id',
       if (name !== undefined) updateData.name = name.trim();
       if (capacity !== undefined) updateData.capacity = capacity;
       if (status !== undefined) updateData.status = status;
-      updateData.updated_at = new Date().toISOString();
 
       const { data: updatedSpace, error } = await supabase
         .from('spaces')
@@ -488,8 +487,7 @@ router.put('/:id/position',
         .from('spaces')
         .update({ 
           position_x, 
-          position_y,
-          updated_at: new Date().toISOString()
+          position_y
         })
         .eq('id', id)
         .select()
@@ -549,8 +547,7 @@ router.put('/:id/status',
       const { data: updatedSpace, error } = await supabase
         .from('spaces')
         .update({ 
-          status,
-          updated_at: new Date().toISOString()
+          status
         })
         .eq('id', id)
         .select()

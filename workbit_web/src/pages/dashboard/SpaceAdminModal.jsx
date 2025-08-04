@@ -15,6 +15,7 @@ import { Button } from '../../components/ui';
 import { Card } from '../../components/ui';
 
 const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
+  console.log('SpaceAdminModal - Received space:', space);
   const [capacity, setCapacity] = useState(space?.capacity || 2);
   const [status, setStatus] = useState(space?.status || 'available');
   const [showRelocateGrid, setShowRelocateGrid] = useState(false);
@@ -28,23 +29,33 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace }) => {
   ];
 
   const handleSave = () => {
-    if (onUpdateSpace) {
+    if (onUpdateSpace && space && space.id) {
+      console.log('Guardando cambios para espacio:', space.id, { capacity, status });
       onUpdateSpace({
         ...space,
         capacity: capacity,
         status: status
       });
+    } else {
+      console.error('Error: space o space.id es undefined', { space });
     }
     onClose();
   };
 
   const handleRelocate = () => {
+    if (!space || !space.id) {
+      console.error('Error: No se puede recolocar - space.id es undefined', { space });
+      return;
+    }
     setShowRelocateGrid(true);
   };
 
   const handleGridClick = (x, y) => {
-    if (onRelocate) {
+    if (onRelocate && space && space.id) {
+      console.log('Recolocando espacio:', space.id, 'a posición:', x, y);
       onRelocate(space.id, x, y);
+    } else {
+      console.error('Error: No se puede recolocar - datos inválidos', { space, x, y });
     }
     setShowRelocateGrid(false);
     onClose();

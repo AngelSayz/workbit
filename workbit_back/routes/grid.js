@@ -167,21 +167,35 @@ router.get('/spaces', authenticateToken, async (req, res) => {
 
     if (error) throw error;
 
-    // Get current grid settings
-    const { data: gridSettings } = await supabase
-      .from('grid_settings')
-      .select('rows, cols')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .single();
+    console.log('Grid spaces endpoint - Raw spaces data:', spaces);
 
-    res.json({
+    // Get current grid settings (use default if table doesn't exist)
+    let gridSettings = { rows: 5, cols: 8 };
+    try {
+      const { data: gridData } = await supabase
+        .from('grid_settings')
+        .select('rows, cols')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (gridData) {
+        gridSettings = gridData;
+      }
+    } catch (gridError) {
+      console.log('Grid settings table not found, using defaults:', gridError.message);
+    }
+
+    const response = {
       success: true,
       data: {
-        grid: gridSettings || { rows: 5, cols: 8 },
+        grid: gridSettings,
         spaces: spaces || []
       }
-    });
+    };
+
+    console.log('Grid spaces endpoint - Response:', response);
+    res.json(response);
 
   } catch (error) {
     console.error('Error fetching spaces map:', error);

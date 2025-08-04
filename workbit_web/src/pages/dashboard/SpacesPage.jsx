@@ -13,6 +13,7 @@ const SpacesPage = () => {
   const [showSpaceAdmin, setShowSpaceAdmin] = useState(false);
 
   const handleSpaceClick = (space) => {
+    console.log('SpacesPage - Space clicked:', space);
     setSelectedSpace(space);
     setShowSpaceDetails(true);
   };
@@ -24,6 +25,7 @@ const SpacesPage = () => {
   };
 
   const handleAdmin = (space) => {
+    console.log('SpacesPage - Admin clicked for space:', space);
     setSelectedSpace(space);
     setShowSpaceDetails(false);
     setShowSpaceAdmin(true);

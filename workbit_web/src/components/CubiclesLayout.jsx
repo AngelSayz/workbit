@@ -109,6 +109,7 @@ const CubiclesLayout = ({ onSpaceClick }) => {
   };
 
   const handleSpaceClick = (space) => {
+    console.log('Space clicked:', space);
     if (onSpaceClick) {
       onSpaceClick(space);
     } else {
