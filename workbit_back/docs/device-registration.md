@@ -55,12 +55,12 @@ Los dispositivos ESP32 deben enviar un mensaje JSON al topic MQTT `workbit/devic
 
 ```json
 {
-  "device_id": "env_001",
-  "name": "Sensor Ambiental - Cubículo A1",
+  "device_id": "env_002",
+  "name": "Sensor Ambiental - Cubículo A2",
   "type": "environmental",
-  "space_id": 1,
-  "space_name": "Cubículo A1",
-  "mqtt_topic": "workbit/devices/env_001",
+  "space_id": 2,
+  "space_name": "Cubículo A2",
+  "mqtt_topic": "workbit/devices/env_002",
   "sensors": [
     {
       "name": "Temperatura",
@@ -87,11 +87,11 @@ Los dispositivos ESP32 deben enviar un mensaje JSON al topic MQTT `workbit/devic
     "mac_address": "24:6F:28:8B:3A:1C",
     "ip_address": "192.168.1.101"
   },
-  "location": {
-    "building": "Edificio Principal",
-    "floor": "1",
-    "room": "Cubículo A1"
-  }
+      "location": {
+      "building": "Edificio Principal",
+      "floor": "1",
+      "room": "Cubículo A2"
+    }
 }
 ```
 
@@ -99,12 +99,12 @@ Los dispositivos ESP32 deben enviar un mensaje JSON al topic MQTT `workbit/devic
 
 ```json
 {
-  "device_id": "acc_001",
-  "name": "Control de Acceso - Entrada Principal",
+  "device_id": "acc_002",
+  "name": "Control de Acceso - Cubículo A2",
   "type": "access_control",
-  "space_id": 1,
-  "space_name": "Entrada Principal",
-  "mqtt_topic": "workbit/devices/acc_001",
+  "space_id": 2,
+  "space_name": "Cubículo A2",
+  "mqtt_topic": "workbit/devices/acc_002",
   "sensors": [
     {
       "name": "RFID Reader",
@@ -128,11 +128,11 @@ Los dispositivos ESP32 deben enviar un mensaje JSON al topic MQTT `workbit/devic
     "mac_address": "24:6F:28:8B:3A:1E",
     "ip_address": "192.168.1.103"
   },
-  "location": {
-    "building": "Edificio Principal",
-    "floor": "1",
-    "room": "Entrada Principal"
-  }
+      "location": {
+      "building": "Edificio Principal",
+      "floor": "1",
+      "room": "Cubículo A2"
+    }
 }
 ```
 
@@ -159,12 +159,12 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 // Información del dispositivo
-const char* device_id = "env_001";
-const char* device_name = "Sensor Ambiental - Cubículo A1";
+const char* device_id = "env_002";
+const char* device_name = "Sensor Ambiental - Cubículo A2";
 const char* device_type = "environmental";
-const int space_id = 1;
-const char* space_name = "Cubículo A1";
-const char* mqtt_topic = "workbit/devices/env_001";
+const int space_id = 2;
+const char* space_name = "Cubículo A2";
+const char* mqtt_topic = "workbit/devices/env_002";
 
 void setup() {
   Serial.begin(115200);
@@ -225,7 +225,7 @@ void registerDevice() {
   JsonObject location = doc.createNestedObject("location");
   location["building"] = "Edificio Principal";
   location["floor"] = "1";
-  location["room"] = "Cubículo A1";
+  location["room"] = "Cubículo A2";
   
   String jsonString;
   serializeJson(doc, jsonString);

@@ -4,12 +4,12 @@
 
 ### 1. Dispositivo de Monitoreo Ambiental
 
-**Tópico:** `workbit/devices/env_001/readings`
+**Tópico:** `workbit/devices/env_002/readings`
 
 ```json
 {
-  "device_id": "env_001",
-  "space_id": 1,
+  "device_id": "env_002",
+  "space_id": 2,
   "readings": [
     {
       "sensor_name": "Sensor de Temperatura",
@@ -41,12 +41,12 @@
 
 ### 2. Dispositivo de Control de Acceso con Conteo de Personas
 
-**Tópico:** `workbit/devices/access_001/readings`
+**Tópico:** `workbit/devices/access_002/readings`
 
 ```json
 {
-  "device_id": "access_001",
-  "space_id": 1,
+  "device_id": "access_002",
+  "space_id": 2,
   "readings": [
     {
       "sensor_name": "Lector RFID",
@@ -85,11 +85,11 @@
 
 ### 3. Dispositivo Mixto (Ambiental + Acceso)
 
-**Tópico:** `workbit/devices/mixed_001/readings`
+**Tópico:** `workbit/devices/mixed_002/readings`
 
 ```json
 {
-  "device_id": "mixed_001",
+  "device_id": "mixed_002",
   "space_id": 2,
   "readings": [
     {
@@ -154,8 +154,8 @@
 void publishSensorReadings() {
   DynamicJsonDocument doc(1024);
   
-  doc["device_id"] = "env_001";
-  doc["space_id"] = 1;
+  doc["device_id"] = "env_002";
+  doc["space_id"] = 2;
   
   JsonArray readings = doc.createNestedArray("readings");
   
@@ -198,7 +198,7 @@ void publishSensorReadings() {
   char buffer[1024];
   serializeJson(doc, buffer);
   
-  client.publish("workbit/devices/env_001/readings", buffer);
+  client.publish("workbit/devices/env_002/readings", buffer);
   Serial.println("✅ Lecturas de sensores publicadas");
 }
 ``` 

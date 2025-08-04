@@ -268,19 +268,19 @@ const CubiclesLayout = ({ onSpaceClick }) => {
 
   return (
     <div className="w-full">
-      <div className="mb-6">
-        <p className="text-gray-600">({spaces.length} cubículos)</p>
-      </div>
-
       <div className="mb-6 bg-white rounded-lg p-4 border border-gray-200">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Leyenda de Estados</h3>
-        <div className="flex flex-wrap gap-4">
-          {['available', 'occupied', 'reserved', 'maintenance', 'unavailable'].map((status) => (
-            <div key={status} className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: getStatusColor(status) }}></div>
-              <span className="text-sm text-gray-600">{getStatusText(status)}</span>
-            </div>
-          ))}
+        <div className="flex justify-between items-center">
+          <div className="flex flex-wrap gap-4">
+            {['available', 'occupied', 'reserved', 'maintenance', 'unavailable'].map((status) => (
+              <div key={status} className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: getStatusColor(status) }}></div>
+                <span className="text-sm text-gray-600">{getStatusText(status)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="text-sm text-gray-600">
+            {spaces.length} cubículos
+          </div>
         </div>
       </div>
 
