@@ -155,6 +155,7 @@ const OverviewPage = () => {
                       { label: 'Mantenimiento', value: kpis.spaces?.distribution?.maintenance || 0 },
                       { label: 'No disponible', value: kpis.spaces?.distribution?.unavailable || 0 }
                     ]}
+                    colors={['#10B981', '#EF4444', '#F59E0B', '#3B82F6', '#6B7280']}
                     size={150}
                   />
                 }

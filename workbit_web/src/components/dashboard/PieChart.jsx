@@ -7,7 +7,7 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const PieChart = ({ 
   data = [], 
   size = 200,
-  colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'],
+  colors = ['#10B981', '#EF4444', '#F59E0B', '#3B82F6', '#6B7280'],
   className = ""
 }) => {
   const chartRef = useRef(null);
