@@ -9,7 +9,9 @@ import {
   Wrench,
   Plus,
   Save,
-  X
+  X,
+  Grid3X3,
+  List
 } from 'lucide-react';
 import { spacesAPI } from '../api/apiService';
 import { useAuth } from '../hooks/useAuth';
@@ -21,6 +23,7 @@ const CubiclesLayout = ({ onSpaceClick }) => {
   const [error, setError] = useState(null);
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [isAddingSpace, setIsAddingSpace] = useState(false);
+  const [viewMode, setViewMode] = useState('layout'); // 'layout' o 'list'
   const [newSpaceData, setNewSpaceData] = useState({
     name: '',
     capacity: 2,
@@ -278,14 +281,34 @@ const CubiclesLayout = ({ onSpaceClick }) => {
               </div>
             ))}
           </div>
-          <div className="text-sm text-gray-600">
-            {spaces.length} cubículos
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600">
+              {spaces.length} cubículos
+            </span>
+            <div className="relative">
+              <select
+                value={viewMode}
+                onChange={(e) => setViewMode(e.target.value)}
+                className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-1 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="layout">Vista Layout</option>
+                <option value="list">Vista Lista</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                {viewMode === 'layout' ? (
+                  <Grid3X3 className="w-4 h-4 text-gray-400" />
+                ) : (
+                  <List className="w-4 h-4 text-gray-400" />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
              <div className="bg-white rounded-lg border border-gray-200 p-6 overflow-auto" style={{ minHeight: '600px' }}>
-         <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width={svgWidth} height={svgHeight} className="mx-auto block">
+               {viewMode === 'layout' ? (
+                 <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width={svgWidth} height={svgHeight} className="mx-auto block">
           <defs>
             <pattern id="grid" width={cellWidth + margin} height={cellHeight + margin} patternUnits="userSpaceOnUse">
               <rect width={cellWidth + margin} height={cellHeight + margin} fill="none" stroke="#e5e7eb" strokeWidth="1" />
@@ -434,6 +457,39 @@ const CubiclesLayout = ({ onSpaceClick }) => {
              });
            })()}
                   </svg>
+                ) : (
+                  <div className="space-y-3">
+                    {spaces.map((space) => (
+                      <motion.div
+                        key={space.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        onClick={() => handleSpaceClick(space)}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div 
+                            className="w-4 h-4 rounded"
+                            style={{ backgroundColor: getStatusColor(space.status) }}
+                          ></div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">{space.name}</h3>
+                            <p className="text-sm text-gray-600">Capacidad: {space.capacity} personas</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-gray-600">{getStatusText(space.status)}</span>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: Math.min(space.capacity, 4) }, (_, i) => (
+                              <div key={i} className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
        </div>
 
        {/* Space Details Modal */}
