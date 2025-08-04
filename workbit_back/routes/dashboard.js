@@ -331,27 +331,71 @@ router.get('/overview',
         }
       });
 
-      // 3. Get users count
-      const { count: totalUsers, error: usersError } = await supabase
+      // 3. Get users data with detailed stats
+      const { data: allUsers, error: usersError } = await supabase
         .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('role_id', 1); // Assuming role_id 1 is 'user'
+        .select('id, role_id')
+        .eq('role_id', 1); // role_id 1 is 'user'
 
       if (usersError) {
-        console.error('Error fetching users count:', usersError);
-        return res.status(500).json({ error: 'Failed to fetch users count' });
+        console.error('Error fetching users:', usersError);
+        return res.status(500).json({ error: 'Failed to fetch users' });
       }
 
-      // 4. Get technicians count
-      const { count: totalTechnicians, error: techniciansError } = await supabase
+      // Get users with upcoming reservations (next 7 days)
+      const nextWeekStart = new Date();
+      const nextWeekEnd = new Date(nextWeekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+      
+      const { data: usersWithUpcomingReservations, error: upcomingError } = await supabase
+        .from('reservations')
+        .select('owner_id')
+        .eq('status', 'confirmed')
+        .gte('start_time', now.toISOString())
+        .lt('start_time', nextWeekEnd.toISOString());
+
+      if (upcomingError) {
+        console.error('Error fetching upcoming reservations:', upcomingError);
+      }
+
+      // Get users active in last 24h (those who made reservations)
+      const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const { data: activeUsersLast24h, error: active24hError } = await supabase
+        .from('reservations')
+        .select('owner_id')
+        .gte('created_at', last24h.toISOString());
+
+      if (active24hError) {
+        console.error('Error fetching active users last 24h:', active24hError);
+      }
+
+      // Count unique users
+      const uniqueUpcomingUsers = new Set(usersWithUpcomingReservations?.map(r => r.owner_id) || []).size;
+      const uniqueActiveUsers24h = new Set(activeUsersLast24h?.map(r => r.owner_id) || []).size;
+
+      // 4. Get technicians data with task assignments
+      const { data: allTechnicians, error: techniciansError } = await supabase
         .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('role_id', 3); // Assuming role_id 3 is 'technician'
+        .select('id')
+        .eq('role_id', 3); // role_id 3 is 'technician'
 
       if (techniciansError) {
-        console.error('Error fetching technicians count:', techniciansError);
-        return res.status(500).json({ error: 'Failed to fetch technicians count' });
+        console.error('Error fetching technicians:', techniciansError);
+        return res.status(500).json({ error: 'Failed to fetch technicians' });
       }
+
+      // Get task assignments
+      const { data: taskAssignments, error: tasksError } = await supabase
+        .from('tasks')
+        .select('assigned_to, status');
+
+      if (tasksError) {
+        console.error('Error fetching task assignments:', tasksError);
+      }
+
+      // Calculate technician task stats
+      const techniciansWithTasks = new Set(taskAssignments?.filter(t => t.assigned_to).map(t => t.assigned_to) || []).size;
+      const techniciansWithoutTasks = (allTechnicians?.length || 0) - techniciansWithTasks;
+      const unassignedTasks = taskAssignments?.filter(t => !t.assigned_to && t.status !== 'completed').length || 0;
 
       // 5. Get calendar data for current month
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -399,8 +443,17 @@ router.get('/overview',
               distribution: spaceStatusCounts
             },
             reservations: reservationStats,
-            users: totalUsers || 0,
-            technicians: totalTechnicians || 0
+            users: {
+              total: allUsers?.length || 0,
+              with_upcoming_reservations: uniqueUpcomingUsers,
+              active_last_24h: uniqueActiveUsers24h
+            },
+            technicians: {
+              total: allTechnicians?.length || 0,
+              with_tasks: techniciansWithTasks,
+              without_tasks: techniciansWithoutTasks,
+              unassigned_tasks: unassignedTasks
+            }
           },
           
           // Calendar data

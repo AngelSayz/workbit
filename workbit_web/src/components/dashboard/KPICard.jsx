@@ -131,9 +131,11 @@ const KPICard = ({
       </div>
 
       {/* Main Value */}
-      <div className="mb-4">
-        <div className="text-3xl font-bold text-gray-900">{value}</div>
-      </div>
+      {value && (
+        <div className="mb-4">
+          <div className="text-3xl font-bold text-gray-900">{value}</div>
+        </div>
+      )}
 
       {/* Sub Items / Chart */}
       {subItems && (
@@ -155,8 +157,10 @@ const KPICard = ({
 
       {/* Embedded Chart */}
       {chart && (
-        <div className="mt-4 h-20">
-          {chart}
+        <div className="mt-4 flex flex-col items-center pb-8">
+          <div className="mb-4">
+            {chart}
+          </div>
         </div>
       )}
 

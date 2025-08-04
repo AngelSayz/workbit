@@ -102,16 +102,18 @@ const PieChart = ({
       
       {/* Labels (if enabled) */}
       {showLabels && (
-        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 flex flex-wrap justify-center gap-2 text-xs">
-          {segments.map((segment, index) => (
-            <div key={index} className="flex items-center space-x-1">
-              <div 
-                className="w-2 h-2 rounded-full" 
-                style={{ backgroundColor: segment.color }}
-              ></div>
-              <span className="text-gray-600">{segment.label}</span>
-            </div>
-          ))}
+        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-full">
+          <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs">
+            {segments.map((segment, index) => (
+              <div key={index} className="flex items-center space-x-1">
+                <div 
+                  className="w-2 h-2 rounded-full flex-shrink-0" 
+                  style={{ backgroundColor: segment.color }}
+                ></div>
+                <span className="text-gray-600 text-xs">{segment.label}: {segment.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -6,7 +6,6 @@ import {
   Users, 
   Building, 
   Wrench, 
-  TrendingUp,
   RefreshCw
 } from 'lucide-react';
 import { dashboardAPI } from '../../api/apiService';
@@ -112,6 +111,8 @@ const OverviewPage = () => {
 
   const kpis = dashboardData?.kpis || {};
   const reservationData = kpis.reservations?.[selectedReservationPeriod] || { completed: 0, active: 0, pending: 0 };
+  const usersData = kpis.users || { total: 0, with_upcoming_reservations: 0, active_last_24h: 0 };
+  const techniciansData = kpis.technicians || { total: 0, with_tasks: 0, without_tasks: 0, unassigned_tasks: 0 };
 
   return (
     <div className="w-full h-full p-6 space-y-6">
@@ -134,28 +135,17 @@ const OverviewPage = () => {
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="text-sm">Actualizar</span>
           </button>
-          <div className="flex items-center space-x-2">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-            <span className="text-sm text-gray-500">Tiempo real</span>
-          </div>
         </div>
       </motion.div>
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Cubículos Card */}
+        {/* Cubículos Card - Chart principal */}
         <KPICard
           title="Cubículos Totales"
-          value={kpis.spaces?.total || 0}
+          value=""
           icon={Building}
           color="blue"
-          subItems={[
-            { label: 'Disponible', value: kpis.spaces?.distribution?.available || 0, color: '#10B981' },
-            { label: 'Ocupado', value: kpis.spaces?.distribution?.occupied || 0, color: '#EF4444' },
-            { label: 'Reservado', value: kpis.spaces?.distribution?.reserved || 0, color: '#F59E0B' },
-            { label: 'Mantenimiento', value: kpis.spaces?.distribution?.maintenance || 0, color: '#8B5CF6' },
-            { label: 'No disponible', value: kpis.spaces?.distribution?.unavailable || 0, color: '#6B7280' }
-          ]}
           chart={
             <PieChart
               data={[
@@ -165,8 +155,9 @@ const OverviewPage = () => {
                 { label: 'Mantenimiento', value: kpis.spaces?.distribution?.maintenance || 0 },
                 { label: 'No disponible', value: kpis.spaces?.distribution?.unavailable || 0 }
               ]}
-              size={60}
-              strokeWidth={6}
+              size={120}
+              strokeWidth={12}
+              showLabels={true}
             />
           }
         />
@@ -192,21 +183,29 @@ const OverviewPage = () => {
           ]}
         />
 
-        {/* Usuarios Card */}
+        {/* Usuarios Card - Con más detalles */}
         <KPICard
           title="Clientes"
-          value={kpis.users || 0}
+          value={usersData.total}
           icon={Users}
           color="purple"
-          trend={{ direction: 'up', value: '+5.2%' }}
+          subItems={[
+            { label: 'Con reservas próximas', value: usersData.with_upcoming_reservations, color: '#8B5CF6' },
+            { label: 'Activos últimas 24h', value: usersData.active_last_24h, color: '#06B6D4' }
+          ]}
         />
 
-        {/* Técnicos Card */}
+        {/* Técnicos Card - Con más detalles */}
         <KPICard
-          title="Técnicos Activos"
-          value={kpis.technicians || 0}
+          title="Técnicos"
+          value={techniciansData.total}
           icon={Wrench}
           color="orange"
+          subItems={[
+            { label: 'Con tareas asignadas', value: techniciansData.with_tasks, color: '#10B981' },
+            { label: 'Sin tareas asignadas', value: techniciansData.without_tasks, color: '#6B7280' },
+            { label: 'Tareas sin asignar', value: techniciansData.unassigned_tasks, color: '#EF4444' }
+          ]}
         />
       </div>
 

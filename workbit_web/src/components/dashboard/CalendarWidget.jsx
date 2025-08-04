@@ -8,7 +8,6 @@ const CalendarWidget = ({
   currentMonth = new Date().getMonth(),
   currentYear = new Date().getFullYear() 
 }) => {
-  const [viewMode, setViewMode] = useState('month'); // month, week, day
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [displayMonth, setDisplayMonth] = useState(currentMonth);
   const [displayYear, setDisplayYear] = useState(currentYear);
@@ -52,13 +51,14 @@ const CalendarWidget = ({
     return calendarData.find(data => data.date === day) || { reservations: 0, spaces_used: 0 };
   };
 
-  // Get intensity color based on activity
+  // Get intensity color based on activity - más diferenciación
   const getIntensityColor = (reservations) => {
     if (reservations === 0) return 'bg-gray-50';
-    if (reservations <= 2) return 'bg-blue-100';
-    if (reservations <= 5) return 'bg-blue-200';
-    if (reservations <= 8) return 'bg-blue-300';
-    return 'bg-blue-400';
+    if (reservations === 1) return 'bg-green-100';
+    if (reservations <= 3) return 'bg-blue-200';
+    if (reservations <= 6) return 'bg-orange-300';
+    if (reservations <= 10) return 'bg-red-400';
+    return 'bg-purple-500';
   };
 
   // Render calendar days
@@ -129,23 +129,6 @@ const CalendarWidget = ({
           <CalendarIcon className="w-5 h-5 text-blue-600" />
           <h2 className="text-lg font-semibold text-gray-900">Calendario de Reservas</h2>
         </div>
-        
-        {/* View Mode Tabs */}
-        <div className="flex bg-gray-100 rounded-lg p-1">
-          {['month', 'week', 'day'].map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                viewMode === mode 
-                  ? 'bg-white text-blue-600 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {mode === 'month' ? 'Mes' : mode === 'week' ? 'Semana' : 'Día'}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Month Navigation */}
@@ -191,24 +174,28 @@ const CalendarWidget = ({
         <div className="flex items-center justify-between text-xs text-gray-600">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-gray-50 rounded"></div>
-              <span>Sin reservas</span>
+              <div className="w-3 h-3 bg-gray-50 border border-gray-200 rounded"></div>
+              <span>0</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-blue-100 rounded"></div>
-              <span>1-2</span>
+              <div className="w-3 h-3 bg-green-100 rounded"></div>
+              <span>1</span>
             </div>
             <div className="flex items-center space-x-1">
               <div className="w-3 h-3 bg-blue-200 rounded"></div>
-              <span>3-5</span>
+              <span>2-3</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-blue-300 rounded"></div>
-              <span>6-8</span>
+              <div className="w-3 h-3 bg-orange-300 rounded"></div>
+              <span>4-6</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-blue-400 rounded"></div>
-              <span>9+</span>
+              <div className="w-3 h-3 bg-red-400 rounded"></div>
+              <span>7-10</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-purple-500 rounded"></div>
+              <span>11+</span>
             </div>
           </div>
           <div className="text-gray-500">
