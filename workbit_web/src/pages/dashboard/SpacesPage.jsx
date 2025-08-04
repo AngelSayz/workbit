@@ -3,11 +3,13 @@ import { motion } from 'framer-motion';
 import CubiclesLayout from '../../components/CubiclesLayout';
 import SpaceDetailsModal from './SpaceDetailsModal';
 import SpaceStatsModal from './SpaceStatsModal';
+import SpaceAdminModal from './SpaceAdminModal';
 
 const SpacesPage = () => {
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [showSpaceDetails, setShowSpaceDetails] = useState(false);
   const [showSpaceStats, setShowSpaceStats] = useState(false);
+  const [showSpaceAdmin, setShowSpaceAdmin] = useState(false);
 
   const handleSpaceClick = (space) => {
     setSelectedSpace(space);
@@ -20,10 +22,35 @@ const SpacesPage = () => {
     setShowSpaceStats(true);
   };
 
+  const handleViewStats = (space) => {
+    setSelectedSpace(space);
+    setShowSpaceDetails(false);
+    setShowSpaceStats(true);
+  };
+
+  const handleAdmin = (space) => {
+    setSelectedSpace(space);
+    setShowSpaceDetails(false);
+    setShowSpaceAdmin(true);
+  };
+
   const handleCloseModals = () => {
     setShowSpaceDetails(false);
     setShowSpaceStats(false);
+    setShowSpaceAdmin(false);
     setSelectedSpace(null);
+  };
+
+  const handleUpdateSpace = (updatedSpace) => {
+    // Aquí se actualizaría el espacio en la base de datos
+    console.log('Actualizando espacio:', updatedSpace);
+    // TODO: Implementar actualización en la API
+  };
+
+  const handleRelocateSpace = (spaceId, newX, newY) => {
+    // Aquí se actualizaría la posición del espacio en la base de datos
+    console.log('Recolocando espacio:', spaceId, 'a posición:', newX, newY);
+    // TODO: Implementar actualización de posición en la API
   };
 
   return (
@@ -60,6 +87,7 @@ const SpacesPage = () => {
           space={selectedSpace}
           onClose={handleCloseModals}
           onViewStats={handleViewStats}
+          onAdmin={handleAdmin}
         />
       )}
 
@@ -67,6 +95,15 @@ const SpacesPage = () => {
         <SpaceStatsModal
           space={selectedSpace}
           onClose={handleCloseModals}
+        />
+      )}
+
+      {showSpaceAdmin && selectedSpace && (
+        <SpaceAdminModal
+          space={selectedSpace}
+          onClose={handleCloseModals}
+          onUpdateSpace={handleUpdateSpace}
+          onRelocate={handleRelocateSpace}
         />
       )}
     </div>

@@ -35,7 +35,7 @@ ChartJS.register(
   Legend
 );
 
-const SpaceDetailsModal = ({ space, onClose, onViewStats }) => {
+const SpaceDetailsModal = ({ space, onClose, onViewStats, onAdmin }) => {
   const [spaceData, setSpaceData] = useState(null);
   const [chartData, setChartData] = useState({
     temperature: [],
@@ -162,9 +162,9 @@ const SpaceDetailsModal = ({ space, onClose, onViewStats }) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={onViewStats}
+              onClick={onAdmin}
             >
-              Ver Estadísticas
+              Administrar
             </Button>
             <Button
               variant="outline"
