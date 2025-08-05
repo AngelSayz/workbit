@@ -92,6 +92,16 @@ const ChatWidget = () => {
     setLastMessageTime(now);
 
     try {
+      // Normalize language to 'es' or 'en' only
+      const currentLanguage = i18n.language || 'es';
+      const normalizedLanguage = currentLanguage.startsWith('en') ? 'en' : 'es';
+      
+      console.log('Sending chat message:', {
+        message: userMessage.content,
+        language: normalizedLanguage,
+        originalLanguage: currentLanguage
+      });
+      
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat`, {
         method: 'POST',
         headers: {
@@ -99,12 +109,21 @@ const ChatWidget = () => {
         },
         body: JSON.stringify({ 
           message: userMessage.content,
-          language: i18n.language || 'es' // Send user's language preference
+          language: normalizedLanguage
         })
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to get the error details from the response
+        let errorDetails = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          console.error('Chat API error details:', errorData);
+          errorDetails += ` - ${errorData.error || errorData.message || 'Unknown error'}`;
+        } catch (parseError) {
+          console.error('Could not parse error response:', parseError);
+        }
+        throw new Error(errorDetails);
       }
 
       const data = await response.json();
