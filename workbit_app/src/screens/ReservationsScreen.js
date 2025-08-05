@@ -22,10 +22,8 @@ const ReservationsScreen = () => {
   const loadReservations = async () => {
     try {
       setLoading(true);
-      const allReservations = await ApiService.getAllReservations();
-      const userReservations = Array.isArray(allReservations) ? allReservations.filter(
-        reservation => reservation.OwnerName === user?.fullname?.split(' ')[0]
-      ) : [];
+      const data = await ApiService.getMyReservations();
+      const userReservations = Array.isArray(data) ? data : [];
       
       setReservations(userReservations);
       
@@ -39,7 +37,7 @@ const ReservationsScreen = () => {
       
     } catch (error) {
       console.error('Error loading reservations:', error);
-      // Don't show alert for now as we're transitioning API
+      Alert.alert('Error', 'No se pudieron cargar las reservas');
     } finally {
       setLoading(false);
     }
@@ -49,6 +47,20 @@ const ReservationsScreen = () => {
     setRefreshing(true);
     await loadReservations();
     setRefreshing(false);
+  };
+
+  const handleCancelReservation = async (reservationId) => {
+    try {
+      setLoading(true);
+      await ApiService.updateReservationStatus(reservationId, 'cancelled');
+      Alert.alert('Éxito', 'La reserva ha sido cancelada');
+      await loadReservations();
+    } catch (error) {
+      console.error('Error cancelling reservation:', error);
+      Alert.alert('Error', 'No se pudo cancelar la reserva');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -134,6 +146,26 @@ const ReservationsScreen = () => {
         isActive && styles.activeReservationCard
       ]}
       activeOpacity={0.7}
+      onPress={() => {
+        Alert.alert(
+          reservation.Reason,
+          `Estado: ${getStatusText(reservation.Status)}\n` +
+          `Espacio: ${reservation.SpaceName || 'No especificado'}\n` +
+          `Fecha: ${formatDate(reservation.StartTime)}\n` +
+          `Hora: ${formatTime(reservation.StartTime)} - ${formatTime(reservation.EndTime)}\n` +
+          `Creada: ${formatDate(reservation.created_at)}`,
+          [
+            { text: 'Cerrar', style: 'cancel' },
+            ...(reservation.Status === 'pending' ? [
+              { 
+                text: 'Cancelar Reserva', 
+                style: 'destructive',
+                onPress: () => handleCancelReservation(reservation.id)
+              }
+            ] : [])
+          ]
+        );
+      }}
     >
       {isActive && (
         <View style={styles.activeIndicator}>
@@ -180,8 +212,8 @@ const ReservationsScreen = () => {
 
       {isActive && (
         <View style={styles.activeActions}>
-          <Text style={styles.activeActionsTitle}>Monitoreo en Tiempo Real</Text>
-          <Text style={styles.workingOnItText}>Working on it...</Text>
+          <Text style={styles.activeActionsTitle}>Reserva en curso</Text>
+          <Text style={styles.workingOnItText}>Toca para ver más detalles</Text>
         </View>
       )}
     </TouchableOpacity>

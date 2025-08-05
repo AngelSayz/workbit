@@ -6,6 +6,9 @@
 #include <set>
 #include <EEPROM.h>
 #include <BluetoothSerial.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
+#include <time.h>
 
 // ---------------- CONFIGURACIÓN WIFI ----------------
 const char* default_ssid = "Rias";
@@ -20,9 +23,15 @@ const char* mqtt_server = "broker.emqx.io";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+// ---------------- CONFIGURACIÓN NTP ----------------
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org");
+const int TIJUANA_TIMEZONE_OFFSET = -28800; // PST (UTC-8) en segundos
+bool ntpInitialized = false;
+
 // ---------------- IDENTIFICADORES ----------------
 // Variable global para el space_id que se leerá de EEPROM
-char* current_space_id_ptr = nullptr;
+int current_space_id = 1; // Default space_id
 const char* device_id = "access_001";
 const char* rfid_sensor_id = "rfid_001";
 const char* ir_sensor_id = "ir_001";
@@ -55,9 +64,10 @@ struct Credential {
   String reservation_id;
   String authorized_cards[15];  // Máximo 15 tarjetas por espacio
   int card_count;
-  unsigned long valid_from;
-  unsigned long valid_until;
+  String valid_from;           // Cambiado a String para ISO date
+  String valid_until;          // Cambiado a String para ISO date
   String owner;
+  bool is_active;              // Nuevo campo para estado activo
 };
 
 Credential credentials[5]; // Máximo 5 reservas activas
@@ -66,6 +76,132 @@ int credential_count = 0;
 // Tarjetas maestras hardcodeadas según especificaciones
 const String MASTER_CARDS[] = {"MASTER001", "MASTER002", "ADMIN123"};
 const int MASTER_CARD_COUNT = 3;
+
+// ================= FUNCIONES DE MANEJO DE FECHAS =================
+// Función para parsear fecha ISO 8601 a timestamp Unix usando time.h
+unsigned long parseISODate(const String& isoDate) {
+  // Formato esperado: "2024-01-15T10:30:00.000Z" o "2024-01-15T10:30:00Z"
+  if (isoDate.length() < 19) return 0; // Fecha inválida
+
+  struct tm t;
+  memset(&t, 0, sizeof(struct tm));
+
+  t.tm_year = isoDate.substring(0, 4).toInt() - 1900;
+  t.tm_mon  = isoDate.substring(5, 7).toInt() - 1;
+  t.tm_mday = isoDate.substring(8, 10).toInt();
+  t.tm_hour = isoDate.substring(11, 13).toInt();
+  t.tm_min  = isoDate.substring(14, 16).toInt();
+  t.tm_sec  = isoDate.substring(17, 19).toInt();
+
+  // Validaciones básicas
+  if (t.tm_year < 120 || t.tm_year > 130) return 0; // 2020-2030
+  if (t.tm_mon < 0 || t.tm_mon > 11) return 0;
+  if (t.tm_mday < 1 || t.tm_mday > 31) return 0;
+  if (t.tm_hour < 0 || t.tm_hour > 23) return 0;
+  if (t.tm_min < 0 || t.tm_min > 59) return 0;
+  if (t.tm_sec < 0 || t.tm_sec > 59) return 0;
+
+  time_t ts = mktime(&t);
+  if (ts < 0) return 0;
+  return (unsigned long)ts;
+}
+
+// Función para obtener timestamp actual usando NTP
+unsigned long getCurrentTimestamp() {
+  if (!ntpInitialized) {
+    // Fallback a timestamp base si NTP no está inicializado
+    static unsigned long baseTimestamp = 1735689600; // 2025-01-01 00:00:00 UTC
+    return baseTimestamp + (millis() / 1000);
+  }
+  
+  // Obtener tiempo actual de NTP
+  timeClient.update();
+  return timeClient.getEpochTime();
+}
+
+// Función para inicializar NTP
+void initializeNTP() {
+  Serial.println("🕐 Inicializando NTP para Tijuana...");
+  timeClient.begin();
+  timeClient.setTimeOffset(TIJUANA_TIMEZONE_OFFSET);
+  timeClient.setUpdateInterval(60000); // Actualizar cada minuto
+  
+  // Esperar a que se sincronice
+  Serial.print("⏳ Sincronizando con servidor NTP");
+  int attempts = 0;
+  while (!timeClient.update() && attempts < 10) {
+    delay(1000);
+    Serial.print(".");
+    attempts++;
+  }
+  
+  if (attempts < 10) {
+    ntpInitialized = true;
+    Serial.println("\n✅ NTP sincronizado exitosamente");
+    Serial.printf("🕐 Hora actual Tijuana: %s\n", timeClient.getFormattedTime().c_str());
+    Serial.printf("📅 Timestamp Unix: %lu\n", timeClient.getEpochTime());
+  } else {
+    Serial.println("\n❌ Error al sincronizar NTP, usando timestamp base");
+  }
+}
+
+// Función para verificar si una reserva está activa
+bool isReservationActive(const Credential& cred) {
+  if (!cred.is_active) return false;
+  
+  unsigned long currentTime = getCurrentTimestamp();
+  unsigned long startTime = parseISODate(cred.valid_from);
+  unsigned long endTime = parseISODate(cred.valid_until);
+  
+  // Validar que las fechas se parsearon correctamente
+  if (startTime == 0 || endTime == 0) {
+    Serial.printf("⚠️ Fechas inválidas en reserva %s\n", cred.reservation_id.c_str());
+    return false;
+  }
+  
+  bool isActive = (currentTime >= startTime && currentTime <= endTime);
+  
+  // Debug logging (siempre mostrar en desarrollo)
+  Serial.printf("🔍 Verificando reserva %s: %lu <= %lu <= %lu = %s\n", 
+                cred.reservation_id.c_str(), startTime, currentTime, endTime, 
+                isActive ? "ACTIVA" : "INACTIVA");
+  
+  return isActive;
+}
+
+// Función para mostrar el estado actual de las credenciales
+void showCredentialsStatus() {
+  Serial.println("\n📋 === ESTADO DE CREDENCIALES ===");
+  Serial.printf("🔢 Total de reservas: %d\n", credential_count);
+  Serial.printf("🔑 Tarjetas maestras: %d\n", MASTER_CARD_COUNT);
+  Serial.printf("⏰ Tiempo actual: %lu\n", getCurrentTimestamp());
+  
+  if (credential_count == 0) {
+    Serial.println("📭 No hay reservas activas");
+  } else {
+    for (int i = 0; i < credential_count; i++) {
+      const Credential& cred = credentials[i];
+      bool isActive = isReservationActive(cred);
+      
+      Serial.printf("\n📋 Reserva %d: %s\n", i + 1, cred.reservation_id.c_str());
+      Serial.printf("   👤 Propietario: %s\n", cred.owner.c_str());
+      Serial.printf("   📅 Desde: %s\n", cred.valid_from.c_str());
+      Serial.printf("   📅 Hasta: %s\n", cred.valid_until.c_str());
+      Serial.printf("   🪪 Tarjetas: %d\n", cred.card_count);
+      Serial.printf("   🔄 Estado: %s\n", isActive ? "✅ ACTIVA" : "❌ INACTIVA");
+      
+      if (cred.card_count > 0) {
+        Serial.print("   🪪 UIDs: ");
+        for (int j = 0; j < cred.card_count; j++) {
+          Serial.print(cred.authorized_cards[j]);
+          if (j < cred.card_count - 1) Serial.print(", ");
+        }
+        Serial.println();
+      }
+    }
+  }
+  Serial.println("================================\n");
+}
 
 // ================= DETECCIÓN IR MEJORADA =================
 enum DetectionState { 
@@ -102,7 +238,7 @@ BluetoothSerial SerialBT;
 struct StoredCredentials {
   char ssid_data[EEPROM_MAX_STRING_LEN];
   char password_data[EEPROM_MAX_STRING_LEN];
-  char spaceId_data[EEPROM_MAX_STRING_LEN]; // Nuevo campo para el space_id
+  int spaceId_data; // Cambiado a int para el space_id
 };
 
 StoredCredentials saved_credentials;
@@ -112,17 +248,17 @@ char BTreecieved;
 
 // ---------------- FUNCIONES EEPROM Y BLUETOOTH ----------------
 // Función unificada para guardar todas las configuraciones
-void write_settings(const String& ssid_str, const String& pw_str, const String& spaceId_str) {
-  if (ssid_str.length() >= EEPROM_MAX_STRING_LEN || pw_str.length() >= EEPROM_MAX_STRING_LEN || spaceId_str.length() >= EEPROM_MAX_STRING_LEN) {
-    Serial.println("⚠️ Credencial o Space ID demasiado largo para el almacenamiento EEPROM.");
-    SerialBT.println("⚠️ Credencial o Space ID demasiado largo para el almacenamiento EEPROM.");
+void write_settings(const String& ssid_str, const String& pw_str, int spaceId_int) {
+  if (ssid_str.length() >= EEPROM_MAX_STRING_LEN || pw_str.length() >= EEPROM_MAX_STRING_LEN) {
+    Serial.println("⚠️ Credencial demasiado larga para el almacenamiento EEPROM.");
+    SerialBT.println("⚠️ Credencial demasiado larga para el almacenamiento EEPROM.");
     return;
   }
 
   // Copiar las cadenas a los buffers de la estructura
   ssid_str.toCharArray(saved_credentials.ssid_data, ssid_str.length() + 1);
   pw_str.toCharArray(saved_credentials.password_data, pw_str.length() + 1);
-  spaceId_str.toCharArray(saved_credentials.spaceId_data, spaceId_str.length() + 1);
+  saved_credentials.spaceId_data = spaceId_int;
 
   EEPROM.put(0, saved_credentials);
   EEPROM.commit();
@@ -149,10 +285,6 @@ void read_eeprom_settings() {
     free(current_password_ptr);
     current_password_ptr = nullptr;
   }
-  if (current_space_id_ptr != nullptr) {
-    free(current_space_id_ptr);
-    current_space_id_ptr = nullptr;
-  }
 
   // Asignar memoria para las cadenas leídas y copiar
   if (strlen(saved_credentials.ssid_data) > 0) {
@@ -163,10 +295,9 @@ void read_eeprom_settings() {
     current_password_ptr = (char*)malloc(strlen(saved_credentials.password_data) + 1);
     if (current_password_ptr) strcpy(current_password_ptr, saved_credentials.password_data);
   }
-  if (strlen(saved_credentials.spaceId_data) > 0) {
-    current_space_id_ptr = (char*)malloc(strlen(saved_credentials.spaceId_data) + 1);
-    if (current_space_id_ptr) strcpy(current_space_id_ptr, saved_credentials.spaceId_data);
-  }
+  
+  // Leer space_id como entero
+  current_space_id = saved_credentials.spaceId_data;
 
   Serial.println("\n--- Configuración de EEPROM ---");
   Serial.print("SSID guardado: ");
@@ -174,14 +305,14 @@ void read_eeprom_settings() {
   Serial.print("Password guardado: ");
   Serial.println(current_password_ptr ? current_password_ptr : "N/A");
   Serial.print("Space ID guardado: ");
-  Serial.println(current_space_id_ptr ? current_space_id_ptr : "N/A");
+  Serial.println(current_space_id);
   Serial.println("-------------------------------\n");
 
   SerialBT.println("\n--- Configuración de EEPROM ---");
   SerialBT.print("SSID guardado: ");
   SerialBT.println(current_ssid_ptr ? current_ssid_ptr : "N/A");
   SerialBT.print("Space ID guardado: ");
-  SerialBT.println(current_space_id_ptr ? current_space_id_ptr : "N/A");
+  SerialBT.println(current_space_id);
   SerialBT.println("-------------------------------\n");
 }
 
@@ -200,7 +331,7 @@ void process_message(String message, bool isBT) {
         if (commaIndex != -1) {
           String SSIDins = myPayload.substring(0, commaIndex);
           String PASSins = myPayload.substring(commaIndex + 1);
-          write_settings(SSIDins, PASSins, current_space_id_ptr ? String(current_space_id_ptr) : "1");
+          write_settings(SSIDins, PASSins, current_space_id);
         } else {
           if (isBT) {
             SerialBT.println("❌ Formato de comando 'wifi' incorrecto. Use 'wifi:SSID,PASSWORD'");
@@ -208,8 +339,9 @@ void process_message(String message, bool isBT) {
             Serial.println("❌ Formato de comando 'wifi' incorrecto. Use 'wifi:SSID,PASSWORD'");
           }
         }
-      } else if (myCommand == "spaceid") {
-        write_settings(current_ssid_ptr ? String(current_ssid_ptr) : "Rias", current_password_ptr ? String(current_password_ptr) : "uttijuana", myPayload);
+             } else if (myCommand == "spaceid") {
+         int newSpaceId = myPayload.toInt();
+         write_settings(current_ssid_ptr ? String(current_ssid_ptr) : "Rias", current_password_ptr ? String(current_password_ptr) : "uttijuana", newSpaceId);
         if (isBT) {
             SerialBT.println("✅ Space ID actualizado. Reinicia para aplicar.");
         } else {
@@ -227,7 +359,44 @@ void process_message(String message, bool isBT) {
         } else {
             Serial.println("✅ EEPROM borrada exitosamente. Reinicia tu ESP32 y sube el código principal.");
         }
-      } else {
+             } else if (myCommand == "credentials") {
+         showCredentialsStatus();
+         if (isBT) {
+             SerialBT.println("✅ Estado de credenciales mostrado en Serial");
+         }
+       } else if (myCommand == "ntp") {
+         if (WiFi.status() == WL_CONNECTED) {
+           initializeNTP();
+           if (isBT) {
+             SerialBT.println("✅ NTP sincronizado. Ver detalles en Serial.");
+           }
+         } else {
+           if (isBT) {
+             SerialBT.println("❌ WiFi no conectado. Conecta WiFi primero.");
+           } else {
+             Serial.println("❌ WiFi no conectado. Conecta WiFi primero.");
+           }
+         }
+       } else if (myCommand == "time") {
+         if (ntpInitialized) {
+           timeClient.update();
+           String currentTime = timeClient.getFormattedTime();
+           unsigned long timestamp = timeClient.getEpochTime();
+           String timeInfo = "🕐 Hora Tijuana: " + currentTime + " | Timestamp: " + String(timestamp);
+           if (isBT) {
+             SerialBT.println(timeInfo);
+           } else {
+             Serial.println(timeInfo);
+           }
+         } else {
+           String timeInfo = "❌ NTP no inicializado. Usa 'ntp:' para sincronizar.";
+           if (isBT) {
+             SerialBT.println(timeInfo);
+           } else {
+             Serial.println(timeInfo);
+           }
+         }
+       } else {
         if (isBT) {
             SerialBT.println("⚠️ Comando desconocido.");
         } else {
@@ -275,8 +444,8 @@ void publishDeviceConfig() {
     doc["device_id"] = device_id;
     doc["name"] = "Sistema de Control de Acceso";
     doc["type"] = "access_control";
-    doc["space_id"] = (current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? atoi(current_space_id_ptr) : 1;
-    doc["space_name"] = "Cubículo " + String((current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? current_space_id_ptr : "1");
+         doc["space_id"] = current_space_id;
+     doc["space_name"] = "Cubículo " + String(current_space_id);
     
     // Tópico principal MQTT
     String main_topic = "workbit/devices/" + String(device_id);
@@ -315,7 +484,7 @@ void publishDeviceConfig() {
     hw["ip_address"] = WiFi.localIP().toString();
 
     // Ubicación del dispositivo
-    doc["location"] = "Puerta del cubículo " + String((current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? current_space_id_ptr : "1");
+    doc["location"] = "Puerta del cubículo " + String(current_space_id);
 
      char buffer[1024];
     serializeJson(doc, buffer);
@@ -330,6 +499,12 @@ void conectarMQTT() {
     Serial.println("Conectado a MQTT ✅");
     client.subscribe(response_topic);
     client.subscribe(guest_update_topic);
+    
+    // Suscribirse a credenciales de nuestro espacio
+    String credentialsTopic = "workbit/access/credentials/" + String(current_space_id);
+    client.subscribe(credentialsTopic.c_str());
+    Serial.println("🔑 Suscrito a credenciales: " + credentialsTopic);
+    
     publishDeviceConfig();
   } else {
     Serial.print("Fallo rc=");
@@ -363,12 +538,17 @@ void handleReconnection() {
         attempts++;
       }
       
-      if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\n✅ WiFi reconectado");
-        Serial.print("IP: ");
-        Serial.println(WiFi.localIP());
-        reconnectAttempts = 0; // Reset contador
-      } else {
+             if (WiFi.status() == WL_CONNECTED) {
+         Serial.println("\n✅ WiFi reconectado");
+         Serial.print("IP: ");
+         Serial.println(WiFi.localIP());
+         reconnectAttempts = 0; // Reset contador
+         
+         // Inicializar NTP después de reconectar WiFi
+         if (!ntpInitialized) {
+           initializeNTP();
+         }
+       } else {
         reconnectAttempts++;
         Serial.printf("\n❌ Reintento WiFi %d/%d fallido\n", reconnectAttempts, MAX_RECONNECT_ATTEMPTS);
       }
@@ -392,8 +572,7 @@ void handleReconnection() {
         reconnectAttempts = 0; // Reset contador
         
         // Suscribirse a credenciales de nuestro espacio
-        String spaceId = (current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? String(current_space_id_ptr) : "1";
-        String credentialsTopic = "workbit/access/credentials/" + spaceId;
+        String credentialsTopic = "workbit/access/credentials/" + String(current_space_id);
         client.subscribe(credentialsTopic.c_str());
         Serial.println("🔑 Suscrito a credenciales: " + credentialsTopic);
         
@@ -486,18 +665,26 @@ void handleCredentialsUpdate(StaticJsonDocument<1024>& doc) {
   // Limpiar credenciales existentes
   credential_count = 0;
   
-  const char* space_id_str = doc["space_id"];
-  String current_space = (current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? String(current_space_id_ptr) : "1";
+  // Extraer space_id como número
+  int space_id_num = doc["space_id"] | -1;
   
   // Verificar que es para nuestro espacio
-  if (!space_id_str || String(space_id_str) != current_space) {
-    Serial.printf("⚠️ Credenciales recibidas para espacio %s, esperábamos %s\n", 
-                  space_id_str ? space_id_str : "null", current_space.c_str());
+  if (space_id_num == -1 || space_id_num != current_space_id) {
+    Serial.printf("⚠️ Credenciales recibidas para espacio %d, esperábamos %d\n", 
+                  space_id_num, current_space_id);
     return;
   }
 
+  // Mostrar información del mensaje recibido
+  Serial.printf("📨 Mensaje recibido para espacio %d\n", space_id_num);
+  Serial.printf("📅 Timestamp: %s\n", doc["timestamp"] | "N/A");
+  Serial.printf("⏰ Expira: %s\n", doc["expires_at"] | "N/A");
+  Serial.printf("🕐 Hora actual Tijuana: %s\n", ntpInitialized ? timeClient.getFormattedTime().c_str() : "NTP no disponible");
+
   // Procesar reservas
   JsonArray reservations = doc["reservations"];
+  Serial.printf("📋 Procesando %d reservas\n", reservations.size());
+  
   for (JsonVariant reservation : reservations) {
     if (credential_count >= 5) {
       Serial.println("⚠️ Máximo de 5 reservas alcanzado, ignorando el resto");
@@ -510,12 +697,21 @@ void handleCredentialsUpdate(StaticJsonDocument<1024>& doc) {
     const char* valid_until = reservation["valid_until"];
     JsonArray cards = reservation["authorized_cards"];
 
-    if (!res_id || !cards) continue;
+    if (!res_id || !cards) {
+      Serial.println("⚠️ Reserva sin ID o tarjetas, saltando...");
+      continue;
+    }
 
     Credential& cred = credentials[credential_count];
     cred.reservation_id = String(res_id);
     cred.owner = owner ? String(owner) : "unknown";
     cred.card_count = 0;
+
+    // Validar fechas
+    if (!valid_from || !valid_until) {
+      Serial.printf("⚠️ Fechas inválidas en reserva %s, saltando...\n", res_id);
+      continue;
+    }
 
     // Agregar tarjetas (máximo 15)
     for (JsonVariant card : cards) {
@@ -531,26 +727,42 @@ void handleCredentialsUpdate(StaticJsonDocument<1024>& doc) {
       }
     }
 
-    // Parsear timestamps (simplificado)
-    cred.valid_from = valid_from ? millis() : 0;
-    cred.valid_until = valid_until ? millis() + (24 * 60 * 60 * 1000) : ULONG_MAX; // 24h por defecto
+    // Guardar fechas ISO
+    cred.valid_from = String(valid_from);
+    cred.valid_until = String(valid_until);
+    cred.is_active = true;
 
-    Serial.printf("✅ Credencial agregada: %s (%s) - %d tarjetas\n", 
-                  cred.reservation_id.c_str(), cred.owner.c_str(), cred.card_count);
+    // Verificar si la reserva está activa
+    bool isActive = isReservationActive(cred);
+    
+    Serial.printf("✅ Credencial agregada: %s (%s)\n", 
+                  cred.reservation_id.c_str(), cred.owner.c_str());
+    Serial.printf("   📅 Desde: %s\n", cred.valid_from.c_str());
+    Serial.printf("   📅 Hasta: %s\n", cred.valid_until.c_str());
+    Serial.printf("   🪪 Tarjetas: %d\n", cred.card_count);
+    Serial.printf("   🔄 Estado: %s\n", isActive ? "ACTIVA" : "INACTIVA");
     
     credential_count++;
   }
 
-  Serial.printf("🔑 Credenciales actualizadas: %d reservas, tarjetas maestras: %d\n", 
-                credential_count, MASTER_CARD_COUNT);
-  Serial.println("📋 Lista actual de acceso actualizada");
+  // Mostrar tarjetas maestras si están en el mensaje
+  if (doc.containsKey("master_cards")) {
+    JsonArray masterCards = doc["master_cards"];
+    Serial.printf("🔑 Tarjetas maestras recibidas: %d\n", masterCards.size());
+    for (JsonVariant card : masterCards) {
+      Serial.printf("   🪪 %s\n", card.as<const char*>());
+    }
+  }
+
+  Serial.printf("🔑 Credenciales actualizadas: %d reservas activas\n", credential_count);
+  Serial.println("📋 Lista de acceso actualizada y lista para uso");
 }
 
 // ---------------- PUBLICACIONES MQTT ----------------
 void publishRequestAccess(const String& uid) {
   StaticJsonDocument<256> doc;
   doc["device_id"] = device_id;
-  doc["space_id"] = (current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? current_space_id_ptr : "cubiculo_1";
+  doc["space_id"] = current_space_id;
   doc["card_code"] = uid;
 
   char buffer[256];
@@ -565,9 +777,8 @@ void publishRequestAccess(const String& uid) {
 // ================= FUNCIONES ESTANDARIZADAS DE PUBLICACIÓN =================
 void publishInfraredEvent(const char* event, int people_inside) {
   StaticJsonDocument<512> doc;
-  String spaceId = (current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? String(current_space_id_ptr) : "1";
   
-  doc["space_id"] = spaceId.toInt();
+  doc["space_id"] = current_space_id;
   doc["device_id"] = device_id;
   doc["sensor_id"] = ir_sensor_id;
   doc["sensor_type"] = "infrared_pair";
@@ -594,9 +805,8 @@ void publishInfraredEvent(const char* event, int people_inside) {
 
 void publishError(String errorType, String message) {
   StaticJsonDocument<256> doc;
-  String spaceId = (current_space_id_ptr && strlen(current_space_id_ptr) > 0) ? String(current_space_id_ptr) : "1";
   
-  doc["space_id"] = spaceId.toInt();
+  doc["space_id"] = current_space_id;
   doc["alert_type"] = errorType;
   doc["message"] = message;
   doc["device_id"] = device_id;
@@ -605,7 +815,7 @@ void publishError(String errorType, String message) {
   char buffer[256];
   serializeJson(doc, buffer);
   
-  String topic = "workbit/alerts/" + spaceId;
+  String topic = "workbit/alerts/" + String(current_space_id);
   if (client.connected()) {
     client.publish(topic.c_str(), buffer);
     Serial.println("⚠️ Error publicado: " + errorType + " - " + message);
@@ -634,7 +844,15 @@ void setup() {
   SerialBT.begin("ESP32_WorkBit_Access");
   Serial.println("Bluetooth iniciado: ESP32_WorkBit_Access");
 
+  // Inicializar NTP después de conectar WiFi
+  if (WiFi.status() == WL_CONNECTED) {
+    initializeNTP();
+  }
+
   Serial.println("🟢 Sistema listo.");
+  
+  // Mostrar estado inicial de credenciales
+  showCredentialsStatus();
 }
 
 // ================= LOOP PRINCIPAL ESTANDARIZADO =================
@@ -769,6 +987,8 @@ void handleInfraredDetection() {
 
 // ================= FUNCIONES RFID ESTANDARIZADAS =================
 bool isCardAuthorized(String cardUid) {
+  Serial.printf("🔍 Verificando autorización para tarjeta: %s\n", cardUid.c_str());
+  
   // Verificar tarjetas maestras (hardcodeadas según especificaciones)
   for (int i = 0; i < MASTER_CARD_COUNT; i++) {
     if (cardUid == MASTER_CARDS[i]) {
@@ -778,21 +998,33 @@ bool isCardAuthorized(String cardUid) {
   }
   
   // Verificar credenciales de reservas
-  unsigned long currentTime = millis();
+  unsigned long currentTime = getCurrentTimestamp();
+  Serial.printf("⏰ Tiempo actual: %lu\n", currentTime);
+  
   for (int i = 0; i < credential_count; i++) {
-    // Verificar si la reserva está activa (simplificado)
-    if (currentTime >= credentials[i].valid_from && currentTime <= credentials[i].valid_until) {
+    Serial.printf("🔍 Verificando reserva %d: %s\n", i, credentials[i].reservation_id.c_str());
+    
+    // Verificar si la reserva está activa
+    if (isReservationActive(credentials[i])) {
+      Serial.printf("✅ Reserva %s está activa, verificando tarjetas...\n", credentials[i].reservation_id.c_str());
+      
       for (int j = 0; j < credentials[i].card_count; j++) {
         if (cardUid == credentials[i].authorized_cards[j]) {
           Serial.printf("✅ Tarjeta autorizada por reserva %s (%s)\n", 
                         credentials[i].reservation_id.c_str(), 
                         credentials[i].owner.c_str());
+          Serial.printf("📅 Válida desde: %s hasta: %s\n", 
+                        credentials[i].valid_from.c_str(), 
+                        credentials[i].valid_until.c_str());
           return true;
         }
       }
+    } else {
+      Serial.printf("❌ Reserva %s no está activa\n", credentials[i].reservation_id.c_str());
     }
   }
   
+  Serial.printf("🚫 Tarjeta %s no autorizada\n", cardUid.c_str());
   return false;
 }
 

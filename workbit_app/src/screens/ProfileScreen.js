@@ -156,7 +156,7 @@ const ProfileScreen = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Perfil</Text>
+          <Text style={styles.title}>Configuración</Text>
         </View>
 
         {/* Profile Card */}

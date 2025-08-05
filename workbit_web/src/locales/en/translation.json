@@ -253,5 +253,82 @@
       "sensors": "What sensors does the system include?",
       "contact": "How can I contact for more information?"
     }
+  },
+  "testimonials": {
+    "title": "What our clients say",
+    "subtitle": "Discover how WorkBit is transforming space management in organizations of all types",
+    "cta": {
+      "text": "Ready to join our satisfied customers?",
+      "button": "Get Started"
+    },
+    "testimonials": [
+      {
+        "name": "Maria Garcia",
+        "role": "Operations Director",
+        "company": "TechCorp Inc.",
+        "content": "WorkBit completely transformed how we manage our spaces. Efficiency increased by 40% and our employees are more satisfied."
+      },
+      {
+        "name": "Carlos Rodriguez",
+        "role": "Facilities Manager",
+        "company": "Digital Innovation",
+        "content": "The real-time monitoring system allows us to maintain perfect environmental conditions. It's amazing how IoT technology improves the experience."
+      },
+      {
+        "name": "Ana Lopez",
+        "role": "Space Coordinator",
+        "company": "Coworking Plus",
+        "content": "Implementation was super easy and RFID access control gives us the security we needed. Excellent investment."
+      }
+    ]
+  },
+  "technology": {
+    "title": "Advanced Technology",
+    "subtitle": "Discover the IoT technology that powers WorkBit to create smart and efficient spaces",
+    "modules": {
+      "monitoring": {
+        "title": "Monitoring Module",
+        "description": "ESP32-based IoT system for real-time environmental monitoring",
+        "features": [
+          "DHT22 temperature and humidity sensors",
+          "CCS811 air quality monitor",
+          "MQTT communication for real-time data"
+        ]
+      },
+      "access": {
+        "title": "Access Control",
+        "description": "RFID-based authentication and control system",
+        "features": [
+          "High-precision MFRC522 RFID reader",
+          "Real-time credential validation",
+          "Access and activity logging"
+        ]
+      },
+      "connectivity": {
+        "title": "Smart Connectivity",
+        "description": "Robust and reliable communication infrastructure",
+        "features": [
+          "Dual-band WiFi for stable connection",
+          "MQTT protocol for efficient communication",
+          "NTP synchronization for time precision"
+        ]
+      }
+    },
+    "sensorsTitle": "Integrated Sensors",
+    "sensorsSubtitle": "Cutting-edge technology for complete environmental monitoring",
+    "sensors": {
+      "temperature": "Temperature",
+      "temperatureDesc": "Precise monitoring of ambient temperature and humidity",
+      "air": "Air Quality",
+      "airDesc": "CO2 and volatile organic compounds measurement",
+      "rfid": "RFID",
+      "rfidDesc": "Secure authentication with proximity cards",
+      "connectivity": "Connectivity",
+      "connectivityDesc": "Dual-band WiFi and MQTT communication"
+    },
+    "integration": {
+      "title": "Total Integration",
+      "description": "All modules work in perfect synchrony to create an intelligent ecosystem that adapts to your organization's needs."
+    }
   }
 } 

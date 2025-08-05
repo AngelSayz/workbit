@@ -39,26 +39,6 @@ const TabNavigator = () => {
       }}
     >
       <Tab.Screen 
-        name="Home" 
-        component={HomeScreen}
-        options={{
-          tabBarLabel: 'Inicio',
-          tabBarIcon: ({ color, size = 24 }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen 
-        name="Spaces" 
-        component={SpacesScreen}
-        options={{
-          tabBarLabel: 'Espacios',
-          tabBarIcon: ({ color, size = 24 }) => (
-            <Ionicons name="grid-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen 
         name="Reservations" 
         component={ReservationsScreen}
         options={{
@@ -69,12 +49,22 @@ const TabNavigator = () => {
         }}
       />
       <Tab.Screen 
+        name="Spaces" 
+        component={SpacesScreen}
+        options={{
+          tabBarLabel: 'Cubículos',
+          tabBarIcon: ({ color, size = 24 }) => (
+            <Ionicons name="grid-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen 
         name="Profile" 
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Perfil',
+          tabBarLabel: 'Configuración',
           tabBarIcon: ({ color, size = 24 }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
       />

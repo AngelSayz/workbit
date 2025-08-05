@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, Modal, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, Alert, Modal, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import GridLayout from '../components/GridLayout';
 import ApiService from '../services/api';
 import Button from '../components/Button';
+import Input from '../components/Input';
 
 const SpacesScreen = ({ navigation }) => {
   const [spaces, setSpaces] = useState([]);
@@ -14,6 +15,15 @@ const SpacesScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [showReservationModal, setShowReservationModal] = useState(false);
+  const [reason, setReason] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(() => {
+    const end = new Date();
+    end.setHours(end.getHours() + 1);
+    return end;
+  });
+  const [creatingReservation, setCreatingReservation] = useState(false);
 
   useEffect(() => {
     loadSpacesData();
@@ -52,8 +62,12 @@ const SpacesScreen = ({ navigation }) => {
       setShowReservationModal(true);
     } else {
       Alert.alert(
-        'Espacio no disponible',
-        `El espacio "${space.name}" está ${getStatusText(space.status).toLowerCase()}.`
+        'Información del Espacio',
+        `${space.name}\n` +
+        `Estado: ${getStatusText(space.status)}\n` +
+        `Capacidad: ${space.capacity} personas\n` +
+        `Posición: (${space.position_x}, ${space.position_y})`,
+        [{ text: 'Cerrar' }]
       );
     }
   };
@@ -69,11 +83,56 @@ const SpacesScreen = ({ navigation }) => {
     }
   };
 
-  const handleReservation = () => {
-    if (selectedSpace) {
-      setShowReservationModal(false);
-      // Navegar a la pantalla de reserva con el espacio seleccionado
-      navigation.navigate('Reservations', { selectedSpace });
+  const handleReservation = async () => {
+    if (!selectedSpace || !reason.trim()) {
+      Alert.alert('Error', 'Por favor completa todos los campos');
+      return;
+    }
+
+    try {
+      setCreatingReservation(true);
+      
+      // Crear las fechas de inicio y fin
+      const startDateTime = new Date(selectedDate);
+      startDateTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
+      
+      const endDateTime = new Date(selectedDate);
+      endDateTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
+
+      // Validar que la hora de fin sea después de la de inicio
+      if (endDateTime <= startDateTime) {
+        Alert.alert('Error', 'La hora de fin debe ser posterior a la hora de inicio');
+        return;
+      }
+
+      const reservationData = {
+        reason: reason.trim(),
+        space_id: selectedSpace.id,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        participants: []
+      };
+
+      await ApiService.createReservation(reservationData);
+      
+      Alert.alert(
+        'Reserva Creada',
+        `Se ha creado tu reserva para ${selectedSpace.name}`,
+        [{ text: 'OK', onPress: () => {
+          setShowReservationModal(false);
+          setReason('');
+          setSelectedSpace(null);
+        }}]
+      );
+      
+      // Recargar espacios para actualizar el estado
+      await loadSpacesData();
+
+    } catch (error) {
+      console.error('Error creating reservation:', error);
+      Alert.alert('Error', 'No se pudo crear la reserva. Inténtalo de nuevo.');
+    } finally {
+      setCreatingReservation(false);
     }
   };
 
@@ -115,8 +174,8 @@ const SpacesScreen = ({ navigation }) => {
       
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Espacios</Text>
-        <Text style={styles.subtitle}>Layout visual de cubículos</Text>
+        <Text style={styles.title}>Mapa de Cubículos</Text>
+        <Text style={styles.subtitle}>Selecciona un espacio disponible para reservar</Text>
       </View>
 
       {/* Stats Bar */}
@@ -171,35 +230,91 @@ const SpacesScreen = ({ navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Reservar Espacio</Text>
-              <Button
-                title="✕"
-                variant="ghost"
-                size="sm"
+              <TouchableOpacity
                 onPress={() => setShowReservationModal(false)}
-              />
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
             </View>
             
             {selectedSpace && (
-              <View style={styles.spaceDetails}>
-                <Text style={styles.spaceName}>{selectedSpace.name}</Text>
-                <Text style={styles.spaceInfo}>Capacidad: {selectedSpace.capacity} personas</Text>
-                <Text style={styles.spaceInfo}>Estado: {getStatusText(selectedSpace.status)}</Text>
-              </View>
-            )}
+              <ScrollView style={styles.reservationForm}>
+                <View style={styles.spaceInfo}>
+                  <Text style={styles.spaceName}>{selectedSpace.name}</Text>
+                  <Text style={styles.spaceCapacity}>Capacidad: {selectedSpace.capacity} personas</Text>
+                </View>
 
-            <View style={styles.modalActions}>
-              <Button
-                title="Cancelar"
-                variant="outline"
-                onPress={() => setShowReservationModal(false)}
-                style={styles.modalButton}
-              />
-              <Button
-                title="Reservar"
-                onPress={handleReservation}
-                style={styles.modalButton}
-              />
-            </View>
+                <View style={styles.formSection}>
+                  <Text style={styles.formLabel}>Motivo de la reserva</Text>
+                  <Input
+                    value={reason}
+                    onChangeText={setReason}
+                    placeholder="Ej: Reunión de equipo, trabajo individual..."
+                    multiline
+                    style={styles.reasonInput}
+                  />
+                </View>
+
+                <View style={styles.formSection}>
+                  <Text style={styles.formLabel}>Fecha</Text>
+                  <TouchableOpacity style={styles.dateInput}>
+                    <Ionicons name="calendar-outline" size={20} color="#6b7280" />
+                    <Text style={styles.dateText}>
+                      {selectedDate.toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.timeSection}>
+                  <View style={styles.timeInput}>
+                    <Text style={styles.formLabel}>Hora de inicio</Text>
+                    <TouchableOpacity style={styles.timeButton}>
+                      <Ionicons name="time-outline" size={20} color="#6b7280" />
+                      <Text style={styles.timeText}>
+                        {startTime.toLocaleTimeString('es-ES', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.timeInput}>
+                    <Text style={styles.formLabel}>Hora de fin</Text>
+                    <TouchableOpacity style={styles.timeButton}>
+                      <Ionicons name="time-outline" size={20} color="#6b7280" />
+                      <Text style={styles.timeText}>
+                        {endTime.toLocaleTimeString('es-ES', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.modalActions}>
+                  <Button
+                    title="Cancelar"
+                    variant="outline"
+                    onPress={() => setShowReservationModal(false)}
+                    style={styles.modalButton}
+                  />
+                  <Button
+                    title="Reservar"
+                    onPress={handleReservation}
+                    loading={creatingReservation}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
@@ -288,6 +403,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 24,
     marginHorizontal: 24,
+    maxHeight: '80%',
     minWidth: 300,
   },
   modalHeader: {
@@ -301,19 +417,78 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#111827',
   },
-  spaceDetails: {
-    marginBottom: 24,
+  closeButton: {
+    padding: 4,
   },
-  spaceName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
+  reservationForm: {
+    flex: 1,
   },
   spaceInfo: {
+    backgroundColor: '#f3f4f6',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  spaceName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  spaceCapacity: {
     fontSize: 14,
     color: '#6b7280',
-    marginBottom: 4,
+  },
+  formSection: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  reasonInput: {
+    minHeight: 80,
+  },
+  dateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#374151',
+    textTransform: 'capitalize',
+  },
+  timeSection: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  timeInput: {
+    flex: 1,
+  },
+  timeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#374151',
   },
   modalActions: {
     flexDirection: 'row',
