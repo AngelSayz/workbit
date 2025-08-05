@@ -180,10 +180,10 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, allSpaces 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden"
+        className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
           <div className="flex items-center space-x-3">
             <Settings className="w-6 h-6 text-blue-600" />
             <div>
@@ -201,7 +201,7 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, allSpaces 
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Capacity */}
           <Card className="p-4">
             <div className="flex items-center justify-between">
@@ -316,7 +316,7 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, allSpaces 
           </Card>
 
           {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-4 border-t">
+          <div className="flex justify-end space-x-3 pt-4 border-t mt-6">
             <Button
               variant="outline"
               onClick={onClose}
@@ -338,6 +338,30 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, allSpaces 
               )}
             </Button>
           </div>
+        </div>
+
+        {/* Fixed Footer */}
+        <div className="border-t bg-gray-50 p-4 flex justify-end space-x-3 flex-shrink-0">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isSaving}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Guardando...</span>
+              </div>
+            ) : (
+              'Guardar cambios'
+            )}
+          </Button>
         </div>
       </motion.div>
     </div>
