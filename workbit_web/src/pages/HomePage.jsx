@@ -2,6 +2,8 @@ import Navbar from '../components/layout/Navbar';
 import HeroSection from '../components/sections/HeroSection';
 import StatsSection from '../components/sections/StatsSection';
 import FeaturesSection from '../components/sections/FeaturesSection';
+import TechnologySection from '../components/sections/TechnologySection';
+import TestimonialsSection from '../components/sections/TestimonialsSection';
 import ContactForm from '../components/sections/ContactForm';
 import Footer from '../components/layout/Footer';
 import ChatWidget from '../components/ChatWidget';
@@ -13,6 +15,8 @@ const HomePage = () => {
       <HeroSection />
       <StatsSection />
       <FeaturesSection />
+      <TechnologySection />
+      <TestimonialsSection />
       <ContactForm />
       <Footer />
       <ChatWidget />

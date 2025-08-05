@@ -253,5 +253,82 @@
       "sensors": "¿Qué sensores incluye el sistema?",
       "contact": "¿Cómo puedo contactar para más información?"
     }
+  },
+  "testimonials": {
+    "title": "Lo que dicen nuestros clientes",
+    "subtitle": "Descubre cómo WorkBit está transformando la gestión de espacios en organizaciones de todo tipo",
+    "cta": {
+      "text": "¿Listo para unirte a nuestros clientes satisfechos?",
+      "button": "Comenzar Ahora"
+    },
+    "testimonials": [
+      {
+        "name": "María García",
+        "role": "Directora de Operaciones",
+        "company": "TechCorp S.A.",
+        "content": "WorkBit transformó completamente cómo gestionamos nuestros espacios. La eficiencia aumentó un 40% y nuestros empleados están más satisfechos."
+      },
+      {
+        "name": "Carlos Rodríguez",
+        "role": "Gerente de Facilities",
+        "company": "Innovación Digital",
+        "content": "El sistema de monitoreo en tiempo real nos permite mantener las condiciones ambientales perfectas. Es increíble cómo la tecnología IoT mejora la experiencia."
+      },
+      {
+        "name": "Ana López",
+        "role": "Coordinadora de Espacios",
+        "company": "Coworking Plus",
+        "content": "La implementación fue súper sencilla y el control de acceso con RFID nos brinda la seguridad que necesitábamos. Excelente inversión."
+      }
+    ]
+  },
+  "technology": {
+    "title": "Tecnología Avanzada",
+    "subtitle": "Descubre la tecnología IoT que impulsa WorkBit para crear espacios inteligentes y eficientes",
+    "modules": {
+      "monitoring": {
+        "title": "Módulo de Monitoreo",
+        "description": "Sistema IoT basado en ESP32 para monitoreo ambiental en tiempo real",
+        "features": [
+          "Sensores de temperatura y humedad DHT22",
+          "Monitor de calidad del aire CCS811",
+          "Comunicación MQTT para datos en tiempo real"
+        ]
+      },
+      "access": {
+        "title": "Control de Acceso",
+        "description": "Sistema de autenticación y control basado en tecnología RFID",
+        "features": [
+          "Lector RFID MFRC522 de alta precisión",
+          "Validación de credenciales en tiempo real",
+          "Registro de accesos y actividad"
+        ]
+      },
+      "connectivity": {
+        "title": "Conectividad Inteligente",
+        "description": "Infraestructura de comunicación robusta y confiable",
+        "features": [
+          "WiFi dual-band para conexión estable",
+          "Protocolo MQTT para comunicación eficiente",
+          "Sincronización NTP para precisión temporal"
+        ]
+      }
+    },
+    "sensorsTitle": "Sensores Integrados",
+    "sensorsSubtitle": "Tecnología de vanguardia para monitoreo completo del ambiente",
+    "sensors": {
+      "temperature": "Temperatura",
+      "temperatureDesc": "Monitoreo preciso de temperatura y humedad ambiental",
+      "air": "Calidad del Aire",
+      "airDesc": "Medición de CO2 y compuestos orgánicos volátiles",
+      "rfid": "RFID",
+      "rfidDesc": "Autenticación segura con tarjetas de proximidad",
+      "connectivity": "Conectividad",
+      "connectivityDesc": "WiFi de doble banda y comunicación MQTT"
+    },
+    "integration": {
+      "title": "Integración Total",
+      "description": "Todos los módulos trabajan en perfecta sincronía para crear un ecosistema inteligente que se adapta a las necesidades de tu organización."
+    }
   }
 } 
