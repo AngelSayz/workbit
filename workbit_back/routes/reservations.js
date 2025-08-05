@@ -6,6 +6,76 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const { publishReservationUpdate, publishCredentials } = require('../config/mqtt');
 const router = express.Router();
 
+// GET /api/reservations/my - Get current user's reservations
+router.get('/my', authenticateToken, async (req, res) => {
+  try {
+    const { status, date } = req.query;
+    const userId = req.user.id;
+
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    let query = supabase
+      .from('reservations')
+      .select(`
+        id,
+        reason,
+        start_time,
+        end_time,
+        status,
+        created_at,
+        spaces(id, name, capacity)
+      `)
+      .eq('owner_id', userId);
+
+    // Filter by status if provided
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    // Filter by date if provided
+    if (date) {
+      const targetDate = parseISO(date);
+      if (isValid(targetDate)) {
+        const startOfDay = format(targetDate, 'yyyy-MM-dd 00:00:00');
+        const endOfDay = format(targetDate, 'yyyy-MM-dd 23:59:59');
+        query = query.gte('start_time', startOfDay).lte('start_time', endOfDay);
+      }
+    }
+
+    const { data: reservations, error } = await query.order('start_time', { ascending: false });
+
+    if (error) {
+      console.error('Database error:', error);
+      return res.status(500).json({
+        error: 'Failed to fetch user reservations'
+      });
+    }
+
+    // Format reservations for mobile app compatibility
+    const formattedReservations = reservations.map(reservation => ({
+      id: reservation.id,
+      Reason: reservation.reason,
+      StartTime: reservation.start_time,
+      EndTime: reservation.end_time,
+      Status: reservation.status,
+      created_at: reservation.created_at,
+      SpaceName: reservation.spaces?.name || 'Espacio no especificado'
+    }));
+
+    res.json(formattedReservations);
+
+  } catch (error) {
+    console.error('Get user reservations error:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve user reservations'
+    });
+  }
+});
+
 // GET /api/reservations - Get all reservations (admin/technician) or user's reservations
 router.get('/', async (req, res) => {
   try {
@@ -237,6 +307,7 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/reservations - Create new reservation (matches C# createResevation endpoint)
 router.post('/', 
+  authenticateToken,
   [
     body('reason').trim().isLength({ min: 1 }).withMessage('Reason is required'),
     body('start_time').isISO8601().withMessage('Valid start time is required'),
@@ -400,6 +471,7 @@ router.post('/',
 
 // PUT /api/reservations/:id/status - Update reservation status (matches C# update endpoint)
 router.put('/:id/status', 
+  authenticateToken,
   [
     body('status').isIn(['pending', 'confirmed', 'cancelled']).withMessage('Invalid status')
   ],

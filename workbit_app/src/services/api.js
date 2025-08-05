@@ -147,6 +147,10 @@ class ApiService {
     return this.request('/api/reservations');
   }
 
+  async getMyReservations() {
+    return this.request('/api/reservations/my');
+  }
+
   async getReservationById(id) {
     return this.request(`/api/reservations/${id}`);
   }
