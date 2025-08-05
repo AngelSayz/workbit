@@ -25,15 +25,28 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-white overflow-hidden pt-16 sm:pt-20 md:pt-24">
-      {/* Subtle blue gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white"></div>
+    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-50 overflow-hidden pt-16 sm:pt-20 md:pt-24">
+      {/* Glassmorphism background elements */}
+      <div className="absolute inset-0">
+        {/* Large glassmorphism shapes */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-white/20 backdrop-blur-xl rounded-full border border-white/30 shadow-2xl"></div>
+        <div className="absolute top-40 right-20 w-80 h-80 bg-blue-200/30 backdrop-blur-xl rounded-full border border-blue-300/30 shadow-2xl"></div>
+        <div className="absolute bottom-32 left-1/4 w-72 h-72 bg-white/25 backdrop-blur-xl rounded-full border border-white/40 shadow-2xl"></div>
+        <div className="absolute bottom-20 right-1/3 w-64 h-64 bg-blue-100/40 backdrop-blur-xl rounded-full border border-blue-200/40 shadow-2xl"></div>
+        
+        {/* Medium glassmorphism elements */}
+        <div className="absolute top-60 left-1/2 w-48 h-48 bg-white/15 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl transform rotate-45"></div>
+        <div className="absolute top-80 right-10 w-40 h-40 bg-blue-50/50 backdrop-blur-lg rounded-2xl border border-blue-100/30 shadow-xl transform -rotate-12"></div>
+        <div className="absolute bottom-60 left-20 w-52 h-52 bg-white/20 backdrop-blur-lg rounded-2xl border border-white/25 shadow-xl transform rotate-12"></div>
+        
+        {/* Small floating elements */}
+        <div className="absolute top-32 right-1/4 w-24 h-24 bg-blue-200/40 backdrop-blur-md rounded-xl border border-blue-300/30 shadow-lg transform rotate-45"></div>
+        <div className="absolute bottom-40 left-1/2 w-20 h-20 bg-white/30 backdrop-blur-md rounded-xl border border-white/40 shadow-lg transform -rotate-30"></div>
+        <div className="absolute top-1/2 right-1/2 w-16 h-16 bg-blue-100/50 backdrop-blur-md rounded-full border border-blue-200/40 shadow-lg"></div>
+      </div>
       
-      {/* Grid Pattern - subtle */}
-      <div className="absolute inset-0" style={{
-        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(59, 130, 246, 0.1) 1px, transparent 0)',
-        backgroundSize: '40px 40px'
-      }}></div>
+      {/* Subtle overlay for better text readability */}
+      <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
