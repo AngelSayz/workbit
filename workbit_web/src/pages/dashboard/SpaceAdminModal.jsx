@@ -314,30 +314,6 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, allSpaces 
               </Button>
             </div>
           </Card>
-
-          {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-4 border-t mt-6">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={isSaving}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Guardando...</span>
-                </div>
-              ) : (
-                'Guardar cambios'
-              )}
-            </Button>
-          </div>
         </div>
 
         {/* Fixed Footer */}
