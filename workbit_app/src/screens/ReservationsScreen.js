@@ -8,6 +8,7 @@ import ApiService from '../services/api';
 import Button from '../components/Button';
 import Toast from '../components/Toast';
 import ConfirmationModal from '../components/ConfirmationModal';
+import ActiveReservationModal from '../components/ActiveReservationModal';
 import { useToast, useConfirmation } from '../hooks/useNotifications';
 
 const ReservationsScreen = () => {
@@ -22,6 +23,7 @@ const ReservationsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
   const [activeReservation, setActiveReservation] = useState(null);
+  const [showActiveModal, setShowActiveModal] = useState(false);
 
   useEffect(() => {
     loadReservations();
@@ -87,6 +89,34 @@ const ReservationsScreen = () => {
     }
   };
 
+  const handleActiveReservationPress = () => {
+    if (activeReservation) {
+      setShowActiveModal(true);
+    }
+  };
+
+  const handleEndSession = async () => {
+    if (!activeReservation) return;
+    
+    const confirmed = await showConfirmation(
+      'Finalizar Sesión',
+      '¿Estás seguro de que quieres finalizar tu sesión activa?',
+      'warning'
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      await ApiService.updateReservationStatus(activeReservation.id, 'cancelled');
+      showToast('Sesión finalizada correctamente', 'success');
+      await loadReservations();
+      setShowActiveModal(false);
+    } catch (error) {
+      console.error('Error ending session:', error);
+      showToast('Error al finalizar la sesión', 'error');
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', { 
@@ -137,6 +167,16 @@ const ReservationsScreen = () => {
   const filteredReservations = reservations.filter(reservation => {
     if (filter === 'all') return true;
     return reservation.Status === filter;
+  }).sort((a, b) => {
+    // Priorizar reserva activa al top
+    const isAActive = activeReservation && a.id === activeReservation.id;
+    const isBActive = activeReservation && b.id === activeReservation.id;
+    
+    if (isAActive && !isBActive) return -1;
+    if (!isAActive && isBActive) return 1;
+    
+    // Luego ordenar por fecha de inicio (más reciente primero)
+    return new Date(b.StartTime) - new Date(a.StartTime);
   });
 
   const isReservationActive = (reservation) => {
@@ -262,15 +302,23 @@ const ReservationsScreen = () => {
 
       {/* Active Reservation Alert */}
       {activeReservation && (
-        <View style={styles.activeAlert}>
+        <TouchableOpacity 
+          style={styles.activeAlert}
+          onPress={handleActiveReservationPress}
+          activeOpacity={0.8}
+        >
           <View style={styles.activeAlertHeader}>
             <Ionicons name="radio-outline" size={20} color="#10b981" />
             <Text style={styles.activeAlertTitle}>Tienes una reserva activa</Text>
+            <Ionicons name="analytics" size={20} color="#10b981" style={{ marginLeft: 'auto' }} />
           </View>
           <Text style={styles.activeAlertText}>
             {activeReservation.Reason} • Termina a las {formatTime(activeReservation.EndTime)}
           </Text>
-        </View>
+          <Text style={styles.activeAlertSubtext}>
+            Toca para ver condiciones ambientales
+          </Text>
+        </TouchableOpacity>
       )}
 
       {/* Filter Buttons */}
@@ -319,6 +367,13 @@ const ReservationsScreen = () => {
       
       <Toast />
       <ConfirmationModal />
+      
+      <ActiveReservationModal
+        visible={showActiveModal}
+        onClose={() => setShowActiveModal(false)}
+        reservation={activeReservation}
+        onEndSession={handleEndSession}
+      />
     </SafeAreaView>
   );
 };
@@ -417,6 +472,12 @@ const getStyles = (insets) => StyleSheet.create({
   activeAlertText: {
     fontSize: 14,
     color: '#10b981',
+  },
+  activeAlertSubtext: {
+    fontSize: 12,
+    color: '#059669',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 });
 

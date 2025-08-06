@@ -195,6 +195,15 @@ class ApiService {
     });
   }
 
+  // Environmental data endpoints
+  async getReservationEnvironmentalData(reservationId) {
+    return this.request(`/api/reservations/${reservationId}/environmental-data`);
+  }
+
+  async getSpaceEnvironmentalData(spaceId, hours = 24) {
+    return this.request(`/api/sensors/readings/${spaceId}?hours=${hours}`);
+  }
+
   // Access log endpoints  
   async createAccessLog(accessLogData) {
     return this.request('/api/access-logs', {
