@@ -419,14 +419,49 @@ router.post('/',
 
       // Add participants if provided
       if (participants.length > 0) {
-        const participantInserts = participants.map(userId => ({
+        console.log('🔍 Resolviendo participantes:', participants);
+        
+        // Convert usernames to user IDs
+        const { data: participantUsers, error: participantError } = await supabase
+          .from('users')
+          .select('id, username')
+          .in('username', participants);
+
+        if (participantError) {
+          console.error('Error fetching participant users:', participantError);
+          return res.status(400).json({
+            error: 'Error validating participants',
+            details: participantError.message
+          });
+        }
+
+        if (participantUsers.length !== participants.length) {
+          const foundUsernames = participantUsers.map(u => u.username);
+          const missingUsernames = participants.filter(username => !foundUsernames.includes(username));
+          return res.status(400).json({
+            error: 'Some participants not found',
+            missing_participants: missingUsernames
+          });
+        }
+
+        const participantInserts = participantUsers.map(user => ({
           reservation_id: newReservation.id,
-          user_id: userId
+          user_id: user.id
         }));
 
-        await supabase
+        const { error: insertError } = await supabase
           .from('reservation_participants')
           .insert(participantInserts);
+
+        if (insertError) {
+          console.error('Error inserting participants:', insertError);
+          return res.status(500).json({
+            error: 'Error adding participants',
+            details: insertError.message
+          });
+        }
+
+        console.log(`✅ Agregados ${participantUsers.length} participantes`);
       }
 
       // Publish reservation creation via MQTT
@@ -436,6 +471,16 @@ router.post('/',
         start_time,
         end_time
       });
+
+      // Publish updated credentials to the access control module
+      try {
+        const spaceCredentials = await getSpaceCredentials(space_id);
+        publishCredentials(space_id, spaceCredentials);
+        console.log(`✅ Credenciales actualizadas para espacio ${space_id}`);
+      } catch (credentialsError) {
+        console.error('Error publishing credentials:', credentialsError);
+        // No fallar la reserva si las credenciales fallan
+      }
 
       res.status(201).json({
         message: 'Reservation created successfully',
@@ -538,6 +583,15 @@ router.put('/:id/status',
         previous_status: currentReservation.status
       });
 
+      // Update credentials for the access control module
+      try {
+        const spaceCredentials = await getSpaceCredentials(currentReservation.space_id);
+        publishCredentials(currentReservation.space_id, spaceCredentials);
+        console.log(`✅ Credenciales actualizadas tras cambio de estado para espacio ${currentReservation.space_id}`);
+      } catch (credentialsError) {
+        console.error('Error publishing credentials after status update:', credentialsError);
+      }
+
       res.json({
         message: 'Reservation status updated successfully',
         reservation: {
@@ -621,6 +675,15 @@ router.delete('/:id', async (req, res) => {
       space_id: reservation.space_id,
       previous_status: reservation.status
     });
+
+    // Update credentials for the access control module
+    try {
+      const spaceCredentials = await getSpaceCredentials(reservation.space_id);
+      publishCredentials(reservation.space_id, spaceCredentials);
+      console.log(`✅ Credenciales actualizadas tras cancelación para espacio ${reservation.space_id}`);
+    } catch (credentialsError) {
+      console.error('Error publishing credentials after cancellation:', credentialsError);
+    }
 
     res.json({
       message: 'Reservation cancelled successfully',
@@ -1049,5 +1112,239 @@ router.get('/spaces/:spaceId/credentials', async (req, res) => {
     });
   }
 });
+
+// GET /api/reservations/credentials/:spaceId - Get and publish credentials for a specific space
+router.get('/credentials/:spaceId', authenticateToken, requireRole(['admin', 'technician']), async (req, res) => {
+  try {
+    const { spaceId } = req.params;
+
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    console.log(`🔍 Solicitud manual de credenciales para espacio ${spaceId}`);
+
+    // Get credentials
+    const credentials = await getSpaceCredentials(parseInt(spaceId));
+    
+    // Publish to MQTT
+    publishCredentials(spaceId, credentials);
+    
+    res.json({
+      success: true,
+      message: `Credentials retrieved and published for space ${spaceId}`,
+      data: {
+        space_id: parseInt(spaceId),
+        reservations_count: credentials.reservations.length,
+        master_cards_count: credentials.master_cards.length,
+        expires_at: credentials.expires_at,
+        credentials: credentials
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching space credentials:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching space credentials',
+      details: error.message
+    });
+  }
+});
+
+// POST /api/reservations/credentials/sync-all - Sync credentials for all spaces with active reservations
+router.post('/credentials/sync-all', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    console.log('🔄 Iniciando sincronización completa de credenciales...');
+
+    // Get all spaces with active reservations
+    const { data: activeSpaces, error: spacesError } = await supabase
+      .from('reservations')
+      .select('space_id')
+      .eq('status', 'confirmed')
+      .gte('end_time', new Date().toISOString());
+
+    if (spacesError) {
+      throw spacesError;
+    }
+
+    // Get unique space IDs
+    const uniqueSpaceIds = [...new Set(activeSpaces.map(r => r.space_id))];
+    console.log(`📋 Sincronizando ${uniqueSpaceIds.length} espacios con reservas activas`);
+
+    const results = [];
+    
+    for (const spaceId of uniqueSpaceIds) {
+      try {
+        const credentials = await getSpaceCredentials(spaceId);
+        publishCredentials(spaceId, credentials);
+        
+        results.push({
+          space_id: spaceId,
+          success: true,
+          reservations_count: credentials.reservations.length,
+          master_cards_count: credentials.master_cards.length
+        });
+        
+        console.log(`✅ Credenciales sincronizadas para espacio ${spaceId}`);
+      } catch (error) {
+        console.error(`❌ Error sincronizando espacio ${spaceId}:`, error);
+        results.push({
+          space_id: spaceId,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Credentials synchronization completed',
+      spaces_processed: results.length,
+      results: results
+    });
+
+  } catch (error) {
+    console.error('Error in credentials sync:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error synchronizing credentials',
+      details: error.message
+    });
+  }
+});
+
+// Function to get complete credentials for a space (including cards)
+async function getSpaceCredentials(spaceId) {
+  try {
+    console.log(`🔍 Obteniendo credenciales para espacio ${spaceId}`);
+
+    // Get all active reservations for this space
+    const { data: reservations, error: reservationsError } = await supabase
+      .from('reservations')
+      .select(`
+        id,
+        start_time,
+        end_time,
+        owner_id,
+        users!owner_id(
+          id,
+          username,
+          codecards(code)
+        )
+      `)
+      .eq('space_id', spaceId)
+      .eq('status', 'confirmed')
+      .gte('end_time', new Date().toISOString())
+      .order('start_time', { ascending: true });
+
+    if (reservationsError) {
+      console.error('Error fetching reservations:', reservationsError);
+      throw reservationsError;
+    }
+
+    console.log(`📋 Encontradas ${reservations?.length || 0} reservas activas`);
+
+    // Get participants for each reservation
+    const credentialsData = [];
+    
+    for (const reservation of (reservations || [])) {
+      console.log(`🔍 Procesando reserva ${reservation.id}`);
+      
+      // Get participants
+      const { data: participants, error: participantsError } = await supabase
+        .from('reservation_participants')
+        .select(`
+          users(
+            id,
+            username,
+            codecards(code)
+          )
+        `)
+        .eq('reservation_id', reservation.id);
+
+      if (participantsError) {
+        console.error('Error fetching participants:', participantsError);
+        continue;
+      }
+
+      // Collect all authorized cards (owner + participants)
+      const authorizedCards = [];
+      
+      // Add owner's card
+      if (reservation.users?.codecards?.code) {
+        authorizedCards.push(reservation.users.codecards.code);
+        console.log(`🪪 Tarjeta del propietario: ${reservation.users.codecards.code}`);
+      }
+      
+      // Add participants' cards
+      for (const participant of (participants || [])) {
+        if (participant.users?.codecards?.code) {
+          authorizedCards.push(participant.users.codecards.code);
+          console.log(`🪪 Tarjeta del participante: ${participant.users.codecards.code}`);
+        }
+      }
+
+      if (authorizedCards.length > 0) {
+        credentialsData.push({
+          reservation_id: reservation.id.toString(),
+          authorized_cards: authorizedCards,
+          valid_from: reservation.start_time,
+          valid_until: reservation.end_time,
+          owner: reservation.users?.username || 'unknown'
+        });
+        
+        console.log(`✅ Credencial agregada: ${reservation.id} con ${authorizedCards.length} tarjetas`);
+      } else {
+        console.log(`⚠️ Reserva ${reservation.id} sin tarjetas RFID`);
+      }
+    }
+
+    // Get master cards (admin and technician roles)
+    const { data: masterUsers, error: masterError } = await supabase
+      .from('users')
+      .select(`
+        codecards(code),
+        roles(name)
+      `)
+      .in('roles.name', ['admin', 'technician'])
+      .not('codecards.code', 'is', null);
+
+    if (masterError) {
+      console.error('Error fetching master cards:', masterError);
+    }
+
+    const masterCards = (masterUsers || [])
+      .filter(user => user.codecards?.code)
+      .map(user => user.codecards.code);
+
+    console.log(`🔑 Encontradas ${masterCards.length} tarjetas maestras`);
+
+    // Calculate expiration (24 hours from now)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    const credentials = {
+      reservations: credentialsData,
+      master_cards: masterCards.length > 0 ? masterCards : ["MASTER001", "MASTER002", "ADMIN123"],
+      expires_at: expiresAt.toISOString()
+    };
+
+    console.log(`📊 Credenciales completas: ${credentialsData.length} reservas, ${masterCards.length} tarjetas maestras`);
+    return credentials;
+
+  } catch (error) {
+    console.error('Error getting space credentials:', error);
+    throw error;
+  }
+}
 
 module.exports = router; 

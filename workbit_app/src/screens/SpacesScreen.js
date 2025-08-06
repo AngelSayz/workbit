@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, Modal, ScrollView, RefreshControl, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Alert, Modal, ScrollView, RefreshControl, TouchableOpacity, Platform, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -175,7 +175,7 @@ const SpacesScreen = ({ navigation }) => {
   const updateParticipantRow = (rowId, username) => {
     setParticipantRows(prev => prev.map(row => 
       row.id === rowId 
-        ? { ...row, username, isValid: null }
+        ? { ...row, username, isValid: null } // Resetear el estado de validación al escribir
         : row
     ));
   };
@@ -476,10 +476,15 @@ const SpacesScreen = ({ navigation }) => {
                     <View style={styles.participantsContainer}>
                       {participantRows.map((row, index) => (
                         <View key={row.id} style={styles.participantRow}>
-                          <Input
+                          <TextInput
                             value={row.username}
                             onChangeText={(text) => updateParticipantRow(row.id, text)}
-                            placeholder={`Nombre de usuario del invitado ${index + 1}`}
+                            placeholder={
+                              row.isValid === false 
+                                ? "❌ Usuario no encontrado" 
+                                : `Nombre de usuario del invitado ${index + 1}`
+                            }
+                            placeholderTextColor={row.isValid === false ? '#ef4444' : '#9ca3af'}
                             style={[
                               styles.participantInputField,
                               row.isValid === false && styles.participantInputError,
@@ -514,21 +519,11 @@ const SpacesScreen = ({ navigation }) => {
                               style={styles.removeParticipantButton}
                               onPress={() => removeParticipantRow(row.id)}
                             >
-                              <Ionicons name="close-circle" size={20} color="#ef4444" />
+                              <Ionicons name="close" size={20} color="#ef4444" />
                             </TouchableOpacity>
-                          )}
-                          
-                          {row.isValid === false && (
-                            <View style={styles.errorIndicator}>
-                              <Ionicons name="close-circle" size={20} color="#ef4444" />
-                            </View>
                           )}
                         </View>
                       ))}
-                      
-                      {participantRows.some(row => row.isValid === false) && (
-                        <Text style={styles.errorText}>Usuario no encontrado</Text>
-                      )}
                     </View>
                   ) : (
                     <Text style={styles.noInvitesText}>
@@ -862,6 +857,14 @@ const getStyles = (insets) => StyleSheet.create({
   },
   participantInputField: {
     flex: 1,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#374151',
   },
   participantInputError: {
     borderColor: '#ef4444',
@@ -876,9 +879,9 @@ const getStyles = (insets) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#e0f2fe',
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#3b82f6',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -889,20 +892,12 @@ const getStyles = (insets) => StyleSheet.create({
   removeParticipantButton: {
     width: 40,
     height: 40,
+    borderRadius: 8,
+    backgroundColor: '#fee2e2',
+    borderWidth: 1,
+    borderColor: '#ef4444',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  errorIndicator: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#ef4444',
-    marginTop: 4,
-    fontStyle: 'italic',
   },
   noInvitesText: {
     fontSize: 14,
