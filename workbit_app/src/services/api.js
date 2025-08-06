@@ -25,7 +25,21 @@ class ApiService {
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Intentar obtener el mensaje de error del backend
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+          if (errorData.details) {
+            console.error('❌ Validation errors:', errorData.details);
+            errorMessage += ` - ${JSON.stringify(errorData.details)}`;
+          }
+        } catch (parseError) {
+          console.error('❌ Could not parse error response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();

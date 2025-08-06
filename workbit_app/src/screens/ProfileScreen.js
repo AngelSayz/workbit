@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity, StyleSheet, Switch, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,6 +9,8 @@ import Button from '../components/Button';
 
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
+  const styles = getStyles(insets);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('es');
@@ -297,12 +299,44 @@ const ProfileScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  scrollView: { flex: 1 },
-  header: { backgroundColor: 'white', paddingHorizontal: 24, paddingTop: 48, paddingBottom: 32 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#111827' },
-  profileCard: { backgroundColor: 'white', borderRadius: 16, padding: 24, alignItems: 'center', marginTop: 24, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
+const getStyles = (insets) => StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F9FAFB',
+    paddingBottom: 56, // Espacio exacto para TabBar (sin duplicar insets.bottom)
+  },
+  scrollView: { 
+    flex: 1,
+    paddingHorizontal: 16, // Márgenes laterales para todo el contenido
+    paddingBottom: insets.bottom + 20, // Espacio adicional para scroll
+  },
+  header: { 
+    backgroundColor: 'white', 
+    paddingHorizontal: 24, 
+    paddingTop: 48, 
+    paddingBottom: 32,
+    marginHorizontal: -16, // Compensar el padding del ScrollView para header full-width
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+    color: '#111827',
+    paddingHorizontal: 16, // Agregar padding interno para el título
+  },
+  profileCard: { 
+    backgroundColor: 'white', 
+    borderRadius: 16, 
+    padding: 24, 
+    alignItems: 'center', 
+    marginTop: 24, 
+    marginBottom: 24, 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.05, 
+    shadowRadius: 4, 
+    elevation: 3,
+    marginHorizontal: 0, // Ya está dentro del ScrollView con padding
+  },
   avatarContainer: { width: 100, height: 100, borderRadius: 50, overflow: 'hidden', position: 'relative', marginBottom: 16 },
   avatar: { width: '100%', height: '100%', backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%', borderRadius: 50 },
@@ -312,19 +346,57 @@ const styles = StyleSheet.create({
   username: { color: '#6B7280', fontSize: 16 },
   roleBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#DBEAFE', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 4, marginTop: 12 },
   roleText: { color: '#1E40AF', fontSize: 14, fontWeight: '500' },
-  profileItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  profileItem: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    backgroundColor: 'white', 
+    borderRadius: 12, 
+    padding: 16, 
+    marginBottom: 12, 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 1 }, 
+    shadowOpacity: 0.05, 
+    shadowRadius: 2, 
+    elevation: 1,
+    marginHorizontal: 0, // Ya está dentro del ScrollView con padding
+  },
   profileItemLeft: { flexDirection: 'row', alignItems: 'center' },
   iconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E0E7FF', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   profileContent: { flex: 1 },
   profileLabel: { fontSize: 14, color: '#6B7280', marginBottom: 2 },
   profileValue: { fontSize: 16, fontWeight: '500', color: '#111827' },
   profileItemRight: { flexDirection: 'row', alignItems: 'center' },
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 12, paddingHorizontal: 8 },
-  sectionContent: { paddingHorizontal: 8 },
-  logoutSection: { marginTop: 32 },
-  logoutButton: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
-  footer: { marginTop: 32, alignItems: 'center', paddingBottom: 32 },
+  section: { 
+    marginBottom: 24,
+    marginHorizontal: 0, // Ya está dentro del ScrollView con padding
+  },
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: '600', 
+    color: '#111827', 
+    marginBottom: 12, 
+    paddingHorizontal: 8 
+  },
+  sectionContent: { 
+    paddingHorizontal: 8,
+    marginHorizontal: 0, // Ya está dentro del ScrollView con padding
+  },
+  logoutSection: { 
+    marginTop: 32,
+    marginHorizontal: 0, // Ya está dentro del ScrollView con padding
+  },
+  logoutButton: { 
+    backgroundColor: '#FEF2F2', 
+    borderColor: '#FECACA',
+    marginHorizontal: 8, // Pequeño margen para el botón
+  },
+  footer: { 
+    marginTop: 32, 
+    alignItems: 'center', 
+    paddingBottom: 40, // Mayor padding bottom para compensar TabBar
+    marginHorizontal: 0,
+  },
   footerTitle: { color: '#9CA3AF', fontSize: 14, textAlign: 'center' },
   footerSubtitle: { color: '#D1D5DB', fontSize: 12, textAlign: 'center', marginTop: 4 },
 });

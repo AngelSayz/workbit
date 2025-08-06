@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, TouchableOpacity, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,8 @@ import Button from '../components/Button';
 
 const ReservationsScreen = () => {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const styles = getStyles(insets);
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -291,9 +293,9 @@ const ReservationsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (insets) => StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
-  header: { backgroundColor: 'white', paddingHorizontal: 24, paddingTop: 48, paddingBottom: 16 },
+  header: { backgroundColor: 'white', paddingHorizontal: 16, paddingTop: 48, paddingBottom: 16 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 16 },
   subtitle: { fontSize: 14, color: '#6B7280', marginTop: 4 },
   filterContainer: { marginBottom: 8 },
@@ -302,7 +304,11 @@ const styles = StyleSheet.create({
   filterButtonActive: { backgroundColor: '#3b82f6' },
   filterButtonText: { fontSize: 14, fontWeight: '500', color: '#374151' },
   filterButtonTextActive: { color: 'white' },
-  scrollView: { flex: 1, paddingHorizontal: 24 },
+  scrollView: { 
+    flex: 1, 
+    paddingHorizontal: 16,
+    paddingBottom: 56 // Espacio exacto para TabBar (sin duplicar insets.bottom)
+  },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 48 },
   loadingText: { color: '#9CA3AF', fontSize: 16 },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 48 },
@@ -359,7 +365,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#DCFCE7',
     padding: 16,
     borderRadius: 12,
-    marginHorizontal: 24,
+    marginHorizontal: 16,
     marginBottom: 16,
     shadowColor: '#10b981',
     shadowOffset: { width: 0, height: 2 },

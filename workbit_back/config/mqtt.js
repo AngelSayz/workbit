@@ -860,6 +860,30 @@ const publishPeopleCount = (spaceId, peopleCount, event) => {
   }
 };
 
+// Publicar actualizaciones de reservas
+const publishReservationUpdate = (reservationId, action, data) => {
+  if (!client || !client.connected) {
+    console.warn('⚠️ MQTT client not connected, cannot publish reservation update');
+    return;
+  }
+
+  const topic = `workbit/reservations/${action}`;
+  const message = JSON.stringify({
+    reservation_id: reservationId,
+    action,
+    data,
+    timestamp: new Date().toISOString()
+  });
+
+  client.publish(topic, message, { qos: 1, retain: false }, (err) => {
+    if (err && process.env.NODE_ENV === 'development') {
+      console.error(`❌ Failed to publish reservation update to ${topic}:`, err.message);
+    } else {
+      console.log(`✅ Reservation update published: ${action} for reservation ${reservationId}`);
+    }
+  });
+};
+
 module.exports = {
   client,
   publishAccessResponse,
@@ -868,5 +892,6 @@ module.exports = {
   // Nuevas funciones estandarizadas
   publishCredentials,
   publishAlert,
-  publishPeopleCount
+  publishPeopleCount,
+  publishReservationUpdate
 }; 

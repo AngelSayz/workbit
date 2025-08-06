@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, Modal, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, Alert, Modal, ScrollView, RefreshControl, TouchableOpacity, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import GridLayout from '../components/GridLayout';
 import ApiService from '../services/api';
 import Button from '../components/Button';
 import Input from '../components/Input';
 
 const SpacesScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
+  const styles = getStyles(insets);
   const [spaces, setSpaces] = useState([]);
   const [gridConfig, setGridConfig] = useState({ rows: 5, cols: 8 });
   const [loading, setLoading] = useState(true);
@@ -18,12 +21,10 @@ const SpacesScreen = ({ navigation }) => {
   const [reason, setReason] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(() => {
-    const end = new Date();
-    end.setHours(end.getHours() + 1);
-    return end;
-  });
+  const [duration, setDuration] = useState(60); // Duración en minutos (por defecto 1 hora)
   const [creatingReservation, setCreatingReservation] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
     loadSpacesData();
@@ -83,6 +84,42 @@ const SpacesScreen = ({ navigation }) => {
     }
   };
 
+  const handleDateChange = (event, date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (date) {
+      // Mantener la hora actual pero cambiar solo la fecha
+      const newDate = new Date(date);
+      newDate.setHours(selectedDate.getHours(), selectedDate.getMinutes(), 0, 0);
+      setSelectedDate(newDate);
+      
+      // También actualizar startTime para mantener consistencia
+      const newStartTime = new Date(startTime);
+      newStartTime.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+      setStartTime(newStartTime);
+    }
+  };
+
+  const handleTimeChange = (event, time) => {
+    setShowTimePicker(Platform.OS === 'ios');
+    if (time) {
+      // Crear nueva fecha con la fecha seleccionada pero nueva hora
+      const newStartTime = new Date(selectedDate);
+      newStartTime.setHours(time.getHours(), time.getMinutes(), 0, 0);
+      setStartTime(newStartTime);
+      
+      // También actualizar selectedDate para mantener consistencia
+      setSelectedDate(newStartTime);
+    }
+  };
+
+  const closeReservationModal = () => {
+    setShowReservationModal(false);
+    setShowDatePicker(false);
+    setShowTimePicker(false);
+    setReason('');
+    setDuration(60);
+  };
+
   const handleReservation = async () => {
     if (!selectedSpace || !reason.trim()) {
       Alert.alert('Error', 'Por favor completa todos los campos');
@@ -92,16 +129,18 @@ const SpacesScreen = ({ navigation }) => {
     try {
       setCreatingReservation(true);
       
-      // Crear las fechas de inicio y fin
+      // Combinar fecha y hora de inicio
       const startDateTime = new Date(selectedDate);
       startDateTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
       
-      const endDateTime = new Date(selectedDate);
-      endDateTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
+      // Calcular hora de fin basada en la duración
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setMinutes(endDateTime.getMinutes() + duration);
 
-      // Validar que la hora de fin sea después de la de inicio
-      if (endDateTime <= startDateTime) {
-        Alert.alert('Error', 'La hora de fin debe ser posterior a la hora de inicio');
+      // Validar que la reserva no sea en el pasado
+      const now = new Date();
+      if (startDateTime <= now) {
+        Alert.alert('Error', 'No puedes crear reservas en el pasado. Selecciona una fecha y hora futuras.');
         return;
       }
 
@@ -112,6 +151,13 @@ const SpacesScreen = ({ navigation }) => {
         end_time: endDateTime.toISOString(),
         participants: []
       };
+
+      console.log('📋 Datos de reserva a enviar:', JSON.stringify(reservationData, null, 2));
+      console.log('🕐 Start time:', startDateTime.toISOString());
+      console.log('🕑 End time:', endDateTime.toISOString());
+      console.log('⏱️ Duration:', duration, 'minutes');
+      console.log('🏢 Space ID:', selectedSpace.id);
+      console.log('📝 Reason:', reason.trim());
 
       await ApiService.createReservation(reservationData);
       
@@ -129,8 +175,20 @@ const SpacesScreen = ({ navigation }) => {
       await loadSpacesData();
 
     } catch (error) {
-      console.error('Error creating reservation:', error);
-      Alert.alert('Error', 'No se pudo crear la reserva. Inténtalo de nuevo.');
+      console.error('❌ Error creating reservation:', error);
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      
+      // Si es un error HTTP, mostrar más detalles
+      if (error.message.includes('HTTP error')) {
+        console.error('❌ HTTP Error detectado');
+      }
+      
+      Alert.alert(
+        'Error al crear reserva', 
+        `No se pudo crear la reserva: ${error.message}`,
+        [{ text: 'OK' }]
+      );
     } finally {
       setCreatingReservation(false);
     }
@@ -224,14 +282,14 @@ const SpacesScreen = ({ navigation }) => {
         visible={showReservationModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setShowReservationModal(false)}
+        onRequestClose={closeReservationModal}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Reservar Espacio</Text>
               <TouchableOpacity
-                onPress={() => setShowReservationModal(false)}
+                onPress={closeReservationModal}
                 style={styles.closeButton}
               >
                 <Ionicons name="close" size={24} color="#6b7280" />
@@ -250,31 +308,33 @@ const SpacesScreen = ({ navigation }) => {
                   <Input
                     value={reason}
                     onChangeText={setReason}
-                    placeholder="Ej: Reunión de equipo, trabajo individual..."
+                    placeholder="Describe el propósito de tu reserva..."
                     multiline
                     style={styles.reasonInput}
                   />
                 </View>
 
                 <View style={styles.formSection}>
-                  <Text style={styles.formLabel}>Fecha</Text>
-                  <TouchableOpacity style={styles.dateInput}>
-                    <Ionicons name="calendar-outline" size={20} color="#6b7280" />
-                    <Text style={styles.dateText}>
-                      {selectedDate.toLocaleDateString('es-ES', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.timeSection}>
-                  <View style={styles.timeInput}>
-                    <Text style={styles.formLabel}>Hora de inicio</Text>
-                    <TouchableOpacity style={styles.timeButton}>
+                  <Text style={styles.formLabel}>Fecha y hora de inicio</Text>
+                  <View style={styles.dateTimeRow}>
+                    <TouchableOpacity 
+                      style={[styles.dateInput, { flex: 1, marginRight: 8 }]}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Ionicons name="calendar-outline" size={20} color="#6b7280" />
+                      <Text style={styles.dateText}>
+                        {selectedDate.toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.timeButton, { flex: 1, marginLeft: 8 }]}
+                      onPress={() => setShowTimePicker(true)}
+                    >
                       <Ionicons name="time-outline" size={20} color="#6b7280" />
                       <Text style={styles.timeText}>
                         {startTime.toLocaleTimeString('es-ES', {
@@ -284,18 +344,45 @@ const SpacesScreen = ({ navigation }) => {
                       </Text>
                     </TouchableOpacity>
                   </View>
+                </View>
 
-                  <View style={styles.timeInput}>
-                    <Text style={styles.formLabel}>Hora de fin</Text>
-                    <TouchableOpacity style={styles.timeButton}>
-                      <Ionicons name="time-outline" size={20} color="#6b7280" />
-                      <Text style={styles.timeText}>
-                        {endTime.toLocaleTimeString('es-ES', {
+                <View style={styles.formSection}>
+                  <Text style={styles.formLabel}>Duración de la reunión</Text>
+                  <View style={styles.durationOptions}>
+                    {[30, 60, 120, 180].map((minutes) => (
+                      <TouchableOpacity
+                        key={minutes}
+                        style={[
+                          styles.durationButton,
+                          duration === minutes && styles.durationButtonActive
+                        ]}
+                        onPress={() => setDuration(minutes)}
+                      >
+                        <Text style={[
+                          styles.durationText,
+                          duration === minutes && styles.durationTextActive
+                        ]}>
+                          {minutes === 30 ? '30 min' : 
+                           minutes === 60 ? '1 hora' :
+                           minutes === 120 ? '2 horas' : '3 horas'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  
+                  <View style={styles.durationSummary}>
+                    <Text style={styles.durationSummaryText}>
+                      La reunión terminará a las{' '}
+                      {(() => {
+                        const endTime = new Date(selectedDate);
+                        endTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
+                        endTime.setMinutes(endTime.getMinutes() + duration);
+                        return endTime.toLocaleTimeString('es-ES', {
                           hour: '2-digit',
                           minute: '2-digit'
-                        })}
-                      </Text>
-                    </TouchableOpacity>
+                        });
+                      })()}
+                    </Text>
                   </View>
                 </View>
 
@@ -303,7 +390,7 @@ const SpacesScreen = ({ navigation }) => {
                   <Button
                     title="Cancelar"
                     variant="outline"
-                    onPress={() => setShowReservationModal(false)}
+                    onPress={closeReservationModal}
                     style={styles.modalButton}
                   />
                   <Button
@@ -318,17 +405,38 @@ const SpacesScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Selectores de Fecha y Hora */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          minimumDate={new Date()}
+          onChange={handleDateChange}
+        />
+      )}
+
+      {showTimePicker && (
+        <DateTimePicker
+          value={startTime}
+          mode="time"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleTimeChange}
+        />
+      )}
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (insets) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+    paddingBottom: 56, // Espacio exacto para TabBar (sin duplicar insets.bottom)
   },
   header: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 20,
     backgroundColor: 'white',
     borderBottomWidth: 1,
@@ -359,6 +467,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 16, // Márgenes laterales para stats
   },
   statItem: {
     flexDirection: 'row',
@@ -378,13 +487,15 @@ const styles = StyleSheet.create({
   gridContainer: {
     flex: 1,
     paddingVertical: 20,
+    paddingHorizontal: 16, // Márgenes laterales para el grid
   },
   instructionsContainer: {
     backgroundColor: 'white',
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+    marginBottom: 56, // Espacio exacto para TabBar (sin duplicar insets.bottom)
   },
   instructionsText: {
     fontSize: 12,
@@ -402,9 +513,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 24,
-    marginHorizontal: 24,
+    marginHorizontal: 16,
     maxHeight: '80%',
-    minWidth: 300,
+    minWidth: 320,
+    maxWidth: 400,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -450,6 +562,8 @@ const styles = StyleSheet.create({
   },
   reasonInput: {
     minHeight: 80,
+    minWidth: 250,
+    textAlignVertical: 'top',
   },
   dateInput: {
     flexDirection: 'row',
@@ -489,6 +603,51 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 14,
     color: '#374151',
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  durationOptions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  durationButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  durationButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  durationText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  durationTextActive: {
+    color: 'white',
+  },
+  durationSummary: {
+    backgroundColor: '#f0f9ff',
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  durationSummaryText: {
+    fontSize: 12,
+    color: '#0369a1',
+    textAlign: 'center',
   },
   modalActions: {
     flexDirection: 'row',
