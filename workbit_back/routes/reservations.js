@@ -703,7 +703,10 @@ router.delete('/:id', async (req, res) => {
 
     // Check if reservation can be cancelled
     const reservationStart = parseISO(reservation.start_time);
-    if (isBefore(reservationStart, new Date())) {
+    const nowUTC = new Date();
+    const tijuanaNow = new Date(nowUTC.toLocaleString("en-US", {timeZone: "America/Tijuana"}));
+    
+    if (isBefore(reservationStart, tijuanaNow)) {
       return res.status(400).json({
         error: 'Cannot cancel past reservations'
       });
@@ -897,8 +900,8 @@ router.post('/:id/credentials', [
       });
     }
 
-    // Verificar que la reserva esté activa
-    const now = new Date();
+    // Verificar que la reserva esté activa (usar zona horaria de Tijuana)
+    const now = zonedTimeToUtc(new Date(), 'America/Tijuana');
     const startTime = new Date(reservation.start_time);
     const endTime = new Date(reservation.end_time);
 
@@ -1113,9 +1116,9 @@ router.get('/spaces/:spaceId/credentials', async (req, res) => {
       .eq('space_id', spaceId)
       .eq('status', 'active');
 
-    // Filtrar por tiempo si no se incluyen expiradas
+    // Filtrar por tiempo si no se incluyen expiradas (usar zona horaria de Tijuana)
     if (!include_expired) {
-      const now = new Date().toISOString();
+      const now = zonedTimeToUtc(new Date(), 'America/Tijuana').toISOString();
       reservationsQuery = reservationsQuery.gte('end_time', now);
     }
 
@@ -1126,14 +1129,16 @@ router.get('/spaces/:spaceId/credentials', async (req, res) => {
     }
 
     // Simular credenciales (en producción esto vendría de otra tabla/fuente)
+    // Usar hora de Tijuana para calcular tiempo restante
+    const nowTijuana = zonedTimeToUtc(new Date(), 'America/Tijuana');
     const activeReservations = reservations.map(reservation => ({
       reservation_id: `res_${reservation.id}`,
       owner: reservation.users?.username || 'unknown',
       authorized_cards: [], // Placeholder - necesitaría venir de otra fuente
       valid_from: reservation.start_time,
       valid_until: reservation.end_time,
-      is_active: new Date(reservation.end_time) > new Date(),
-      minutes_remaining: Math.max(0, Math.round((new Date(reservation.end_time) - new Date()) / (1000 * 60)))
+      is_active: new Date(reservation.end_time) > nowTijuana,
+      minutes_remaining: Math.max(0, Math.round((new Date(reservation.end_time) - nowTijuana) / (1000 * 60)))
     }));
 
     const masterCards = ["MASTER001", "MASTER002", "ADMIN123"];
@@ -1217,12 +1222,12 @@ router.post('/credentials/sync-all', authenticateToken, requireRole(['admin']), 
 
     console.log('🔄 Iniciando sincronización completa de credenciales...');
 
-    // Get all spaces with active reservations
+    // Get all spaces with active reservations (usar zona horaria de Tijuana)
     const { data: activeSpaces, error: spacesError } = await supabase
       .from('reservations')
       .select('space_id')
       .eq('status', 'confirmed')
-      .gte('end_time', new Date().toISOString());
+      .gte('end_time', zonedTimeToUtc(new Date(), 'America/Tijuana').toISOString());
 
     if (spacesError) {
       throw spacesError;
@@ -1295,7 +1300,7 @@ async function getSpaceCredentials(spaceId) {
       `)
       .eq('space_id', spaceId)
       .eq('status', 'confirmed')
-      .gte('end_time', new Date().toISOString())
+      .gte('end_time', zonedTimeToUtc(new Date(), 'America/Tijuana').toISOString())
       .order('start_time', { ascending: true });
 
     if (reservationsError) {
@@ -1389,8 +1394,8 @@ async function getSpaceCredentials(spaceId) {
       });
     }
 
-    // Calculate expiration (24 hours from now)
-    const expiresAt = new Date();
+    // Calculate expiration (24 hours from now, usar hora de Tijuana)
+    const expiresAt = zonedTimeToUtc(new Date(), 'America/Tijuana');
     expiresAt.setHours(expiresAt.getHours() + 24);
 
     const credentials = {
@@ -1446,9 +1451,18 @@ router.get('/:id/environmental-data', async (req, res) => {
     }
 
     // Verificar que la reserva esté activa o próxima a activarse
-    const now = new Date();
+    // Usar hora de Tijuana para comparación correcta
+    const nowUTC = new Date();
+    const now = new Date(nowUTC.toLocaleString("en-US", {timeZone: "America/Tijuana"}));
     const startTime = new Date(reservation.start_time);
     const endTime = new Date(reservation.end_time);
+    
+    console.log('⏰ Validación de reserva activa:');
+    console.log('   - Hora actual UTC servidor:', nowUTC.toISOString());
+    console.log('   - Hora actual Tijuana:', now.toString());
+    console.log('   - Inicio reserva:', startTime.toString());
+    console.log('   - Fin reserva:', endTime.toString());
+    console.log('   - ¿Está en horario?', (now >= startTime && now <= endTime));
     
     const isActive = (reservation.status === 'confirmed' || reservation.status === 'pending') && 
                      now >= startTime && now <= endTime;
@@ -1619,7 +1633,9 @@ router.get('/:id/environmental-data', async (req, res) => {
  */
 async function autoConfirmPendingReservations() {
   try {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    // Usar hora de Tijuana para calcular 5 minutos atrás
+    const nowTijuana = zonedTimeToUtc(new Date(), 'America/Tijuana');
+    const fiveMinutesAgo = new Date(nowTijuana.getTime() - 5 * 60 * 1000).toISOString();
     
     // Buscar reservas pendientes creadas hace más de 5 minutos
     const { data: pendingReservations, error } = await supabase
