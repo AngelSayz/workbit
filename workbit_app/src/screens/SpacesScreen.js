@@ -259,9 +259,6 @@ const SpacesScreen = ({ navigation }) => {
 
     } catch (error) {
       console.error('❌ Error creating reservation:', error);
-      console.error('❌ Error details:', error.message);
-      console.error('❌ Error stack:', error.stack);
-      
       showError(`No se pudo crear la reserva: ${error.message}`, 5000);
     } finally {
       setCreatingReservation(false);

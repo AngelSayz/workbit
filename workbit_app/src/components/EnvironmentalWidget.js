@@ -15,40 +15,67 @@ const EnvironmentalWidget = ({ environmentalData, loading, error }) => {
 
   useEffect(() => {
     if (environmentalData?.sensors) {
-      // Simular datos históricos para las gráficas
-      generateChartData(environmentalData.sensors);
+      // Generar gráficos con datos reales (actuales + históricos si están disponibles)
+      generateChartDataFromReal(environmentalData);
+    } else {
+      // Limpiar datos de gráficos si no hay datos reales
+      setChartData({
+        temperature: [],
+        humidity: [],
+        co2: [],
+        timestamps: []
+      });
     }
   }, [environmentalData]);
 
-  const generateChartData = (sensors) => {
-    // Generar 12 puntos de datos (últimas 2 horas, cada 10 minutos)
-    const points = 12;
-    const now = new Date();
-    const timestamps = [];
-    const tempData = [];
-    const humidityData = [];
-    const co2Data = [];
+  const generateChartDataFromReal = (data) => {
+    // Usar datos históricos reales del backend si están disponibles
+    if (data.historical) {
+      const sensorTypes = ['temperature', 'humidity', 'co2'];
+      const newChartData = { timestamps: [] };
+      
+      // Buscar el sensor con más datos históricos para establecer los timestamps
+      let maxDataPoints = 0;
+      let baseTimestamps = [];
+      
+      sensorTypes.forEach(sensorType => {
+        if (data.historical[sensorType] && data.historical[sensorType].length > maxDataPoints) {
+          maxDataPoints = data.historical[sensorType].length;
+          baseTimestamps = data.historical[sensorType].map(point => 
+            new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          );
+        }
+      });
+      
+      newChartData.timestamps = baseTimestamps;
+      
+      // Procesar datos para cada tipo de sensor
+      sensorTypes.forEach(sensorType => {
+        if (data.historical[sensorType] && data.historical[sensorType].length > 0) {
+          newChartData[sensorType] = data.historical[sensorType].map(point => point.value);
+        } else {
+          // Si no hay datos históricos para este sensor, usar valores vacíos
+          newChartData[sensorType] = [];
+        }
+      });
+      
+      setChartData(newChartData);
+    } else {
+      // Si no hay datos históricos, usar solo el valor actual como punto único
+      const now = new Date();
+      const timestamps = [now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })];
+      
+      const tempData = data.sensors?.temperature?.value ? [data.sensors.temperature.value] : [];
+      const humidityData = data.sensors?.humidity?.value ? [data.sensors.humidity.value] : [];
+      const co2Data = data.sensors?.co2?.value ? [data.sensors.co2.value] : [];
 
-    for (let i = points - 1; i >= 0; i--) {
-      const time = new Date(now.getTime() - i * 10 * 60 * 1000);
-      timestamps.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      
-      // Simular variaciones basadas en los valores actuales
-      const tempBase = sensors.temperature?.value || 22;
-      const humidityBase = sensors.humidity?.value || 50;
-      const co2Base = sensors.co2?.value || 500;
-      
-      tempData.push(tempBase + (Math.random() - 0.5) * 4);
-      humidityData.push(Math.max(0, Math.min(100, humidityBase + (Math.random() - 0.5) * 20)));
-      co2Data.push(Math.max(300, co2Base + (Math.random() - 0.5) * 200));
+      setChartData({
+        temperature: tempData,
+        humidity: humidityData,
+        co2: co2Data,
+        timestamps
+      });
     }
-
-    setChartData({
-      temperature: tempData,
-      humidity: humidityData,
-      co2: co2Data,
-      timestamps
-    });
   };
 
   const getSensorStatus = (sensorType, value) => {
@@ -124,12 +151,12 @@ const EnvironmentalWidget = ({ environmentalData, loading, error }) => {
     );
   }
 
-  if (!environmentalData?.sensors) {
+  if (!environmentalData) {
     return (
       <View style={styles.noDataContainer}>
         <Ionicons name="analytics-outline" size={48} color="#9CA3AF" />
-        <Text style={styles.noDataText}>Sin datos de sensores</Text>
-        <Text style={styles.noDataSubtext}>Los sensores no están enviando datos</Text>
+        <Text style={styles.noDataText}>No hay datos disponibles</Text>
+        <Text style={styles.noDataSubtext}>Los sensores no están enviando información en este momento</Text>
       </View>
     );
   }
@@ -187,58 +214,66 @@ const EnvironmentalWidget = ({ environmentalData, loading, error }) => {
       </View>
 
       {/* Charts Section */}
-      <View style={styles.chartsSection}>
-        <Text style={styles.chartsTitle}>Tendencias (Últimas 2 horas)</Text>
-        
-        {sensorTypes.map(sensorType => {
-          const sensor = sensors[sensorType];
-          if (!sensor?.value || chartData[sensorType].length === 0) return null;
+      {chartData.timestamps.length > 1 ? (
+        <View style={styles.chartsSection}>
+          <Text style={styles.chartsTitle}>Tendencias (Datos históricos)</Text>
           
-          const status = getSensorStatus(sensorType, sensor.value);
-          
-          return (
-            <View key={`chart-${sensorType}`} style={styles.chartContainer}>
-              <View style={styles.chartHeader}>
-                <Text style={styles.chartTitle}>{getSensorName(sensorType)}</Text>
-                <Text style={styles.chartCurrentValue}>
-                  {sensor.value.toFixed(1)} {sensor.unit}
-                </Text>
-              </View>
-              
-              <LineChart
-                data={{
-                  labels: chartData.timestamps.filter((_, i) => i % 3 === 0), // Mostrar cada 3er timestamp
-                  datasets: [{
-                    data: chartData[sensorType],
+          {sensorTypes.map(sensorType => {
+            const sensor = sensors[sensorType];
+            if (!sensor?.value || chartData[sensorType].length === 0) return null;
+            
+            const status = getSensorStatus(sensorType, sensor.value);
+            
+            return (
+              <View key={`chart-${sensorType}`} style={styles.chartContainer}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.chartTitle}>{getSensorName(sensorType)}</Text>
+                  <Text style={styles.chartCurrentValue}>
+                    {sensor.value.toFixed(1)} {sensor.unit}
+                  </Text>
+                </View>
+                
+                <LineChart
+                  data={{
+                    labels: chartData.timestamps.filter((_, i) => i % 3 === 0), // Mostrar cada 3er timestamp
+                    datasets: [{
+                      data: chartData[sensorType],
+                      color: (opacity = 1) => status.color + Math.round(opacity * 255).toString(16),
+                      strokeWidth: 2
+                    }]
+                  }}
+                  width={screenWidth - 40}
+                  height={180}
+                  chartConfig={{
+                    backgroundColor: '#ffffff',
+                    backgroundGradientFrom: '#ffffff',
+                    backgroundGradientTo: '#ffffff',
+                    decimalPlaces: 1,
                     color: (opacity = 1) => status.color + Math.round(opacity * 255).toString(16),
-                    strokeWidth: 2
-                  }]
-                }}
-                width={screenWidth - 40}
-                height={180}
-                chartConfig={{
-                  backgroundColor: '#ffffff',
-                  backgroundGradientFrom: '#ffffff',
-                  backgroundGradientTo: '#ffffff',
-                  decimalPlaces: 1,
-                  color: (opacity = 1) => status.color + Math.round(opacity * 255).toString(16),
-                  labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
-                  style: {
-                    borderRadius: 16
-                  },
-                  propsForDots: {
-                    r: "3",
-                    strokeWidth: "1",
-                    stroke: status.color
-                  }
-                }}
-                bezier
-                style={styles.chart}
-              />
-            </View>
-          );
-        })}
-      </View>
+                    labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                    style: {
+                      borderRadius: 16
+                    },
+                    propsForDots: {
+                      r: "3",
+                      strokeWidth: "1",
+                      stroke: status.color
+                    }
+                  }}
+                  bezier
+                  style={styles.chart}
+                />
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <View style={styles.noChartsContainer}>
+          <Ionicons name="trending-up-outline" size={32} color="#9CA3AF" />
+          <Text style={styles.noChartsText}>No hay datos históricos disponibles</Text>
+          <Text style={styles.noChartsSubtext}>Los gráficos aparecerán cuando haya más datos de tiempo</Text>
+        </View>
+      )}
 
       {/* Info Footer */}
       <View style={styles.footer}>
@@ -443,6 +478,25 @@ const styles = StyleSheet.create({
   },
   chart: {
     borderRadius: 12,
+  },
+  noChartsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
+  noChartsText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  noChartsSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 4,
+    textAlign: 'center',
   },
   footer: {
     flexDirection: 'row',

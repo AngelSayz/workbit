@@ -129,9 +129,32 @@ router.get('/', async (req, res) => {
       });
     }
 
+    // Formatear reservaciones para consistencia
+    const formattedReservations = (reservations || []).map(reservation => ({
+      id: reservation.id,
+      reason: reservation.reason,
+      start_time: reservation.start_time,
+      end_time: reservation.end_time,
+      status: reservation.status,
+      created_at: reservation.created_at,
+      space: {
+        id: reservation.spaces?.id,
+        name: reservation.spaces?.name,
+        capacity: reservation.spaces?.capacity
+      },
+      spaces: reservation.spaces, // Mantener compatibilidad con frontend web
+      users: reservation.users,   // Mantener compatibilidad con frontend web
+      owner: {
+        id: reservation.users?.id,
+        name: reservation.users?.name,
+        lastname: reservation.users?.lastname,
+        username: reservation.users?.username
+      }
+    }));
+
     res.json({
-      reservations: reservations || [],
-      total: reservations ? reservations.length : 0
+      reservations: formattedReservations,
+      total: formattedReservations.length
     });
 
   } catch (error) {
@@ -310,8 +333,30 @@ router.post('/',
   authenticateToken,
   [
     body('reason').trim().isLength({ min: 1 }).withMessage('Reason is required'),
-    body('start_time').isISO8601().withMessage('Valid start time is required'),
-    body('end_time').isISO8601().withMessage('Valid end time is required'),
+    body('start_time').custom((value) => {
+      // Validar formato de fecha local (YYYY-MM-DD HH:MM:SS)
+      const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+      if (!dateRegex.test(value)) {
+        throw new Error('Start time must be in format YYYY-MM-DD HH:MM:SS');
+      }
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid start time');
+      }
+      return true;
+    }),
+    body('end_time').custom((value) => {
+      // Validar formato de fecha local (YYYY-MM-DD HH:MM:SS)
+      const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+      if (!dateRegex.test(value)) {
+        throw new Error('End time must be in format YYYY-MM-DD HH:MM:SS');
+      }
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid end time');
+      }
+      return true;
+    }),
     body('space_id').isInt({ min: 1 }).withMessage('Valid space ID is required'),
     body('participants').optional().isArray().withMessage('Participants must be an array')
   ],
@@ -326,16 +371,12 @@ router.post('/',
       }
 
       const { reason, start_time, end_time, space_id, participants = [] } = req.body;
-      const startTime = parseISO(start_time);
-      const endTime = parseISO(end_time);
+      
+      // Convertir fechas locales a objetos Date
+      const startTime = new Date(start_time);
+      const endTime = new Date(end_time);
 
-      // Validate dates
-      if (!isValid(startTime) || !isValid(endTime)) {
-        return res.status(400).json({
-          error: 'Invalid date format'
-        });
-      }
-
+      // Validar fechas
       if (isBefore(endTime, startTime)) {
         return res.status(400).json({
           error: 'End time must be after start time'
@@ -374,12 +415,15 @@ router.post('/',
       }
 
       // Check for conflicting reservations
+      const startTimeISO = startTime.toISOString();
+      const endTimeISO = endTime.toISOString();
+      
       const { data: conflictingReservations } = await supabase
         .from('reservations')
         .select('id')
         .eq('space_id', space_id)
         .in('status', ['confirmed', 'pending'])
-        .or(`and(start_time.lte.${start_time},end_time.gt.${start_time}),and(start_time.lt.${end_time},end_time.gte.${end_time}),and(start_time.gte.${start_time},end_time.lte.${end_time})`);
+        .or(`and(start_time.lte.${startTimeISO},end_time.gt.${startTimeISO}),and(start_time.lt.${endTimeISO},end_time.gte.${endTimeISO}),and(start_time.gte.${startTimeISO},end_time.lte.${endTimeISO})`);
 
       if (conflictingReservations && conflictingReservations.length > 0) {
         return res.status(409).json({
@@ -392,8 +436,8 @@ router.post('/',
         .from('reservations')
         .insert({
           reason,
-          start_time,
-          end_time,
+          start_time: startTimeISO,
+          end_time: endTimeISO,
           space_id,
           owner_id: req.user.id,
           status: 'pending'
@@ -1362,6 +1406,7 @@ async function getSpaceCredentials(spaceId) {
 router.get('/:id/environmental-data', async (req, res) => {
   try {
     const reservationId = parseInt(req.params.id);
+    const { hours = 2 } = req.query; // Por defecto últimas 2 horas
 
     if (!supabase) {
       return res.status(500).json({
@@ -1418,14 +1463,15 @@ router.get('/:id/environmental-data', async (req, res) => {
       // Importar el modelo de SensorReading desde sensors.js
       const SensorReading = require('mongoose').model('SensorReading');
       
-      // Obtener lecturas de las últimas 2 horas
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      // Obtener lecturas de las últimas X horas
+      const hoursAgo = new Date(Date.now() - hours * 60 * 60 * 1000);
       
+      // Obtener lecturas más recientes por tipo de sensor
       const latestReadings = await SensorReading.aggregate([
         { 
           $match: { 
             space_id: reservation.space_id,
-            timestamp: { $gte: twoHoursAgo }
+            timestamp: { $gte: hoursAgo }
           } 
         },
         { $sort: { timestamp: -1 } },
@@ -1437,16 +1483,62 @@ router.get('/:id/environmental-data', async (req, res) => {
         }
       ]);
 
-      // Formatear datos ambientales
+      // Obtener datos históricos para gráficos (últimas 2 horas, un punto cada 10 minutos)
+      const historicalData = await SensorReading.aggregate([
+        { 
+          $match: { 
+            space_id: reservation.space_id,
+            timestamp: { $gte: hoursAgo }
+          } 
+        },
+        { $sort: { timestamp: 1 } },
+        {
+          $group: {
+            _id: {
+              sensor_type: '$sensor_type',
+              interval: {
+                $subtract: [
+                  '$timestamp',
+                  { $mod: [{ $toLong: '$timestamp' }, 10 * 60 * 1000] } // Agrupar por intervalos de 10 minutos
+                ]
+              }
+            },
+            avg_value: { $avg: '$value' },
+            timestamp: { $first: '$timestamp' },
+            unit: { $first: '$unit' }
+          }
+        },
+        { $sort: { '_id.interval': 1 } }
+      ]);
+
+      // Si no hay lecturas de sensores en absoluto, retornar que no hay datos
+      if (latestReadings.length === 0) {
+        return res.json({
+          success: true,
+          data: null,
+          reservation: {
+            id: reservation.id,
+            space_id: reservation.space_id,
+            space_name: reservation.spaces?.name,
+            status: reservation.status,
+            reason: reservation.reason,
+            active_until: reservation.end_time
+          },
+          message: 'No hay sensores enviando datos para este espacio'
+        });
+      }
+
+      // Formatear datos ambientales actuales
       const environmentalData = {
         space_id: reservation.space_id,
         space_name: reservation.spaces?.name,
         reservation_id: reservationId,
         last_updated: new Date().toISOString(),
-        sensors: {}
+        sensors: {},
+        historical: {}
       };
 
-      // Procesar cada tipo de sensor
+      // Procesar lecturas más recientes
       latestReadings.forEach(reading => {
         const sensor = reading.latest_reading;
         environmentalData.sensors[sensor.sensor_type] = {
@@ -1458,17 +1550,16 @@ router.get('/:id/environmental-data', async (req, res) => {
         };
       });
 
-      // Agregar valores por defecto si no hay datos
-      const defaultSensors = ['temperature', 'humidity', 'co2'];
-      defaultSensors.forEach(sensorType => {
-        if (!environmentalData.sensors[sensorType]) {
-          environmentalData.sensors[sensorType] = {
-            value: null,
-            unit: sensorType === 'temperature' ? '°C' : sensorType === 'humidity' ? '%' : 'ppm',
-            timestamp: null,
-            quality: 'no_data',
-            device_id: null
-          };
+      // Procesar datos históricos para gráficos
+      const sensorTypes = ['temperature', 'humidity', 'co2'];
+      sensorTypes.forEach(sensorType => {
+        const sensorHistorical = historicalData.filter(h => h._id.sensor_type === sensorType);
+        if (sensorHistorical.length > 0) {
+          environmentalData.historical[sensorType] = sensorHistorical.map(h => ({
+            value: Math.round(h.avg_value * 10) / 10, // Redondear a 1 decimal
+            timestamp: h.timestamp,
+            unit: h.unit
+          }));
         }
       });
 
@@ -1488,38 +1579,10 @@ router.get('/:id/environmental-data', async (req, res) => {
     } catch (sensorError) {
       console.warn('Warning: Could not fetch sensor data:', sensorError.message);
       
-      // Retornar datos simulados si no hay conexión con sensores
+      // Retornar que no hay datos disponibles en lugar de simular
       res.json({
         success: true,
-        data: {
-          space_id: reservation.space_id,
-          space_name: reservation.spaces?.name,
-          reservation_id: reservationId,
-          last_updated: new Date().toISOString(),
-          sensors: {
-            temperature: {
-              value: 22.5 + Math.random() * 3,
-              unit: '°C',
-              timestamp: new Date().toISOString(),
-              quality: 'simulated',
-              device_id: 'sim_001'
-            },
-            humidity: {
-              value: 45 + Math.random() * 10,
-              unit: '%',
-              timestamp: new Date().toISOString(),
-              quality: 'simulated',
-              device_id: 'sim_001'
-            },
-            co2: {
-              value: 400 + Math.random() * 200,
-              unit: 'ppm',
-              timestamp: new Date().toISOString(),
-              quality: 'simulated',
-              device_id: 'sim_001'
-            }
-          }
-        },
+        data: null, // No hay datos disponibles
         reservation: {
           id: reservation.id,
           space_id: reservation.space_id,
@@ -1528,7 +1591,7 @@ router.get('/:id/environmental-data', async (req, res) => {
           reason: reservation.reason,
           active_until: reservation.end_time
         },
-        note: 'Using simulated sensor data - real sensors not available'
+        message: 'No hay datos ambientales disponibles en este momento'
       });
     }
 

@@ -69,12 +69,21 @@ const ActiveReservationModal = ({
       if (!silent) setLoading(true);
       if (silent) setRefreshing(true);
       
-      const data = await ApiService.getReservationEnvironmentalData(reservation.id);
-      setEnvironmentalData(data.data);
-      setError(null);
+      const response = await ApiService.getReservationEnvironmentalData(reservation.id);
+      
+      // Solo establecer datos si realmente hay datos del backend
+      if (response.success && response.data && Object.keys(response.data).length > 0) {
+        setEnvironmentalData(response.data);
+        setError(null);
+      } else {
+        // No hay datos reales disponibles
+        setEnvironmentalData(null);
+        setError(null);
+      }
       
     } catch (err) {
       console.error('Error fetching environmental data:', err);
+      setEnvironmentalData(null);
       setError('Error al cargar datos ambientales');
       if (!silent) {
         showToast('Error al cargar datos ambientales', 'error');
