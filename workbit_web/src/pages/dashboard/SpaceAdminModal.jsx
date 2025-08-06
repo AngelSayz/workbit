@@ -9,12 +9,13 @@ import {
   Droplets,
   Activity,
   Wifi,
-  Cpu
+  Cpu,
+  Trash2
 } from 'lucide-react';
 import { Button } from '../../components/ui';
 import { Card } from '../../components/ui';
 
-const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, allSpaces = [] }) => {
+const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, onDeleteSpace, allSpaces = [] }) => {
   console.log('SpaceAdminModal - Received space:', space);
   console.log('SpaceAdminModal - All spaces:', allSpaces);
   const [capacity, setCapacity] = useState(space?.capacity || 2);
@@ -22,6 +23,8 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, allSpaces 
   const [showRelocateGrid, setShowRelocateGrid] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRelocating, setIsRelocating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const statusOptions = [
     { value: 'available', label: 'Disponible', color: 'bg-green-500' },
@@ -76,6 +79,21 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, allSpaces 
     }
     setShowRelocateGrid(false);
     onClose();
+  };
+
+  const handleDeleteSpace = async () => {
+    if (onDeleteSpace && space && space.id) {
+      setIsDeleting(true);
+      try {
+        await onDeleteSpace(space.id);
+        onClose();
+      } catch (error) {
+        console.error('Error al eliminar espacio:', error);
+      } finally {
+        setIsDeleting(false);
+        setShowDeleteConfirm(false);
+      }
+    }
   };
 
   if (showRelocateGrid) {
@@ -317,28 +335,93 @@ const SpaceAdminModal = ({ space, onClose, onRelocate, onUpdateSpace, allSpaces 
         </div>
 
         {/* Fixed Footer */}
-        <div className="border-t bg-gray-50 p-4 flex justify-end space-x-3 flex-shrink-0">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isSaving}
+        <div className="border-t bg-gray-50 p-4 flex justify-between items-center flex-shrink-0">
+          {/* Delete button on the left */}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={isSaving || isDeleting}
+            className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Guardando...</span>
-              </div>
-            ) : (
-              'Guardar cambios'
-            )}
-          </Button>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Eliminar Espacio
+          </button>
+
+          {/* Action buttons on the right */}
+          <div className="flex space-x-3">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isSaving || isDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || isDeleting}
+            >
+              {isSaving ? (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Guardando...</span>
+                </div>
+              ) : (
+                'Guardar cambios'
+              )}
+            </Button>
+          </div>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-lg p-6 w-full max-w-md"
+            >
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Eliminar Espacio</h3>
+                  <p className="text-sm text-gray-500">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-sm text-gray-700">
+                  ¿Estás seguro de que quieres eliminar <strong>{space?.name}</strong>? 
+                  Se perderán todas las reservas y datos asociados a este espacio.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                >
+                  Cancelar
+                </Button>
+                <button
+                  onClick={handleDeleteSpace}
+                  disabled={isDeleting}
+                  className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeleting ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Eliminando...</span>
+                    </div>
+                  ) : (
+                    'Eliminar definitivamente'
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

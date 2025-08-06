@@ -99,6 +99,29 @@ const SpacesPage = () => {
     }
   };
 
+  const handleDeleteSpace = async (spaceId) => {
+    try {
+      setIsLoading(true);
+      console.log('Eliminando espacio:', spaceId);
+      
+      const response = await spacesAPI.deleteSpace(spaceId);
+      
+      if (response.success) {
+        console.log('Espacio eliminado exitosamente');
+        showNotification('Espacio eliminado exitosamente', 'success');
+        // Forzar actualización del grid
+        setRefreshTrigger(prev => prev + 1);
+        // Cerrar modales
+        handleCloseModals();
+      }
+    } catch (error) {
+      console.error('Error al eliminar espacio:', error);
+      showNotification('Error al eliminar el espacio', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRelocateSpace = async (spaceId, newX, newY) => {
     try {
       setIsLoading(true);
@@ -209,6 +232,7 @@ const SpacesPage = () => {
           space={selectedSpace}
           onClose={handleCloseModals}
           onUpdateSpace={handleUpdateSpace}
+          onDeleteSpace={handleDeleteSpace}
           onRelocate={handleRelocateSpace}
           allSpaces={allSpaces}
         />
