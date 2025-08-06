@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { tasksAPI } from '../../api/apiService';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotification } from '../../hooks';
+import { Notification, ConfirmationModal } from '../../components/ui';
 
 const RepairsPage = () => {
   const [tasks, setTasks] = useState([]);
@@ -17,8 +19,19 @@ const RepairsPage = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingTasks, setUpdatingTasks] = useState(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTaskId, setDeleteTaskId] = useState(null);
   const { t } = useTranslation();
   const { user } = useAuth();
+
+  // Notification hook
+  const { 
+    notification, 
+    showSuccess, 
+    showError, 
+    showWarning, 
+    hideNotification 
+  } = useNotification();
 
   useEffect(() => {
     if (user?.role === 'technician') {
@@ -60,7 +73,7 @@ const RepairsPage = () => {
       }
     } catch (err) {
       console.error('Error updating task status:', err);
-      alert(err.response?.data?.message || err.message || 'Error al actualizar estado');
+      showError(err.response?.data?.message || err.message || 'Error al actualizar estado');
     } finally {
       setUpdatingTasks(prev => {
         const newSet = new Set(prev);
@@ -71,19 +84,25 @@ const RepairsPage = () => {
   };
 
   const handleDeleteTask = async (taskId) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
-      try {
-        const response = await tasksAPI.deleteTask(taskId);
-        if (response.success) {
-          await fetchTasks();
-          alert('Tarea eliminada exitosamente');
-        } else {
-          throw new Error(response.error || 'Error al eliminar tarea');
-        }
-      } catch (err) {
-        console.error('Error deleting task:', err);
-        alert(err.response?.data?.message || err.message || 'Error al eliminar tarea');
+    setDeleteTaskId(taskId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteTask = async () => {
+    try {
+      const response = await tasksAPI.deleteTask(deleteTaskId);
+      if (response.success) {
+        await fetchTasks();
+        showSuccess('Tarea eliminada exitosamente');
+      } else {
+        throw new Error(response.error || 'Error al eliminar tarea');
       }
+    } catch (err) {
+      console.error('Error deleting task:', err);
+      showError(err.response?.data?.message || err.message || 'Error al eliminar tarea');
+    } finally {
+      setShowDeleteConfirm(false);
+      setDeleteTaskId(null);
     }
   };
 
@@ -330,6 +349,24 @@ const RepairsPage = () => {
           </table>
         </div>
       </motion.div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDeleteTask}
+        title="Eliminar Tarea"
+        message="¿Estás seguro de que quieres eliminar esta tarea? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
+
+      {/* Notification */}
+      <Notification
+        notification={notification}
+        onClose={hideNotification}
+      />
     </div>
   );
 };

@@ -18,6 +18,8 @@ import {
   X
 } from 'lucide-react';
 import { usersAPI, tasksAPI, authAPI, spacesAPI } from '../../api/apiService';
+import { useNotification } from '../../hooks/useNotification';
+import { Notification, ConfirmationModal } from '../../components/ui';
 
 const StaffPage = () => {
   const [technicians, setTechnicians] = useState([]);
@@ -31,7 +33,19 @@ const StaffPage = () => {
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleteTargetType, setDeleteTargetType] = useState(null); // 'technician' or 'task'
   const { t } = useTranslation();
+  
+  // Notification hook
+  const { 
+    notification, 
+    showSuccess, 
+    showError, 
+    showWarning, 
+    hideNotification 
+  } = useNotification();
 
   // Form states
   const [newTechnician, setNewTechnician] = useState({
@@ -76,6 +90,7 @@ const StaffPage = () => {
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Error al cargar los datos');
+      showError('Error al cargar los datos del personal');
     } finally {
       setLoading(false);
     }
@@ -88,10 +103,12 @@ const StaffPage = () => {
         setTechnicians(response.users);
       } else {
         setError('Error al cargar los técnicos');
+        showError('Error al cargar los técnicos');
       }
     } catch (err) {
       console.error('Error fetching technicians:', err);
       setError('Error al cargar los técnicos');
+      showError('Error al cargar los técnicos');
     }
   };
 
@@ -106,6 +123,7 @@ const StaffPage = () => {
     } catch (err) {
       console.error('Error fetching tasks:', err);
       setTasks([]);
+      showError('Error al cargar las tareas');
     }
   };
 
@@ -123,6 +141,7 @@ const StaffPage = () => {
     } catch (err) {
       console.error('Error fetching spaces:', err);
       setSpaces([]);
+      showError('Error al cargar los espacios');
     }
   };
 
@@ -161,13 +180,14 @@ const StaffPage = () => {
           cardCode: ''
         });
         setShowAddTechnicianModal(false);
-        alert('Técnico creado exitosamente');
+        showSuccess('Técnico creado exitosamente');
       } else {
         throw new Error(response.error || 'Error al crear técnico');
       }
     } catch (err) {
       console.error('Error creating technician:', err);
       setFormError(err.response?.data?.message || err.message || 'Error al crear técnico');
+      showError(err.response?.data?.message || err.message || 'Error al crear técnico');
     } finally {
       setFormLoading(false);
     }
@@ -191,13 +211,14 @@ const StaffPage = () => {
           assigned_to: ''
         });
         setShowAddTaskModal(false);
-        alert('Tarea creada exitosamente');
+        showSuccess('Tarea creada exitosamente');
       } else {
         throw new Error(response.error || 'Error al crear tarea');
       }
     } catch (err) {
       console.error('Error creating task:', err);
       setFormError(err.response?.data?.message || err.message || 'Error al crear tarea');
+      showError(err.response?.data?.message || err.message || 'Error al crear tarea');
     } finally {
       setFormLoading(false);
     }
@@ -251,33 +272,53 @@ const StaffPage = () => {
           cardCode: ''
         });
         setShowEditTechnicianModal(false);
-        alert('Técnico actualizado exitosamente');
+        showSuccess('Técnico actualizado exitosamente');
       } else {
         throw new Error(response.error || 'Error al actualizar técnico');
       }
     } catch (err) {
       console.error('Error updating technician:', err);
       setFormError(err.response?.data?.message || err.message || 'Error al actualizar técnico');
+      showError(err.response?.data?.message || err.message || 'Error al actualizar técnico');
     } finally {
       setFormLoading(false);
     }
   };
 
   const handleDeleteTechnician = async (technicianId) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este técnico? Esta acción no se puede deshacer.')) {
-      try {
-        const response = await usersAPI.deleteUser(technicianId);
+    setDeleteTargetId(technicianId);
+    setDeleteTargetType('technician');
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      if (deleteTargetType === 'technician') {
+        const response = await usersAPI.deleteUser(deleteTargetId);
         
-        if (response.success || response.message) {
+        if (response.success) {
           await fetchTechnicians();
-          alert('Técnico eliminado exitosamente');
+          showSuccess('Técnico eliminado exitosamente');
         } else {
           throw new Error(response.error || 'Error al eliminar técnico');
         }
-      } catch (err) {
-        console.error('Error deleting technician:', err);
-        alert(err.response?.data?.message || err.message || 'Error al eliminar técnico');
+      } else if (deleteTargetType === 'task') {
+        const response = await tasksAPI.deleteTask(deleteTargetId);
+        
+        if (response.success) {
+          await fetchTasks();
+          showSuccess('Tarea eliminada exitosamente');
+        } else {
+          throw new Error(response.error || 'Error al eliminar tarea');
+        }
       }
+    } catch (err) {
+      console.error(`Error deleting ${deleteTargetType}:`, err);
+      showError(err.response?.data?.message || err.message || `Error al eliminar ${deleteTargetType === 'technician' ? 'técnico' : 'tarea'}`);
+    } finally {
+      setShowDeleteConfirm(false);
+      setDeleteTargetId(null);
+      setDeleteTargetType(null);
     }
   };
 
@@ -294,7 +335,7 @@ const StaffPage = () => {
       }
     } catch (err) {
       console.error('Error updating task:', err);
-      alert(err.response?.data?.message || err.message || 'Error al actualizar tarea');
+      showError(err.response?.data?.message || err.message || 'Error al actualizar tarea');
     } finally {
       setUpdatingTasks(prev => {
         const newSet = new Set(prev);
@@ -317,7 +358,7 @@ const StaffPage = () => {
       }
     } catch (err) {
       console.error('Error updating task status:', err);
-      alert(err.response?.data?.message || err.message || 'Error al actualizar estado');
+      showError(err.response?.data?.message || err.message || 'Error al actualizar estado');
     } finally {
       setUpdatingTasks(prev => {
         const newSet = new Set(prev);
@@ -328,21 +369,9 @@ const StaffPage = () => {
   };
 
   const handleDeleteTask = async (taskId) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
-      try {
-        const response = await tasksAPI.deleteTask(taskId);
-        
-        if (response.success) {
-          await fetchTasks();
-          alert('Tarea eliminada exitosamente');
-        } else {
-          throw new Error(response.error || 'Error al eliminar tarea');
-        }
-      } catch (err) {
-        console.error('Error deleting task:', err);
-        alert(err.response?.data?.message || err.message || 'Error al eliminar tarea');
-      }
-    }
+    setDeleteTargetId(taskId);
+    setDeleteTargetType('task');
+    setShowDeleteConfirm(true);
   };
 
   const getPriorityColor = (priority) => {
@@ -1140,6 +1169,24 @@ const StaffPage = () => {
           </motion.div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title={`Eliminar ${deleteTargetType === 'technician' ? 'Técnico' : 'Tarea'}`}
+        message={`¿Estás seguro de que quieres eliminar ${deleteTargetType === 'technician' ? 'este técnico' : 'esta tarea'}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
+
+      {/* Notification */}
+      <Notification
+        notification={notification}
+        onClose={hideNotification}
+      />
     </div>
   );
 };

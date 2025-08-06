@@ -15,8 +15,9 @@ import {
   CheckCircle,
   X
 } from 'lucide-react';
-import { Button } from '../../components/ui';
+import { Button, Notification, ConfirmationModal } from '../../components/ui';
 import { usersAPI, authAPI } from '../../api/apiService';
+import { useNotification } from '../../hooks';
 
 const UsersPage = () => {
   const { t } = useTranslation();
@@ -42,6 +43,15 @@ const UsersPage = () => {
   const [editCardCode, setEditCardCode] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
+
+  // Notification hook
+  const { 
+    notification, 
+    showSuccess, 
+    showError, 
+    showWarning, 
+    hideNotification 
+  } = useNotification();
 
   useEffect(() => {
     loadUsers();
@@ -86,13 +96,14 @@ const UsersPage = () => {
         });
         setShowAddModal(false);
         
-        alert('Usuario creado exitosamente');
+        showSuccess('Usuario creado exitosamente');
       } else {
         throw new Error(response.error || 'Error al crear usuario');
       }
     } catch (err) {
       console.error('Error creating user:', err);
       setFormError(err.response?.data?.message || err.message || 'Error al crear usuario');
+      showError(err.response?.data?.message || err.message || 'Error al crear usuario');
     } finally {
       setFormLoading(false);
     }
@@ -116,10 +127,11 @@ const UsersPage = () => {
       setShowEditCardModal(false);
       setSelectedUser(null);
       setEditCardCode('');
-      alert('Code card actualizado exitosamente');
+      showSuccess('Code card actualizado exitosamente');
     } catch (err) {
       console.error('Error updating card code:', err);
       setFormError(err.response?.data?.message || err.message || 'Error al actualizar code card');
+      showError(err.response?.data?.message || err.message || 'Error al actualizar code card');
     } finally {
       setFormLoading(false);
     }
@@ -133,10 +145,10 @@ const UsersPage = () => {
       await loadUsers();
       setShowDeleteModal(false);
       setSelectedUser(null);
-      alert('Usuario eliminado exitosamente');
+      showSuccess('Usuario eliminado exitosamente');
     } catch (err) {
       console.error('Error deleting user:', err);
-      alert('Error al eliminar usuario');
+      showError('Error al eliminar usuario');
     }
   };
 
@@ -532,6 +544,24 @@ const UsersPage = () => {
           </motion.div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteUser}
+        title="Eliminar Usuario"
+        message={`¿Estás seguro de que quieres eliminar al usuario ${selectedUser?.username}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
+
+      {/* Notification */}
+      <Notification
+        notification={notification}
+        onClose={hideNotification}
+      />
     </div>
   );
 };
