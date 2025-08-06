@@ -27,6 +27,7 @@ const StaffPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('technicians'); // 'technicians' or 'tasks'
   const [showAddTechnicianModal, setShowAddTechnicianModal] = useState(false);
+  const [showEditTechnicianModal, setShowEditTechnicianModal] = useState(false);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -39,6 +40,14 @@ const StaffPage = () => {
     username: '',
     email: '',
     password: '',
+    cardCode: ''
+  });
+  const [editTechnician, setEditTechnician] = useState({
+    id: '',
+    name: '',
+    lastname: '',
+    username: '',
+    email: '',
     cardCode: ''
   });
   const [newTask, setNewTask] = useState({
@@ -192,6 +201,87 @@ const StaffPage = () => {
       setFormError(err.response?.data?.message || err.message || 'Error al crear tarea');
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const handleEditTechnician = (technician) => {
+    setEditTechnician({
+      id: technician.id,
+      name: technician.name,
+      lastname: technician.lastname,
+      username: technician.username,
+      email: technician.email,
+      cardCode: technician.cardCode || ''
+    });
+    setShowEditTechnicianModal(true);
+  };
+
+  const handleUpdateTechnician = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    setFormError('');
+
+    try {
+      // Update basic user information
+      const userUpdateData = {
+        name: editTechnician.name,
+        lastname: editTechnician.lastname,
+        username: editTechnician.username,
+        email: editTechnician.email
+      };
+
+      const response = await usersAPI.updateUser(editTechnician.id, userUpdateData);
+      
+      if (response.success || response.message) {
+        // If card code is provided, update it separately
+        if (editTechnician.cardCode && editTechnician.cardCode.trim()) {
+          try {
+            await usersAPI.updateUserCardCode(editTechnician.id, editTechnician.cardCode.trim());
+          } catch (cardError) {
+            console.error('Error updating card code:', cardError);
+            setFormError(cardError.response?.data?.message || 'Error al actualizar el código de tarjeta');
+            setFormLoading(false);
+            return;
+          }
+        }
+
+        await fetchTechnicians();
+        setEditTechnician({
+          id: '',
+          name: '',
+          lastname: '',
+          username: '',
+          email: '',
+          cardCode: ''
+        });
+        setShowEditTechnicianModal(false);
+        alert('Técnico actualizado exitosamente');
+      } else {
+        throw new Error(response.error || 'Error al actualizar técnico');
+      }
+    } catch (err) {
+      console.error('Error updating technician:', err);
+      setFormError(err.response?.data?.message || err.message || 'Error al actualizar técnico');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDeleteTechnician = async (technicianId) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este técnico? Esta acción no se puede deshacer.')) {
+      try {
+        const response = await usersAPI.deleteUser(technicianId);
+        
+        if (response.success || response.message) {
+          await fetchTechnicians();
+          alert('Técnico eliminado exitosamente');
+        } else {
+          throw new Error(response.error || 'Error al eliminar técnico');
+        }
+      } catch (err) {
+        console.error('Error deleting technician:', err);
+        alert(err.response?.data?.message || err.message || 'Error al eliminar técnico');
+      }
     }
   };
 
@@ -419,10 +509,18 @@ const StaffPage = () => {
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
+                      <button 
+                        onClick={() => handleEditTechnician(technician)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Editar técnico"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button className="text-red-600 hover:text-red-900">
+                      <button 
+                        onClick={() => handleDeleteTechnician(technician.id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Eliminar técnico"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -446,12 +544,19 @@ const StaffPage = () => {
                         {new Date(technician.created_at).toLocaleDateString('es-ES')}
                       </span>
                     </div>
-                    {technician.cardCode && (
-                      <div className="flex justify-between text-sm mt-1">
-                        <span className="text-gray-500">Tarjeta:</span>
-                        <span className="text-gray-900 font-mono">{technician.cardCode}</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between text-sm mt-1">
+                      <span className="text-gray-500">Acceso Maestro:</span>
+                      {technician.cardCode ? (
+                        <div className="flex items-center">
+                          <span className="text-green-600 font-medium mr-2">✓ Activo</span>
+                          <span className="text-gray-700 font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                            {technician.cardCode}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-amber-600 font-medium">⚠ Sin tarjeta</span>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               ))
@@ -932,6 +1037,120 @@ const StaffPage = () => {
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                 >
                   {formLoading ? 'Creando...' : 'Crear Tarea'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Technician Modal */}
+      {showEditTechnicianModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl p-6 w-full max-w-md"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Editar Técnico</h2>
+              <button
+                onClick={() => setShowEditTechnicianModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateTechnician} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTechnician.name}
+                  onChange={(e) => setEditTechnician({...editTechnician, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Apellido
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTechnician.lastname}
+                  onChange={(e) => setEditTechnician({...editTechnician, lastname: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Usuario
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTechnician.username}
+                  onChange={(e) => setEditTechnician({...editTechnician, username: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={editTechnician.email}
+                  onChange={(e) => setEditTechnician({...editTechnician, email: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Code Card <span className="text-sm text-gray-500">(Master Card)</span>
+                </label>
+                <input
+                  type="text"
+                  value={editTechnician.cardCode}
+                  onChange={(e) => setEditTechnician({...editTechnician, cardCode: e.target.value})}
+                  placeholder="Asignar tarjeta RFID para acceso maestro"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Los técnicos con code card tendrán acceso maestro a todos los espacios
+                </p>
+              </div>
+
+              {formError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-600">{formError}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditTechnicianModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {formLoading ? 'Actualizando...' : 'Actualizar Técnico'}
                 </button>
               </div>
             </form>

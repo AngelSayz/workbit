@@ -368,7 +368,13 @@ const SpacesScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Reservar Espacio</Text>
+              <View style={styles.modalTitleContainer}>
+                <Text style={styles.modalTitle}>{selectedSpace?.name}</Text>
+                <View style={styles.capacityInfo}>
+                  <Ionicons name="person-outline" size={16} color="#6b7280" />
+                  <Text style={styles.capacityText}>{selectedSpace?.capacity}</Text>
+                </View>
+              </View>
               <TouchableOpacity
                 onPress={closeReservationModal}
                 style={styles.closeButton}
@@ -379,11 +385,6 @@ const SpacesScreen = ({ navigation }) => {
             
             {selectedSpace && (
               <ScrollView style={styles.reservationForm}>
-                <View style={styles.spaceInfo}>
-                  <Text style={styles.spaceName}>{selectedSpace.name}</Text>
-                  <Text style={styles.spaceCapacity}>Capacidad: {selectedSpace.capacity} personas</Text>
-                </View>
-
                 <View style={styles.formSection}>
                   <Text style={styles.formLabel}>Motivo de la reserva</Text>
                   <Input
@@ -391,6 +392,7 @@ const SpacesScreen = ({ navigation }) => {
                     onChangeText={setReason}
                     placeholder="Describe el propósito de tu reserva..."
                     multiline
+                    numberOfLines={3}
                     style={styles.reasonInput}
                   />
                 </View>
@@ -660,8 +662,8 @@ const getStyles = (insets) => StyleSheet.create({
     borderRadius: 12,
     padding: 24,
     marginHorizontal: 16,
-    maxHeight: '80%',
-    minWidth: 320,
+    height: '80%',
+    width: '90%',
     maxWidth: 400,
   },
   modalHeader: {
@@ -675,27 +677,30 @@ const getStyles = (insets) => StyleSheet.create({
     fontWeight: 'bold',
     color: '#111827',
   },
+  modalTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  capacityInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  capacityText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
   closeButton: {
     padding: 4,
   },
   reservationForm: {
     flex: 1,
-  },
-  spaceInfo: {
-    backgroundColor: '#f3f4f6',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  spaceName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  spaceCapacity: {
-    fontSize: 14,
-    color: '#6b7280',
   },
   formSection: {
     marginBottom: 16,
@@ -708,7 +713,7 @@ const getStyles = (insets) => StyleSheet.create({
   },
   reasonInput: {
     minHeight: 80,
-    minWidth: 250,
+    width: '100%',
     textAlignVertical: 'top',
   },
   dateInput: {
