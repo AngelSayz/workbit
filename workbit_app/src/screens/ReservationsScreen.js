@@ -16,7 +16,7 @@ const ReservationsScreen = () => {
   const insets = useSafeAreaInsets();
   const styles = getStyles(insets);
   const { showToast } = useToast();
-  const { showConfirmation } = useConfirmation();
+  const { showConfirmation, confirmation, handleConfirm, handleCancel } = useConfirmation();
   
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +51,7 @@ const ReservationsScreen = () => {
           (res.Status === 'pending' && now >= startTime && now <= endTime)
         );
       });
+      
       setActiveReservation(active);
       
     } catch (error) {
@@ -192,7 +193,9 @@ const ReservationsScreen = () => {
         styles.filterButton,
         isActive && styles.filterButtonActive
       ]}
-      onPress={() => setFilter(filterType)}
+      onPress={() => {
+        setFilter(filterType);
+      }}
     >
       <Text style={[
         styles.filterButtonText,
@@ -366,7 +369,17 @@ const ReservationsScreen = () => {
       </ScrollView>
       
       <Toast />
-      <ConfirmationModal />
+      <ConfirmationModal 
+        visible={confirmation.visible}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        type={confirmation.type}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+        loading={confirmation.loading}
+      />
       
       <ActiveReservationModal
         visible={showActiveModal}

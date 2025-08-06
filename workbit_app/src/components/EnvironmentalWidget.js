@@ -16,7 +16,7 @@ const EnvironmentalWidget = ({ environmentalData, loading, error }) => {
   useEffect(() => {
     if (environmentalData?.sensors) {
       // Generar gráficos con datos reales (actuales + históricos si están disponibles)
-      generateChartDataFromReal(environmentalData);
+      generateChartDataFromReal(environmentalData.sensors);
     } else {
       // Limpiar datos de gráficos si no hay datos reales
       setChartData({
@@ -28,54 +28,22 @@ const EnvironmentalWidget = ({ environmentalData, loading, error }) => {
     }
   }, [environmentalData]);
 
-  const generateChartDataFromReal = (data) => {
-    // Usar datos históricos reales del backend si están disponibles
-    if (data.historical) {
-      const sensorTypes = ['temperature', 'humidity', 'co2'];
-      const newChartData = { timestamps: [] };
-      
-      // Buscar el sensor con más datos históricos para establecer los timestamps
-      let maxDataPoints = 0;
-      let baseTimestamps = [];
-      
-      sensorTypes.forEach(sensorType => {
-        if (data.historical[sensorType] && data.historical[sensorType].length > maxDataPoints) {
-          maxDataPoints = data.historical[sensorType].length;
-          baseTimestamps = data.historical[sensorType].map(point => 
-            new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          );
-        }
-      });
-      
-      newChartData.timestamps = baseTimestamps;
-      
-      // Procesar datos para cada tipo de sensor
-      sensorTypes.forEach(sensorType => {
-        if (data.historical[sensorType] && data.historical[sensorType].length > 0) {
-          newChartData[sensorType] = data.historical[sensorType].map(point => point.value);
-        } else {
-          // Si no hay datos históricos para este sensor, usar valores vacíos
-          newChartData[sensorType] = [];
-        }
-      });
-      
-      setChartData(newChartData);
-    } else {
-      // Si no hay datos históricos, usar solo el valor actual como punto único
-      const now = new Date();
-      const timestamps = [now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })];
-      
-      const tempData = data.sensors?.temperature?.value ? [data.sensors.temperature.value] : [];
-      const humidityData = data.sensors?.humidity?.value ? [data.sensors.humidity.value] : [];
-      const co2Data = data.sensors?.co2?.value ? [data.sensors.co2.value] : [];
+  const generateChartDataFromReal = (sensors) => {
+    // Usar datos históricos reales del backend si están disponibles (futuro)
+    // Por ahora, solo mostraremos el valor actual como un punto único
+    const now = new Date();
+    const timestamps = [now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })];
+    
+    const tempData = sensors.temperature?.value ? [sensors.temperature.value] : [];
+    const humidityData = sensors.humidity?.value ? [sensors.humidity.value] : [];
+    const co2Data = sensors.co2?.value ? [sensors.co2.value] : [];
 
-      setChartData({
-        temperature: tempData,
-        humidity: humidityData,
-        co2: co2Data,
-        timestamps
-      });
-    }
+    setChartData({
+      temperature: tempData,
+      humidity: humidityData,
+      co2: co2Data,
+      timestamps
+    });
   };
 
   const getSensorStatus = (sensorType, value) => {

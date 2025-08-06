@@ -61,22 +61,35 @@ export const useConfirmation = () => {
     loading: false,
   });
 
-  const showConfirmation = useCallback((config) => {
-    setConfirmation({
-      visible: true,
-      title: config.title || '¿Estás seguro?',
-      message: config.message || 'Esta acción no se puede deshacer.',
-      confirmText: config.confirmText || 'Confirmar',
-      cancelText: config.cancelText || 'Cancelar',
-      type: config.type || 'warning',
-      onConfirm: config.onConfirm || (() => {}),
-      onCancel: config.onCancel || (() => {}),
-      loading: false,
+  const showConfirmation = useCallback((title, message, type = 'warning') => {
+    return new Promise((resolve) => {
+      setConfirmation({
+        visible: true,
+        title: title || '¿Estás seguro?',
+        message: message || 'Esta acción no se puede deshacer.',
+        confirmText: 'Confirmar',
+        cancelText: 'Cancelar',
+        type: type,
+        onConfirm: () => {
+          setConfirmation(prev => ({ ...prev, visible: false }));
+          resolve(true);
+        },
+        onCancel: () => {
+          setConfirmation(prev => ({ ...prev, visible: false }));
+          resolve(false);
+        },
+        loading: false,
+      });
     });
   }, []);
 
   const hideConfirmation = useCallback(() => {
-    setConfirmation(prev => ({ ...prev, visible: false }));
+    setConfirmation(prev => ({ 
+      ...prev, 
+      visible: false,
+      onConfirm: () => {},
+      onCancel: () => {}
+    }));
   }, []);
 
   const setLoading = useCallback((loading) => {
@@ -87,18 +100,16 @@ export const useConfirmation = () => {
     setLoading(true);
     try {
       await confirmation.onConfirm();
-      hideConfirmation();
     } catch (error) {
       console.error('Confirmation action failed:', error);
     } finally {
       setLoading(false);
     }
-  }, [confirmation.onConfirm, hideConfirmation, setLoading]);
+  }, [confirmation.onConfirm, setLoading]);
 
   const handleCancel = useCallback(() => {
     confirmation.onCancel();
-    hideConfirmation();
-  }, [confirmation.onCancel, hideConfirmation]);
+  }, [confirmation.onCancel]);
 
   return {
     confirmation,

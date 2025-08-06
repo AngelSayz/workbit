@@ -32,9 +32,10 @@ router.get('/:id/profile', [authenticateToken], async (req, res) => {
         lastname,
         username,
         user_id,
+        card_id,
         created_at,
         roles(id, name),
-        codecards(id, code)
+        codecards:card_id(id, code)
       `)
       .eq('id', userId)
       .single();
@@ -91,9 +92,10 @@ router.get('/', async (req, res) => {
         lastname,
         username,
         user_id,
+        card_id,
         created_at,
         roles(id, name),
-        codecards(id, code)
+        codecards:card_id(id, code)
       `)
       .order('created_at', { ascending: false });
 
@@ -147,9 +149,10 @@ router.get('/by-role/:role', async (req, res) => {
         lastname,
         username,
         user_id,
+        card_id,
         created_at,
         roles!inner(id, name),
-        codecards(id, code)
+        codecards:card_id(id, code)
       `)
       .eq('roles.name', role)
       .order('created_at', { ascending: false });
@@ -202,9 +205,10 @@ router.get('/profile', authenticateToken, async (req, res) => {
         lastname,
         username,
         user_id,
+        card_id,
         created_at,
         roles(id, name),
-        codecards(id, code)
+        codecards:card_id(id, code)
       `)
       .eq('id', req.user.id)
       .single();
@@ -233,6 +237,109 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// PUT /api/users/profile - Update current user profile
+router.put('/profile', 
+  authenticateToken,
+  [
+    body('name').optional().trim().isLength({ min: 1 }).withMessage('Name cannot be empty'),
+    body('lastname').optional().trim().isLength({ min: 1 }).withMessage('Last name cannot be empty'),
+    body('username').optional().trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters')
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+
+      const updates = req.body;
+
+      if (!supabase) {
+        return res.status(500).json({
+          error: 'Database connection failed'
+        });
+      }
+
+      // Remove undefined fields
+      Object.keys(updates).forEach(key => {
+        if (updates[key] === undefined) {
+          delete updates[key];
+        }
+      });
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({
+          error: 'No valid fields to update'
+        });
+      }
+
+      // Check if username is being updated and if it's unique
+      if (updates.username) {
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('username', updates.username)
+          .neq('id', req.user.id)
+          .single();
+
+        if (existingUser) {
+          return res.status(409).json({
+            error: 'Username already exists',
+            message: 'Username is already taken by another user'
+          });
+        }
+      }
+
+      // Update the user
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', req.user.id)
+        .select(`
+          id,
+          name,
+          lastname,
+          username,
+          user_id,
+          card_id,
+          created_at,
+          roles(id, name),
+          codecards:card_id(id, code)
+        `)
+        .single();
+
+      if (updateError) {
+        console.error('Update profile error:', updateError);
+        return res.status(500).json({
+          error: 'Failed to update profile'
+        });
+      }
+
+      res.json({
+        message: 'Profile updated successfully',
+        user: {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          lastname: updatedUser.lastname,
+          username: updatedUser.username,
+          role: updatedUser.roles?.name || 'user',
+          cardCode: updatedUser.codecards?.code || null,
+          created_at: updatedUser.created_at
+        }
+      });
+
+    } catch (error) {
+      console.error('Update profile error:', error);
+      res.status(500).json({
+        error: 'Failed to update profile'
+      });
+    }
+  }
+);
+
 // GET /api/users/:id - Get specific user (admin only)
 router.get('/:id', async (req, res) => {
   try {
@@ -252,9 +359,10 @@ router.get('/:id', async (req, res) => {
         lastname,
         username,
         user_id,
+        card_id,
         created_at,
         roles(id, name),
-        codecards(id, code)
+        codecards:card_id(id, code)
       `)
       .eq('id', id)
       .single();
@@ -358,9 +466,10 @@ router.put('/:id',
           lastname,
           username,
           user_id,
+          card_id,
           created_at,
           roles(id, name),
-          codecards(id, code)
+          codecards:card_id(id, code)
         `)
         .single();
 

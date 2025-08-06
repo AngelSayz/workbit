@@ -333,30 +333,8 @@ router.post('/',
   authenticateToken,
   [
     body('reason').trim().isLength({ min: 1 }).withMessage('Reason is required'),
-    body('start_time').custom((value) => {
-      // Validar formato de fecha local (YYYY-MM-DD HH:MM:SS)
-      const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
-      if (!dateRegex.test(value)) {
-        throw new Error('Start time must be in format YYYY-MM-DD HH:MM:SS');
-      }
-      const date = new Date(value);
-      if (isNaN(date.getTime())) {
-        throw new Error('Invalid start time');
-      }
-      return true;
-    }),
-    body('end_time').custom((value) => {
-      // Validar formato de fecha local (YYYY-MM-DD HH:MM:SS)
-      const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
-      if (!dateRegex.test(value)) {
-        throw new Error('End time must be in format YYYY-MM-DD HH:MM:SS');
-      }
-      const date = new Date(value);
-      if (isNaN(date.getTime())) {
-        throw new Error('Invalid end time');
-      }
-      return true;
-    }),
+    body('start_time').isISO8601().withMessage('Valid start time is required (ISO 8601 format)'),
+    body('end_time').isISO8601().withMessage('Valid end time is required (ISO 8601 format)'),
     body('space_id').isInt({ min: 1 }).withMessage('Valid space ID is required'),
     body('participants').optional().isArray().withMessage('Participants must be an array')
   ],
@@ -372,11 +350,17 @@ router.post('/',
 
       const { reason, start_time, end_time, space_id, participants = [] } = req.body;
       
-      // Convertir fechas locales a objetos Date
-      const startTime = new Date(start_time);
-      const endTime = new Date(end_time);
+      // Convertir fechas ISO a objetos Date
+      const startTime = parseISO(start_time);
+      const endTime = parseISO(end_time);
 
       // Validar fechas
+      if (!isValid(startTime) || !isValid(endTime)) {
+        return res.status(400).json({
+          error: 'Invalid date format'
+        });
+      }
+
       if (isBefore(endTime, startTime)) {
         return res.status(400).json({
           error: 'End time must be after start time'

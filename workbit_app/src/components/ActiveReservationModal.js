@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -32,39 +32,9 @@ const ActiveReservationModal = ({
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
   const { showToast } = useToast();
 
-  useEffect(() => {
-    if (visible) {
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start();
-      
-      if (reservation?.id) {
-        fetchEnvironmentalData();
-      }
-    } else {
-      Animated.timing(slideAnim, {
-        toValue: screenHeight,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [visible, reservation]);
-
-  // Auto-refresh cada 30 segundos
-  useEffect(() => {
-    if (!visible || !reservation?.id) return;
-
-    const interval = setInterval(() => {
-      fetchEnvironmentalData(true); // Silent refresh
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [visible, reservation]);
-
-  const fetchEnvironmentalData = async (silent = false) => {
+  const fetchEnvironmentalData = useCallback(async (silent = false) => {
+    if (!reservation?.id) return;
+    
     try {
       if (!silent) setLoading(true);
       if (silent) setRefreshing(true);
@@ -92,7 +62,39 @@ const ActiveReservationModal = ({
       if (!silent) setLoading(false);
       if (silent) setRefreshing(false);
     }
-  };
+  }, [reservation?.id, showToast]);
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }).start();
+      
+      if (reservation?.id) {
+        fetchEnvironmentalData();
+      }
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: screenHeight,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, reservation?.id, fetchEnvironmentalData]);
+
+  // Auto-refresh cada 30 segundos
+  useEffect(() => {
+    if (!visible || !reservation?.id) return;
+
+    const interval = setInterval(() => {
+      fetchEnvironmentalData(true); // Silent refresh
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [visible, reservation?.id, fetchEnvironmentalData]);
 
   const handleEndSession = async () => {
     try {
