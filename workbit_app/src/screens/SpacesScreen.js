@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, Modal, ScrollView, RefreshControl, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, Alert, Modal, ScrollView, RefreshControl, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +25,10 @@ const SpacesScreen = ({ navigation }) => {
   const [creatingReservation, setCreatingReservation] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [participants, setParticipants] = useState([]);
+  const [newParticipant, setNewParticipant] = useState('');
+  const [participantRows, setParticipantRows] = useState([{ id: 1, username: '', isValidating: false, isValid: null }]);
+  const [validatingUsers, setValidatingUsers] = useState(new Set());
 
   useEffect(() => {
     loadSpacesData();
@@ -118,6 +122,81 @@ const SpacesScreen = ({ navigation }) => {
     setShowTimePicker(false);
     setReason('');
     setDuration(60);
+    setParticipants([]);
+    setNewParticipant('');
+    setParticipantRows([{ id: 1, username: '', isValidating: false, isValid: null }]);
+    setValidatingUsers(new Set());
+  };
+
+  const validateUser = async (username, rowId) => {
+    if (!username.trim()) return;
+
+    setValidatingUsers(prev => new Set([...prev, rowId]));
+    
+    try {
+      // Aquí deberías hacer la llamada a tu API para verificar si el usuario existe
+      const response = await ApiService.validateUser(username.trim());
+      
+      setParticipantRows(prev => prev.map(row => 
+        row.id === rowId 
+          ? { ...row, isValidating: false, isValid: response.exists }
+          : row
+      ));
+
+      if (response.exists) {
+        // Si el usuario es válido, agregarlo a participantes y preparar nueva fila
+        setParticipants(prev => [...prev, username.trim()]);
+        
+        // Solo agregar nueva fila si no hemos alcanzado el límite del espacio
+        const maxCapacity = selectedSpace?.capacity || 1;
+        const currentRows = participantRows.filter(row => row.isValid).length;
+        
+        if (currentRows < maxCapacity - 1) { // -1 porque el owner también ocupa espacio
+          const newId = Math.max(...participantRows.map(r => r.id)) + 1;
+          setParticipantRows(prev => [...prev, { id: newId, username: '', isValidating: false, isValid: null }]);
+        }
+      }
+    } catch (error) {
+      console.error('Error validando usuario:', error);
+      setParticipantRows(prev => prev.map(row => 
+        row.id === rowId 
+          ? { ...row, isValidating: false, isValid: false }
+          : row
+      ));
+    }
+
+    setValidatingUsers(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(rowId);
+      return newSet;
+    });
+  };
+
+  const updateParticipantRow = (rowId, username) => {
+    setParticipantRows(prev => prev.map(row => 
+      row.id === rowId 
+        ? { ...row, username, isValid: null }
+        : row
+    ));
+  };
+
+  const removeParticipantRow = (rowId) => {
+    setParticipantRows(prev => prev.filter(row => row.id !== rowId));
+    setParticipants(prev => {
+      const rowToRemove = participantRows.find(row => row.id === rowId);
+      return prev.filter(username => username !== rowToRemove?.username);
+    });
+  };
+
+  const addParticipant = () => {
+    if (newParticipant.trim() && !participants.includes(newParticipant.trim())) {
+      setParticipants([...participants, newParticipant.trim()]);
+      setNewParticipant('');
+    }
+  };
+
+  const removeParticipant = (index) => {
+    setParticipants(participants.filter((_, i) => i !== index));
   };
 
   const handleReservation = async () => {
@@ -149,7 +228,9 @@ const SpacesScreen = ({ navigation }) => {
         space_id: selectedSpace.id,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
-        participants: []
+        participants: participantRows
+          .filter(row => row.isValid === true && row.username.trim())
+          .map(row => row.username.trim())
       };
 
       console.log('📋 Datos de reserva a enviar:', JSON.stringify(reservationData, null, 2));
@@ -384,6 +465,76 @@ const SpacesScreen = ({ navigation }) => {
                       })()}
                     </Text>
                   </View>
+                </View>
+
+                <View style={styles.formSection}>
+                  <Text style={styles.formLabel}>
+                    Invitados (opcional) - Máximo {Math.max(0, (selectedSpace?.capacity || 1) - 1)} invitados
+                  </Text>
+                  
+                  {selectedSpace?.capacity > 1 ? (
+                    <View style={styles.participantsContainer}>
+                      {participantRows.map((row, index) => (
+                        <View key={row.id} style={styles.participantRow}>
+                          <Input
+                            value={row.username}
+                            onChangeText={(text) => updateParticipantRow(row.id, text)}
+                            placeholder={`Nombre de usuario del invitado ${index + 1}`}
+                            style={[
+                              styles.participantInputField,
+                              row.isValid === false && styles.participantInputError,
+                              row.isValid === true && styles.participantInputSuccess
+                            ]}
+                            editable={row.isValid !== true}
+                          />
+                          
+                          {row.isValid !== true && (
+                            <TouchableOpacity
+                              style={[
+                                styles.validateButton,
+                                (!row.username.trim() || validatingUsers.has(row.id)) && styles.validateButtonDisabled
+                              ]}
+                              onPress={() => validateUser(row.username, row.id)}
+                              disabled={!row.username.trim() || validatingUsers.has(row.id)}
+                            >
+                              {validatingUsers.has(row.id) ? (
+                                <ActivityIndicator size="small" color="#3b82f6" />
+                              ) : (
+                                <Ionicons 
+                                  name="add" 
+                                  size={20} 
+                                  color={row.username.trim() ? '#3b82f6' : '#9ca3af'} 
+                                />
+                              )}
+                            </TouchableOpacity>
+                          )}
+                          
+                          {row.isValid === true && (
+                            <TouchableOpacity
+                              style={styles.removeParticipantButton}
+                              onPress={() => removeParticipantRow(row.id)}
+                            >
+                              <Ionicons name="close-circle" size={20} color="#ef4444" />
+                            </TouchableOpacity>
+                          )}
+                          
+                          {row.isValid === false && (
+                            <View style={styles.errorIndicator}>
+                              <Ionicons name="close-circle" size={20} color="#ef4444" />
+                            </View>
+                          )}
+                        </View>
+                      ))}
+                      
+                      {participantRows.some(row => row.isValid === false) && (
+                        <Text style={styles.errorText}>Usuario no encontrado</Text>
+                      )}
+                    </View>
+                  ) : (
+                    <Text style={styles.noInvitesText}>
+                      Este espacio tiene capacidad para 1 persona únicamente. No se pueden agregar invitados.
+                    </Text>
+                  )}
                 </View>
 
                 <View style={styles.modalActions}>
@@ -648,6 +799,121 @@ const getStyles = (insets) => StyleSheet.create({
     fontSize: 12,
     color: '#0369a1',
     textAlign: 'center',
+  },
+  participantInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  participantInput: {
+    flex: 1,
+  },
+  addButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  participantsList: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  participantsLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  participantItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  participantName: {
+    fontSize: 14,
+    color: '#374151',
+    flex: 1,
+  },
+  removeButton: {
+    marginLeft: 8,
+  },
+  participantsContainer: {
+    gap: 12,
+  },
+  participantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  participantInputField: {
+    flex: 1,
+  },
+  participantInputError: {
+    borderColor: '#ef4444',
+    borderWidth: 1,
+  },
+  participantInputSuccess: {
+    borderColor: '#10b981',
+    borderWidth: 1,
+    backgroundColor: '#f0fdf4',
+  },
+  validateButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  validateButtonDisabled: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#e5e7eb',
+  },
+  removeParticipantButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorIndicator: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#ef4444',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  noInvitesText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: 16,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   modalActions: {
     flexDirection: 'row',

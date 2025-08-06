@@ -202,6 +202,11 @@ class ApiService {
     const queryParams = new URLSearchParams(filters).toString();
     return this.request(`/api/access-logs${queryParams ? `?${queryParams}` : ''}`);
   }
+
+  // Validate user existence
+  async validateUser(username) {
+    return this.request(`/api/users/validate/${encodeURIComponent(username)}`);
+  }
 }
 
 export default new ApiService(); 

@@ -544,4 +544,48 @@ router.put('/:id/card-code',
   }
 );
 
+// GET /api/users/validate/:username - Validate if user exists
+router.get('/validate/:username', authenticateToken, async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Database connection failed'
+      });
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, username, name, lastname')
+      .eq('username', username)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('Error validating user:', error);
+      return res.status(500).json({
+        error: 'Failed to validate user',
+        details: error.message
+      });
+    }
+
+    res.json({
+      exists: !!user,
+      user: user ? {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        lastname: user.lastname
+      } : null
+    });
+
+  } catch (error) {
+    console.error('Error validating user:', error);
+    res.status(500).json({
+      error: 'Failed to validate user',
+      details: error.message
+    });
+  }
+});
+
 module.exports = router; 
