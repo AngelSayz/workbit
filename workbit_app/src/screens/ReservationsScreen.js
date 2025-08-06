@@ -223,15 +223,15 @@ const ReservationsScreen = () => {
         ].join('\n');
 
         if (reservation.Status === 'pending') {
-          const action = await showConfirmation(
-            reservation.Reason,
-            details + '\n\n¿Qué deseas hacer?',
+          const shouldCancel = await showConfirmation(
+            'Reserva Pendiente',
+            details + '\n\nEsta reserva está pendiente de confirmación automática.\n¿Deseas cancelarla?',
             'warning',
-            'Ver detalles',
-            'Cancelar Reserva'
+            'Cancelar Reserva',
+            'Mantener'
           );
           
-          if (action) {
+          if (shouldCancel) {
             await handleCancelReservation(reservation.id);
           }
         } else {

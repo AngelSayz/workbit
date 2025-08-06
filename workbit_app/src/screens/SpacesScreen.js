@@ -229,17 +229,25 @@ const SpacesScreen = ({ navigation }) => {
         return;
       }
 
-      // Crear fecha ISO directamente desde el objeto Date local
-      // Esto enviará la fecha tal como la seleccionó el usuario
-      const formatToISOString = (date) => {
-        return date.toISOString();
+      // Crear fecha en formato ISO pero usando la hora local como si fuera UTC
+      // Esto hace que la hora que el usuario selecciona sea exactamente la que se guarda
+      const formatLocalAsUTC = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        // Formato ISO pero con la hora local (sin conversión de zona horaria)
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
       };
 
       const reservationData = {
         reason: reason.trim(),
         space_id: selectedSpace.id,
-        start_time: formatToISOString(startDateTime),
-        end_time: formatToISOString(endDateTime),
+        start_time: formatLocalAsUTC(startDateTime),
+        end_time: formatLocalAsUTC(endDateTime),
         participants: participantRows
           .filter(row => row.isValid === true && row.username.trim())
           .map(row => row.username.trim())
@@ -248,8 +256,8 @@ const SpacesScreen = ({ navigation }) => {
       console.log('📋 Datos de reserva a enviar:', JSON.stringify(reservationData, null, 2));
       console.log('🕐 Start time local:', startDateTime.toString());
       console.log('🕑 End time local:', endDateTime.toString());
-      console.log('🌐 Start time ISO:', reservationData.start_time);
-      console.log('🌐 End time ISO:', reservationData.end_time);
+      console.log('🌐 Start time como UTC:', reservationData.start_time);
+      console.log('🌐 End time como UTC:', reservationData.end_time);
       console.log('⏱️ Duration:', duration, 'minutes');
       console.log('🏢 Space ID:', selectedSpace.id);
       console.log('📝 Reason:', reason.trim());
