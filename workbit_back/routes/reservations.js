@@ -1309,13 +1309,14 @@ async function getSpaceCredentials(spaceId) {
     }
 
     // Get master cards (admin and technician roles)
+    // role_id: 2 = technician, 3 = admin
     const { data: masterUsers, error: masterError } = await supabase
       .from('users')
       .select(`
         codecards(code),
-        roles(name)
+        role_id
       `)
-      .in('roles.name', ['admin', 'technician'])
+      .in('role_id', [2, 3])
       .not('codecards.code', 'is', null);
 
     if (masterError) {
@@ -1326,7 +1327,15 @@ async function getSpaceCredentials(spaceId) {
       .filter(user => user.codecards?.code)
       .map(user => user.codecards.code);
 
-    console.log(`🔑 Encontradas ${masterCards.length} tarjetas maestras`);
+    console.log(`🔑 Encontradas ${masterCards.length} tarjetas maestras (role_id 2-3)`);
+    if (masterUsers?.length > 0) {
+      masterUsers.forEach(user => {
+        if (user.codecards?.code) {
+          const roleType = user.role_id === 2 ? 'technician' : user.role_id === 3 ? 'admin' : 'unknown';
+          console.log(`  🔑 ${roleType}: ${user.codecards.code}`);
+        }
+      });
+    }
 
     // Calculate expiration (24 hours from now)
     const expiresAt = new Date();
@@ -1338,7 +1347,7 @@ async function getSpaceCredentials(spaceId) {
       expires_at: expiresAt.toISOString()
     };
 
-    console.log(`📊 Credenciales completas: ${credentialsData.length} reservas, ${masterCards.length} tarjetas maestras`);
+    console.log(`📊 Credenciales completas: ${credentialsData.length} reservas, ${masterCards.length} tarjetas maestras (admin/tech)`);
     return credentials;
 
   } catch (error) {
