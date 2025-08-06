@@ -35,12 +35,20 @@ const ReservationsScreen = () => {
       
       setReservations(userReservations);
       
-      // Find active reservation (confirmed and current time is within reservation period)
-      const active = userReservations.find(res => 
-        res.Status === 'confirmed' && 
-        new Date() >= new Date(res.StartTime) && 
-        new Date() <= new Date(res.EndTime)
-      );
+      // Find active reservation (confirmed OR pending but in active time range)
+      const now = new Date();
+      const active = userReservations.find(res => {
+        const startTime = new Date(res.StartTime);
+        const endTime = new Date(res.EndTime);
+        
+        // Reserva activa si:
+        // 1. Está confirmada Y está en horario, O
+        // 2. Está pendiente PERO ya llegó la hora de inicio (para permitir uso mientras se auto-confirma)
+        return (
+          (res.Status === 'confirmed' && now >= startTime && now <= endTime) ||
+          (res.Status === 'pending' && now >= startTime && now <= endTime)
+        );
+      });
       setActiveReservation(active);
       
     } catch (error) {

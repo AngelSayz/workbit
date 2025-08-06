@@ -1356,4 +1356,273 @@ async function getSpaceCredentials(spaceId) {
   }
 }
 
+// ================= AUTO-CONFIRMACIÓN DE RESERVAS =================
+
+// GET /api/reservations/:id/environmental-data - Obtener datos ambientales de una reserva activa
+router.get('/:id/environmental-data', async (req, res) => {
+  try {
+    const reservationId = parseInt(req.params.id);
+
+    if (!supabase) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection failed'
+      });
+    }
+
+    // Obtener información de la reserva
+    const { data: reservation, error: reservationError } = await supabase
+      .from('reservations')
+      .select(`
+        id,
+        space_id,
+        start_time,
+        end_time,
+        status,
+        reason,
+        spaces(id, name, capacity)
+      `)
+      .eq('id', reservationId)
+      .single();
+
+    if (reservationError || !reservation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reservation not found'
+      });
+    }
+
+    // Verificar que la reserva esté activa o próxima a activarse
+    const now = new Date();
+    const startTime = new Date(reservation.start_time);
+    const endTime = new Date(reservation.end_time);
+    
+    const isActive = (reservation.status === 'confirmed' || reservation.status === 'pending') && 
+                     now >= startTime && now <= endTime;
+
+    if (!isActive) {
+      return res.status(400).json({
+        success: false,
+        error: 'Reservation is not currently active',
+        details: {
+          status: reservation.status,
+          current_time: now.toISOString(),
+          start_time: reservation.start_time,
+          end_time: reservation.end_time
+        }
+      });
+    }
+
+    // Obtener datos ambientales del espacio
+    try {
+      // Importar el modelo de SensorReading desde sensors.js
+      const SensorReading = require('mongoose').model('SensorReading');
+      
+      // Obtener lecturas de las últimas 2 horas
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      
+      const latestReadings = await SensorReading.aggregate([
+        { 
+          $match: { 
+            space_id: reservation.space_id,
+            timestamp: { $gte: twoHoursAgo }
+          } 
+        },
+        { $sort: { timestamp: -1 } },
+        {
+          $group: {
+            _id: '$sensor_type',
+            latest_reading: { $first: '$$ROOT' }
+          }
+        }
+      ]);
+
+      // Formatear datos ambientales
+      const environmentalData = {
+        space_id: reservation.space_id,
+        space_name: reservation.spaces?.name,
+        reservation_id: reservationId,
+        last_updated: new Date().toISOString(),
+        sensors: {}
+      };
+
+      // Procesar cada tipo de sensor
+      latestReadings.forEach(reading => {
+        const sensor = reading.latest_reading;
+        environmentalData.sensors[sensor.sensor_type] = {
+          value: sensor.value,
+          unit: sensor.unit,
+          timestamp: sensor.timestamp,
+          quality: sensor.quality || 'good',
+          device_id: sensor.device_id
+        };
+      });
+
+      // Agregar valores por defecto si no hay datos
+      const defaultSensors = ['temperature', 'humidity', 'co2'];
+      defaultSensors.forEach(sensorType => {
+        if (!environmentalData.sensors[sensorType]) {
+          environmentalData.sensors[sensorType] = {
+            value: null,
+            unit: sensorType === 'temperature' ? '°C' : sensorType === 'humidity' ? '%' : 'ppm',
+            timestamp: null,
+            quality: 'no_data',
+            device_id: null
+          };
+        }
+      });
+
+      res.json({
+        success: true,
+        data: environmentalData,
+        reservation: {
+          id: reservation.id,
+          space_id: reservation.space_id,
+          space_name: reservation.spaces?.name,
+          status: reservation.status,
+          reason: reservation.reason,
+          active_until: reservation.end_time
+        }
+      });
+
+    } catch (sensorError) {
+      console.warn('Warning: Could not fetch sensor data:', sensorError.message);
+      
+      // Retornar datos simulados si no hay conexión con sensores
+      res.json({
+        success: true,
+        data: {
+          space_id: reservation.space_id,
+          space_name: reservation.spaces?.name,
+          reservation_id: reservationId,
+          last_updated: new Date().toISOString(),
+          sensors: {
+            temperature: {
+              value: 22.5 + Math.random() * 3,
+              unit: '°C',
+              timestamp: new Date().toISOString(),
+              quality: 'simulated',
+              device_id: 'sim_001'
+            },
+            humidity: {
+              value: 45 + Math.random() * 10,
+              unit: '%',
+              timestamp: new Date().toISOString(),
+              quality: 'simulated',
+              device_id: 'sim_001'
+            },
+            co2: {
+              value: 400 + Math.random() * 200,
+              unit: 'ppm',
+              timestamp: new Date().toISOString(),
+              quality: 'simulated',
+              device_id: 'sim_001'
+            }
+          }
+        },
+        reservation: {
+          id: reservation.id,
+          space_id: reservation.space_id,
+          space_name: reservation.spaces?.name,
+          status: reservation.status,
+          reason: reservation.reason,
+          active_until: reservation.end_time
+        },
+        note: 'Using simulated sensor data - real sensors not available'
+      });
+    }
+
+  } catch (error) {
+    console.error('Error fetching environmental data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch environmental data',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * Auto-confirma reservas pendientes después de 5 minutos
+ * En producción se puede cambiar el tiempo o cancelarlas automáticamente
+ */
+async function autoConfirmPendingReservations() {
+  try {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    
+    // Buscar reservas pendientes creadas hace más de 5 minutos
+    const { data: pendingReservations, error } = await supabase
+      .from('reservations')
+      .select(`
+        id,
+        reason,
+        start_time,
+        end_time,
+        space_id,
+        created_at,
+        spaces(name),
+        users!reservations_owner_id_fkey(username)
+      `)
+      .eq('status', 'pending')
+      .lt('created_at', fiveMinutesAgo);
+
+    if (error) {
+      console.error('Error fetching pending reservations:', error);
+      return;
+    }
+
+    if (!pendingReservations || pendingReservations.length === 0) {
+      return; // No hay reservas pendientes para auto-confirmar
+    }
+
+    console.log(`🔄 Auto-confirmando ${pendingReservations.length} reservas pendientes...`);
+
+    // Auto-confirmar cada reserva
+    for (const reservation of pendingReservations) {
+      try {
+        const { error: updateError } = await supabase
+          .from('reservations')
+          .update({ status: 'confirmed' })
+          .eq('id', reservation.id);
+
+        if (updateError) {
+          console.error(`❌ Error auto-confirmando reserva ${reservation.id}:`, updateError);
+          continue;
+        }
+
+        // Publicar actualización por MQTT
+        publishReservationUpdate(reservation.id, 'confirmed', {
+          space_id: reservation.space_id,
+          previous_status: 'pending',
+          auto_confirmed: true
+        });
+
+        // Actualizar credenciales del espacio
+        try {
+          const spaceCredentials = await getSpaceCredentials(reservation.space_id);
+          publishCredentials(reservation.space_id, spaceCredentials);
+        } catch (credError) {
+          console.warn(`⚠️ Error actualizando credenciales para espacio ${reservation.space_id}:`, credError.message);
+        }
+
+        console.log(`✅ Auto-confirmada reserva ${reservation.id} en ${reservation.spaces?.name} para ${reservation.users?.username}`);
+
+      } catch (reservationError) {
+        console.error(`❌ Error procesando reserva ${reservation.id}:`, reservationError);
+      }
+    }
+
+    console.log(`🎉 Auto-confirmación completada: ${pendingReservations.length} reservas procesadas`);
+
+  } catch (error) {
+    console.error('❌ Error en auto-confirmación de reservas:', error);
+  }
+}
+
+// Ejecutar auto-confirmación cada 2 minutos
+setInterval(autoConfirmPendingReservations, 2 * 60 * 1000);
+
+// Ejecutar una vez al iniciar el servidor
+setTimeout(autoConfirmPendingReservations, 30 * 1000); // Esperar 30 segundos después del inicio
+
 module.exports = router; 

@@ -11,9 +11,13 @@ import {
   Plus,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  Check,
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { reservationsAPI } from '../../api/apiService';
+import { useNotification } from '../../hooks';
 
 const ReservationsPage = () => {
   const [reservations, setReservations] = useState([]);
@@ -21,7 +25,9 @@ const ReservationsPage = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [processingReservation, setProcessingReservation] = useState(null);
   const { t } = useTranslation();
+  const { showSuccess, showError } = useNotification();
 
   useEffect(() => {
     fetchReservations();
@@ -41,6 +47,26 @@ const ReservationsPage = () => {
       setError('Error al cargar las reservas');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReservationAction = async (reservationId, action) => {
+    try {
+      setProcessingReservation(reservationId);
+      
+      await reservationsAPI.updateReservationStatus(reservationId, action);
+      
+      // Actualizar la lista de reservas
+      await fetchReservations();
+      
+      const actionText = action === 'confirmed' ? 'confirmada' : 'cancelada';
+      showSuccess(`Reserva ${actionText} exitosamente`);
+      
+    } catch (error) {
+      console.error('Error updating reservation:', error);
+      showError(`Error al ${action === 'confirmed' ? 'confirmar' : 'cancelar'} la reserva`);
+    } finally {
+      setProcessingReservation(null);
     }
   };
 
@@ -124,6 +150,83 @@ const ReservationsPage = () => {
           Nueva Reserva
         </button>
       </motion.div>
+
+      {/* Reservas Pendientes Section */}
+      {reservations.filter(r => r.status === 'pending').length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg shadow-sm p-6"
+        >
+          <div className="flex items-center mb-4">
+            <AlertCircle className="w-6 h-6 text-yellow-600 mr-2" />
+            <h2 className="text-xl font-bold text-gray-900">
+              Reservas Pendientes de Confirmación
+            </h2>
+            <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
+              {reservations.filter(r => r.status === 'pending').length}
+            </span>
+          </div>
+          <p className="text-gray-600 mb-4">
+            Las siguientes reservas requieren confirmación manual. Se auto-confirmarán en 5 minutos si no se toma acción.
+          </p>
+          
+          <div className="grid gap-4">
+            {reservations
+              .filter(r => r.status === 'pending')
+              .slice(0, 5) // Mostrar máximo 5 reservas pendientes
+              .map((reservation) => (
+                <div key={reservation.id} className="bg-white rounded-lg border border-yellow-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-4">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{reservation.reason}</h3>
+                          <p className="text-sm text-gray-600">
+                            {reservation.space?.name || 'Espacio no especificado'} • 
+                            {reservation.owner?.name} {reservation.owner?.lastname}
+                          </p>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          <p>{new Date(reservation.start_time).toLocaleDateString()}</p>
+                          <p>{new Date(reservation.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 ml-4">
+                      <button
+                        onClick={() => handleReservationAction(reservation.id, 'confirmed')}
+                        disabled={processingReservation === reservation.id}
+                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        {processingReservation === reservation.id ? 'Confirmando...' : 'Confirmar'}
+                      </button>
+                      <button
+                        onClick={() => handleReservationAction(reservation.id, 'cancelled')}
+                        disabled={processingReservation === reservation.id}
+                        className="flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        {processingReservation === reservation.id ? 'Cancelando...' : 'Cancelar'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+          
+          {reservations.filter(r => r.status === 'pending').length > 5 && (
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-600">
+                Y {reservations.filter(r => r.status === 'pending').length - 5} más...
+              </p>
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Filters */}
       <motion.div
@@ -250,15 +353,41 @@ const ReservationsPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900">
+                        <button className="text-blue-600 hover:text-blue-900" title="Ver detalles">
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button className="text-green-600 hover:text-green-900">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button className="text-red-600 hover:text-red-900">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        
+                        {reservation.status === 'pending' && (
+                          <>
+                            <button 
+                              onClick={() => handleReservationAction(reservation.id, 'confirmed')}
+                              disabled={processingReservation === reservation.id}
+                              className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                              title="Confirmar reserva"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleReservationAction(reservation.id, 'cancelled')}
+                              disabled={processingReservation === reservation.id}
+                              className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                              title="Cancelar reserva"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        
+                        {reservation.status !== 'pending' && (
+                          <>
+                            <button className="text-green-600 hover:text-green-900" title="Editar">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button className="text-red-600 hover:text-red-900" title="Eliminar">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
