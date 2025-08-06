@@ -47,7 +47,6 @@ const StaffPage = () => {
     name: '',
     lastname: '',
     username: '',
-    email: '',
     cardCode: ''
   });
   const [newTask, setNewTask] = useState({
@@ -210,7 +209,6 @@ const StaffPage = () => {
       name: technician.name,
       lastname: technician.lastname,
       username: technician.username,
-      email: technician.email,
       cardCode: technician.cardCode || ''
     });
     setShowEditTechnicianModal(true);
@@ -226,8 +224,7 @@ const StaffPage = () => {
       const userUpdateData = {
         name: editTechnician.name,
         lastname: editTechnician.lastname,
-        username: editTechnician.username,
-        email: editTechnician.email
+        username: editTechnician.username
       };
 
       const response = await usersAPI.updateUser(editTechnician.id, userUpdateData);
@@ -251,7 +248,6 @@ const StaffPage = () => {
           name: '',
           lastname: '',
           username: '',
-          email: '',
           cardCode: ''
         });
         setShowEditTechnicianModal(false);
@@ -1098,19 +1094,6 @@ const StaffPage = () => {
                   required
                   value={editTechnician.username}
                   onChange={(e) => setEditTechnician({...editTechnician, username: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={editTechnician.email}
-                  onChange={(e) => setEditTechnician({...editTechnician, email: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
