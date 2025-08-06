@@ -374,7 +374,19 @@ router.post('/',
         });
       }
 
-      if (isBefore(startTime, new Date())) {
+      // Crear fecha actual de Tijuana para comparación correcta
+      // Como las fechas que recibimos representan hora local de Tijuana,
+      // necesitamos crear una fecha "actual" que también represente hora de Tijuana
+      const now = new Date();
+      const tijuanaNow = new Date(now.toLocaleString("en-US", {timeZone: "America/Tijuana"}));
+      
+      console.log('⏰ Validación de tiempo:');
+      console.log('   - Hora actual UTC del servidor:', now.toISOString());
+      console.log('   - Hora actual Tijuana:', tijuanaNow.toString());
+      console.log('   - Reserva solicitada para:', startTime.toString());
+      console.log('   - ¿Es en el pasado?', isBefore(startTime, tijuanaNow));
+
+      if (isBefore(startTime, tijuanaNow)) {
         return res.status(400).json({
           error: 'Cannot create reservations in the past'
         });

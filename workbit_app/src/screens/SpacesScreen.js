@@ -56,7 +56,7 @@ const SpacesScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Error loading spaces data:', error);
-      showToast('No se pudieron cargar los espacios. Inténtalo de nuevo.', 'error');
+      showError('No se pudieron cargar los espacios. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ const SpacesScreen = ({ navigation }) => {
         `Posición: (${space.position_x}, ${space.position_y})`
       ].join('\n');
       
-      showToast(`${space.name}\n\n${info}`, 'info');
+      showWarning(`${space.name}\n\n${info}`);
     }
   };
 
@@ -369,7 +369,7 @@ const SpacesScreen = ({ navigation }) => {
           spaces={spaces}
           gridConfig={gridConfig}
           onSpacePress={handleSpacePress}
-          onEmptySpacePress={() => showToast('Esta posición no tiene un cubículo asignado', 'info')}
+          onEmptySpacePress={() => showWarning('Esta posición no tiene un cubículo asignado')}
         />
       </View>
 

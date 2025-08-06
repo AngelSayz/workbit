@@ -30,7 +30,7 @@ const ActiveReservationModal = ({
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
-  const { showToast } = useToast();
+  const { showError } = useToast();
 
   const fetchEnvironmentalData = useCallback(async (silent = false) => {
     if (!reservation?.id) return;
@@ -56,13 +56,13 @@ const ActiveReservationModal = ({
       setEnvironmentalData(null);
       setError('Error al cargar datos ambientales');
       if (!silent) {
-        showToast('Error al cargar datos ambientales', 'error');
+        showError('Error al cargar datos ambientales');
       }
     } finally {
       if (!silent) setLoading(false);
       if (silent) setRefreshing(false);
     }
-  }, [reservation?.id, showToast]);
+  }, [reservation?.id, showError]);
 
   useEffect(() => {
     if (visible) {
@@ -104,7 +104,7 @@ const ActiveReservationModal = ({
       onClose();
     } catch (error) {
       console.error('Error ending session:', error);
-      showToast('Error al finalizar sesión', 'error');
+      showError('Error al finalizar sesión');
     }
   };
 

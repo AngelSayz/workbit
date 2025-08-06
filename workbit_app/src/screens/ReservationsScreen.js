@@ -15,7 +15,7 @@ const ReservationsScreen = () => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const styles = getStyles(insets);
-  const { showToast } = useToast();
+  const { showSuccess, showError, showWarning } = useToast();
   const { showConfirmation, confirmation, handleConfirm, handleCancel } = useConfirmation();
   
   const [reservations, setReservations] = useState([]);
@@ -56,7 +56,7 @@ const ReservationsScreen = () => {
       
     } catch (error) {
       console.error('Error loading reservations:', error);
-      showToast('No se pudieron cargar las reservas', 'error');
+      showError('No se pudieron cargar las reservas');
     } finally {
       setLoading(false);
     }
@@ -80,11 +80,11 @@ const ReservationsScreen = () => {
     try {
       setLoading(true);
       await ApiService.updateReservationStatus(reservationId, 'cancelled');
-      showToast('La reserva ha sido cancelada', 'success');
+      showSuccess('La reserva ha sido cancelada');
       await loadReservations();
     } catch (error) {
       console.error('Error cancelling reservation:', error);
-      showToast('No se pudo cancelar la reserva', 'error');
+      showError('No se pudo cancelar la reserva');
     } finally {
       setLoading(false);
     }
@@ -109,12 +109,12 @@ const ReservationsScreen = () => {
 
     try {
       await ApiService.updateReservationStatus(activeReservation.id, 'cancelled');
-      showToast('Sesión finalizada correctamente', 'success');
+      showSuccess('Sesión finalizada correctamente');
       await loadReservations();
       setShowActiveModal(false);
     } catch (error) {
       console.error('Error ending session:', error);
-      showToast('Error al finalizar la sesión', 'error');
+      showError('Error al finalizar la sesión');
     }
   };
 
@@ -235,7 +235,7 @@ const ReservationsScreen = () => {
             await handleCancelReservation(reservation.id);
           }
         } else {
-          showToast(reservation.Reason + '\n\n' + details, 'info');
+          showWarning(reservation.Reason + '\n\n' + details);
         }
       }}
     >
