@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import Toast from '../components/Toast';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { useToast, useConfirmation } from '../hooks/useNotifications';
 
 const SignUpScreen = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -16,6 +19,7 @@ const SignUpScreen = ({ navigation }) => {
   });
   const [errors, setErrors] = useState({});
   const { register, isLoading } = useAuth();
+  const { showToast } = useToast();
 
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -78,21 +82,14 @@ const SignUpScreen = ({ navigation }) => {
     });
     
     if (result.success) {
-      Alert.alert(
-        'Registro Exitoso',
-        'Tu cuenta ha sido creada correctamente. Ya puedes iniciar sesión.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Login')
-          }
-        ]
-      );
+      showToast('Tu cuenta ha sido creada correctamente. Ya puedes iniciar sesión.', 'success');
+      setTimeout(() => {
+        navigation.navigate('Login');
+      }, 2000);
     } else {
-      Alert.alert(
-        'Error de Registro',
+      showToast(
         result.error || 'No se pudo crear la cuenta. Inténtalo de nuevo.',
-        [{ text: 'OK' }]
+        'error'
       );
     }
   };
@@ -219,6 +216,9 @@ const SignUpScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+      
+      <Toast />
+      <ConfirmationModal />
     </KeyboardAvoidingView>
   );
 };

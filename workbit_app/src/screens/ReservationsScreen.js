@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, RefreshControl, Alert, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import ApiService from '../services/api';
 import Button from '../components/Button';
+import Toast from '../components/Toast';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { useToast, useConfirmation } from '../hooks/useNotifications';
 
 const ReservationsScreen = () => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const styles = getStyles(insets);
+  const { showToast } = useToast();
+  const { showConfirmation } = useConfirmation();
+  
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,7 +45,7 @@ const ReservationsScreen = () => {
       
     } catch (error) {
       console.error('Error loading reservations:', error);
-      Alert.alert('Error', 'No se pudieron cargar las reservas');
+      showToast('No se pudieron cargar las reservas', 'error');
     } finally {
       setLoading(false);
     }
@@ -52,14 +58,22 @@ const ReservationsScreen = () => {
   };
 
   const handleCancelReservation = async (reservationId) => {
+    const confirmed = await showConfirmation(
+      'Cancelar Reserva',
+      '¿Estás seguro de que quieres cancelar esta reserva?',
+      'warning'
+    );
+    
+    if (!confirmed) return;
+
     try {
       setLoading(true);
       await ApiService.updateReservationStatus(reservationId, 'cancelled');
-      Alert.alert('Éxito', 'La reserva ha sido cancelada');
+      showToast('La reserva ha sido cancelada', 'success');
       await loadReservations();
     } catch (error) {
       console.error('Error cancelling reservation:', error);
-      Alert.alert('Error', 'No se pudo cancelar la reserva');
+      showToast('No se pudo cancelar la reserva', 'error');
     } finally {
       setLoading(false);
     }
@@ -148,25 +162,30 @@ const ReservationsScreen = () => {
         isActive && styles.activeReservationCard
       ]}
       activeOpacity={0.7}
-      onPress={() => {
-        Alert.alert(
-          reservation.Reason,
-          `Estado: ${getStatusText(reservation.Status)}\n` +
-          `Espacio: ${reservation.SpaceName || 'No especificado'}\n` +
-          `Fecha: ${formatDate(reservation.StartTime)}\n` +
-          `Hora: ${formatTime(reservation.StartTime)} - ${formatTime(reservation.EndTime)}\n` +
-          `Creada: ${formatDate(reservation.created_at)}`,
-          [
-            { text: 'Cerrar', style: 'cancel' },
-            ...(reservation.Status === 'pending' ? [
-              { 
-                text: 'Cancelar Reserva', 
-                style: 'destructive',
-                onPress: () => handleCancelReservation(reservation.id)
-              }
-            ] : [])
-          ]
-        );
+      onPress={async () => {
+        const details = [
+          `Estado: ${getStatusText(reservation.Status)}`,
+          `Espacio: ${reservation.SpaceName || 'No especificado'}`,
+          `Fecha: ${formatDate(reservation.StartTime)}`,
+          `Hora: ${formatTime(reservation.StartTime)} - ${formatTime(reservation.EndTime)}`,
+          `Creada: ${formatDate(reservation.created_at)}`
+        ].join('\n');
+
+        if (reservation.Status === 'pending') {
+          const action = await showConfirmation(
+            reservation.Reason,
+            details + '\n\n¿Qué deseas hacer?',
+            'warning',
+            'Ver detalles',
+            'Cancelar Reserva'
+          );
+          
+          if (action) {
+            await handleCancelReservation(reservation.id);
+          }
+        } else {
+          showToast(reservation.Reason + '\n\n' + details, 'info');
+        }
       }}
     >
       {isActive && (
@@ -289,6 +308,9 @@ const ReservationsScreen = () => {
           </View>
         )}
       </ScrollView>
+      
+      <Toast />
+      <ConfirmationModal />
     </SafeAreaView>
   );
 };

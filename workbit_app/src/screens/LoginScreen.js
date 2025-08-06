@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import Toast from '../components/Toast';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { useToast, useConfirmation } from '../hooks/useNotifications';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -11,6 +14,7 @@ const LoginScreen = ({ navigation }) => {
   const [errors, setErrors] = useState({});
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const { login, isLoading } = useAuth();
+  const { showToast } = useToast();
 
   const validateForm = () => {
     const newErrors = {};
@@ -41,10 +45,9 @@ const LoginScreen = ({ navigation }) => {
         setShowEmailConfirmation(true);
       }
       
-      Alert.alert(
-        'Error de Autenticación',
+      showToast(
         result.error || 'Credenciales inválidas. Verifica tu email y contraseña.',
-        [{ text: 'OK' }]
+        'error'
       );
     }
   };
@@ -138,6 +141,9 @@ const LoginScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+      
+      <Toast />
+      <ConfirmationModal />
     </KeyboardAvoidingView>
   );
 };

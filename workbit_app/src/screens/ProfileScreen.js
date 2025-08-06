@@ -1,20 +1,48 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert, TouchableOpacity, StyleSheet, Switch, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, Alert, TouchableOpacity, StyleSheet, Switch, Image, RefreshControl } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
+import { useUserProfile } from '../hooks/useUserProfile';
 import Button from '../components/Button';
+import Toast from '../components/Toast';
+import { useToast } from '../hooks/useNotifications';
 
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
+  const { refreshUserProfile, loading: profileLoading } = useUserProfile();
+  const { toast, showSuccess, showError, showInfo, hideToast } = useToast();
   const insets = useSafeAreaInsets();
   const styles = getStyles(insets);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('es');
   const [profileImage, setProfileImage] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    // Refresh user profile on mount to get latest card info
+    handleRefreshProfile();
+  }, []);
+
+  const handleRefreshProfile = async () => {
+    setRefreshing(true);
+    try {
+      const result = await refreshUserProfile();
+      if (result.success) {
+        showSuccess('Perfil actualizado correctamente');
+      } else {
+        showError('No se pudo actualizar el perfil');
+      }
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+      showError('Error al actualizar el perfil');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -142,6 +170,16 @@ const ProfileScreen = () => {
     </View>
   );
 
+  const getCardCodeDisplay = () => {
+    if (user?.codecards?.code) {
+      return user.codecards.code;
+    }
+    if (user?.cardCode) {
+      return user.cardCode;
+    }
+    return 'No asignado';
+  };
+
   const getRoleText = (role) => {
     switch (role) {
       case 'user': return 'Usuario';
@@ -155,7 +193,18 @@ const ProfileScreen = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefreshProfile}
+            tintColor="#3b82f6"
+            title="Actualizando perfil..."
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Configuración</Text>
@@ -206,7 +255,17 @@ const ProfileScreen = () => {
           <ProfileItem 
             icon="card-outline" 
             title="Código de Tarjeta" 
-            value={user?.cardCode || 'No asignado'} 
+            value={getCardCodeDisplay()}
+            onPress={() => {
+              const cardCode = getCardCodeDisplay();
+              if (cardCode === 'No asignado') {
+                showInfo('Tu tarjeta RFID será asignada por un administrador. Consulta con el personal técnico si necesitas acceso.');
+              } else {
+                Alert.alert('Código de Tarjeta RFID', `Tu código de acceso es: ${cardCode}`, [
+                  { text: 'OK' }
+                ]);
+              }
+            }}
           />
         </MenuSection>
 
@@ -295,6 +354,16 @@ const ProfileScreen = () => {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Toast Notifications */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.duration}
+        onDismiss={hideToast}
+        position="top"
+      />
     </SafeAreaView>
   );
 };

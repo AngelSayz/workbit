@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-export const useNotification = () => {
+const useNotification = () => {
   const [notification, setNotification] = useState(null);
 
   const showNotification = useCallback((message, type = 'success', title = null, duration = 3000) => {
@@ -51,3 +51,5 @@ export const useNotification = () => {
     showInfo
   };
 };
+
+export default useNotification;

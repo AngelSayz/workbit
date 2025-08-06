@@ -139,6 +139,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    setUser, // Add setUser to context
   };
 
   return (

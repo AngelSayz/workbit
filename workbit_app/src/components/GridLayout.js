@@ -5,13 +5,12 @@ import {
   StyleSheet,
   Dimensions,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-const GridLayout = ({ spaces = [], gridConfig = { rows: 5, cols: 8 }, onSpacePress }) => {
+const GridLayout = ({ spaces = [], gridConfig = { rows: 5, cols: 8 }, onSpacePress, onEmptySpacePress }) => {
   // Calcular dimensiones de la grilla
   const gridWidth = screenWidth - 40; // 20px padding on each side
   const gridHeight = Math.min(gridWidth * (gridConfig.rows / gridConfig.cols), screenHeight * 0.6);
@@ -91,8 +90,8 @@ const GridLayout = ({ spaces = [], gridConfig = { rows: 5, cols: 8 }, onSpacePre
   const handleSpacePress = (space) => {
     if (space && onSpacePress) {
       onSpacePress(space);
-    } else if (!space) {
-      Alert.alert('Espacio vacío', 'Esta posición no tiene un cubículo asignado.');
+    } else if (!space && onEmptySpacePress) {
+      onEmptySpacePress();
     }
   };
 

@@ -8,6 +8,9 @@ import GridLayout from '../components/GridLayout';
 import ApiService from '../services/api';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import Toast from '../components/Toast';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { useToast, useConfirmation } from '../hooks/useNotifications';
 
 const SpacesScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -30,6 +33,10 @@ const SpacesScreen = ({ navigation }) => {
   const [participantRows, setParticipantRows] = useState([{ id: 1, username: '', isValidating: false, isValid: null }]);
   const [validatingUsers, setValidatingUsers] = useState(new Set());
 
+  // Notification hooks
+  const { toast, showSuccess, showError, showWarning, hideToast } = useToast();
+  const { confirmation, showConfirmation, handleConfirm, handleCancel } = useConfirmation();
+
   useEffect(() => {
     loadSpacesData();
   }, []);
@@ -49,7 +56,7 @@ const SpacesScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Error loading spaces data:', error);
-      Alert.alert('Error', 'No se pudieron cargar los espacios. Inténtalo de nuevo.');
+      showToast('No se pudieron cargar los espacios. Inténtalo de nuevo.', 'error');
     } finally {
       setLoading(false);
     }
@@ -66,14 +73,13 @@ const SpacesScreen = ({ navigation }) => {
       setSelectedSpace(space);
       setShowReservationModal(true);
     } else {
-      Alert.alert(
-        'Información del Espacio',
-        `${space.name}\n` +
-        `Estado: ${getStatusText(space.status)}\n` +
-        `Capacidad: ${space.capacity} personas\n` +
-        `Posición: (${space.position_x}, ${space.position_y})`,
-        [{ text: 'Cerrar' }]
-      );
+      const info = [
+        `Estado: ${getStatusText(space.status)}`,
+        `Capacidad: ${space.capacity} personas`,
+        `Posición: (${space.position_x}, ${space.position_y})`
+      ].join('\n');
+      
+      showToast(`${space.name}\n\n${info}`, 'info');
     }
   };
 
@@ -201,7 +207,7 @@ const SpacesScreen = ({ navigation }) => {
 
   const handleReservation = async () => {
     if (!selectedSpace || !reason.trim()) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+      showError('Por favor completa todos los campos requeridos');
       return;
     }
 
@@ -219,7 +225,7 @@ const SpacesScreen = ({ navigation }) => {
       // Validar que la reserva no sea en el pasado
       const now = new Date();
       if (startDateTime <= now) {
-        Alert.alert('Error', 'No puedes crear reservas en el pasado. Selecciona una fecha y hora futuras.');
+        showError('No puedes crear reservas en el pasado. Selecciona una fecha y hora futuras.');
         return;
       }
 
@@ -242,15 +248,11 @@ const SpacesScreen = ({ navigation }) => {
 
       await ApiService.createReservation(reservationData);
       
-      Alert.alert(
-        'Reserva Creada',
-        `Se ha creado tu reserva para ${selectedSpace.name}`,
-        [{ text: 'OK', onPress: () => {
-          setShowReservationModal(false);
-          setReason('');
-          setSelectedSpace(null);
-        }}]
-      );
+      // Cerrar modal primero
+      closeReservationModal();
+      
+      // Mostrar notificación de éxito
+      showSuccess(`Reserva creada exitosamente para ${selectedSpace.name}`, 4000);
       
       // Recargar espacios para actualizar el estado
       await loadSpacesData();
@@ -260,16 +262,7 @@ const SpacesScreen = ({ navigation }) => {
       console.error('❌ Error details:', error.message);
       console.error('❌ Error stack:', error.stack);
       
-      // Si es un error HTTP, mostrar más detalles
-      if (error.message.includes('HTTP error')) {
-        console.error('❌ HTTP Error detectado');
-      }
-      
-      Alert.alert(
-        'Error al crear reserva', 
-        `No se pudo crear la reserva: ${error.message}`,
-        [{ text: 'OK' }]
-      );
+      showError(`No se pudo crear la reserva: ${error.message}`, 5000);
     } finally {
       setCreatingReservation(false);
     }
@@ -345,6 +338,7 @@ const SpacesScreen = ({ navigation }) => {
           spaces={spaces}
           gridConfig={gridConfig}
           onSpacePress={handleSpacePress}
+          onEmptySpacePress={() => showToast('Esta posición no tiene un cubículo asignado', 'info')}
         />
       </View>
 
@@ -573,6 +567,29 @@ const SpacesScreen = ({ navigation }) => {
           onChange={handleTimeChange}
         />
       )}
+
+      {/* Toast Notifications */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.duration}
+        onDismiss={hideToast}
+        position="top"
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={confirmation.visible}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        type={confirmation.type}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+        loading={confirmation.loading}
+      />
     </SafeAreaView>
   );
 };

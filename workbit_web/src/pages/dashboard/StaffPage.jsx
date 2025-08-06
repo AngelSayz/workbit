@@ -18,7 +18,7 @@ import {
   X
 } from 'lucide-react';
 import { usersAPI, tasksAPI, authAPI, spacesAPI } from '../../api/apiService';
-import { useNotification } from '../../hooks/useNotification';
+import { useNotification } from '../../hooks';
 import { Notification, ConfirmationModal } from '../../components/ui';
 
 const StaffPage = () => {

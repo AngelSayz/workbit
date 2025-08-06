@@ -58,6 +58,11 @@ class ApiService {
     this.token = null;
   }
 
+  // User profile endpoints
+  async getUserProfile(userId) {
+    return this.request(`/api/users/${userId}/profile`);
+  }
+
   // Auth endpoints
   async login(email, password) {
     return this.request('/login', {

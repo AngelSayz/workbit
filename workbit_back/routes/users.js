@@ -4,6 +4,76 @@ const { supabase } = require('../config/supabase');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
+// GET /api/users/:id/profile - Get user profile by ID
+router.get('/:id/profile', [authenticateToken], async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    // Validate that the user is requesting their own profile or is admin
+    if (req.user.id !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized to access this profile'
+      });
+    }
+
+    if (!supabase) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection failed'
+      });
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        name,
+        lastname,
+        username,
+        user_id,
+        created_at,
+        roles(id, name),
+        codecards(id, code)
+      `)
+      .eq('id', userId)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Get email from Supabase auth
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user.user_id);
+    
+    const userProfile = {
+      id: user.id,
+      name: user.name,
+      lastname: user.lastname,
+      username: user.username,
+      email: authUser?.user?.email || null,
+      role: user.roles?.name || 'user',
+      codecards: user.codecards,
+      created_at: user.created_at
+    };
+
+    res.json({
+      success: true,
+      user: userProfile
+    });
+
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user profile'
+    });
+  }
+});
+
 // GET /api/users - Get all users (admin only)
 router.get('/', async (req, res) => {
   try {

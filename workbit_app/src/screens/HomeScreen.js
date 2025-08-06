@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, RefreshControl, Alert, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import ApiService from '../services/api';
 import Button from '../components/Button';
+import Toast from '../components/Toast';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { useToast, useConfirmation } from '../hooks/useNotifications';
 
 const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
+  const { showToast } = useToast();
+  
   const [refreshing, setRefreshing] = useState(false);
   const [todaySpaces, setTodaySpaces] = useState([]);
   const [myReservations, setMyReservations] = useState([]);
@@ -203,6 +208,9 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+      
+      <Toast />
+      <ConfirmationModal />
     </SafeAreaView>
   );
 };
