@@ -213,13 +213,15 @@ const ProfileScreen = () => {
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <TouchableOpacity style={styles.avatarContainer} onPress={handleImagePicker}>
-            {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.avatarImage} />
-            ) : (
-              <View style={styles.avatar}>
-                <Ionicons name="person" size={32} color="white" />
-              </View>
-            )}
+            <View style={styles.avatarWrapper}>
+              {profileImage ? (
+                <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Ionicons name="person" size={32} color="white" />
+                </View>
+              )}
+            </View>
             <View style={styles.avatarEdit}>
               <Ionicons name="camera" size={16} color="white" />
             </View>
@@ -281,6 +283,7 @@ const ProfileScreen = () => {
                 onValueChange={setIsDarkMode}
                 trackColor={{ false: '#e5e7eb', true: '#3b82f6' }}
                 thumbColor={isDarkMode ? '#ffffff' : '#ffffff'}
+                style={{ marginRight: 8 }}
               />
             }
             showArrow={false}
@@ -406,10 +409,55 @@ const getStyles = (insets) => StyleSheet.create({
     elevation: 3,
     marginHorizontal: 0, // Ya está dentro del ScrollView con padding
   },
-  avatarContainer: { width: 100, height: 100, borderRadius: 50, overflow: 'hidden', position: 'relative', marginBottom: 16 },
-  avatar: { width: '100%', height: '100%', backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' },
-  avatarImage: { width: '100%', height: '100%', borderRadius: 50 },
-  avatarEdit: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#3b82f6', borderRadius: 12, width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  avatarContainer: { 
+    width: 100, 
+    height: 100, 
+    borderRadius: 50, 
+    position: 'relative', 
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  avatarWrapper: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+    overflow: 'hidden', // Esto asegura que la imagen se recorte en forma circular
+  },
+  avatar: { 
+    width: '100%', 
+    height: '100%', 
+    backgroundColor: '#3b82f6', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    borderRadius: 50,
+  },
+  avatarImage: { 
+    width: '100%', 
+    height: '100%',
+    borderRadius: 50 
+  },
+  avatarEdit: { 
+    position: 'absolute', 
+    bottom: 4, 
+    right: 4, 
+    backgroundColor: '#3b82f6', 
+    borderRadius: 16, 
+    width: 32, 
+    height: 32, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
   userName: { fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 4 },
   userEmail: { color: '#6B7280', fontSize: 16, marginBottom: 4 },
   username: { color: '#6B7280', fontSize: 16 },
@@ -429,13 +477,24 @@ const getStyles = (insets) => StyleSheet.create({
     shadowRadius: 2, 
     elevation: 1,
     marginHorizontal: 0, // Ya está dentro del ScrollView con padding
+    minHeight: 60, // Altura mínima para evitar problemas con el Switch
   },
-  profileItemLeft: { flexDirection: 'row', alignItems: 'center' },
+  profileItemLeft: { 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8, // Espacio entre el contenido izquierdo y derecho
+  },
   iconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E0E7FF', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   profileContent: { flex: 1 },
   profileLabel: { fontSize: 14, color: '#6B7280', marginBottom: 2 },
   profileValue: { fontSize: 16, fontWeight: '500', color: '#111827' },
-  profileItemRight: { flexDirection: 'row', alignItems: 'center' },
+  profileItemRight: { 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    flexShrink: 0, // Evita que se comprima el contenido derecho
+    maxWidth: 120, // Límite máximo para evitar que se salga de pantalla
+  },
   section: { 
     marginBottom: 24,
     marginHorizontal: 0, // Ya está dentro del ScrollView con padding

@@ -350,9 +350,32 @@ router.post('/',
 
       const { reason, start_time, end_time, space_id, participants = [] } = req.body;
       
-      // Convertir fechas ISO a objetos Date
-      const startTime = parseISO(start_time);
-      const endTime = parseISO(end_time);
+      // Función para convertir fecha UTC a hora local de Tijuana
+      const convertUTCToTijuana = (isoString) => {
+        const utcDate = parseISO(isoString);
+        
+        // Tijuana sigue el horario del Pacífico (PST/PDT)
+        // UTC-8 en invierno (PST), UTC-7 en verano (PDT)
+        // Para simplificar, usamos UTC-7 (horario de verano) como mencionaste
+        const tijuanaOffset = -7; // UTC-7 para horario de verano
+        
+        // Convertir a hora local de Tijuana
+        return new Date(utcDate.getTime() + (Math.abs(tijuanaOffset) * 60 * 60 * 1000));
+      };
+      
+      // Función para convertir hora local de Tijuana de vuelta a UTC
+      const convertTijuanaToUTC = (tijuanaDate) => {
+        const tijuanaOffset = -7; // UTC-7 para horario de verano
+        return new Date(tijuanaDate.getTime() - (Math.abs(tijuanaOffset) * 60 * 60 * 1000));
+      };
+
+      const startTime = convertUTCToTijuana(start_time);
+      const endTime = convertUTCToTijuana(end_time);
+
+      console.log('📅 Conversión de zona horaria:');
+      console.log('   - Entrada ISO (UTC):', start_time);
+      console.log('   - Convertido a Tijuana:', startTime.toString());
+      console.log('   - Hora local Tijuana:', startTime.toLocaleString('es-MX', { timeZone: 'America/Tijuana' }));
 
       // Validar fechas
       if (!isValid(startTime) || !isValid(endTime)) {
@@ -399,8 +422,16 @@ router.post('/',
       }
 
       // Check for conflicting reservations
-      const startTimeISO = startTime.toISOString();
-      const endTimeISO = endTime.toISOString();
+      // Convertir de vuelta a UTC para almacenar en base de datos
+      const startTimeUTC = convertTijuanaToUTC(startTime);
+      const endTimeUTC = convertTijuanaToUTC(endTime);
+      
+      const startTimeISO = startTimeUTC.toISOString();
+      const endTimeISO = endTimeUTC.toISOString();
+
+      console.log('🔍 Verificando conflictos:');
+      console.log('   - Hora Tijuana: %s - %s', startTime.toLocaleString('es-MX'), endTime.toLocaleString('es-MX'));
+      console.log('   - Almacenar UTC: %s - %s', startTimeISO, endTimeISO);
       
       const { data: conflictingReservations } = await supabase
         .from('reservations')

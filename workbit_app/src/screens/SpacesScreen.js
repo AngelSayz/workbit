@@ -229,19 +229,27 @@ const SpacesScreen = ({ navigation }) => {
         return;
       }
 
+      // Crear fecha ISO directamente desde el objeto Date local
+      // Esto enviará la fecha tal como la seleccionó el usuario
+      const formatToISOString = (date) => {
+        return date.toISOString();
+      };
+
       const reservationData = {
         reason: reason.trim(),
         space_id: selectedSpace.id,
-        start_time: startDateTime.toISOString(),
-        end_time: endDateTime.toISOString(),
+        start_time: formatToISOString(startDateTime),
+        end_time: formatToISOString(endDateTime),
         participants: participantRows
           .filter(row => row.isValid === true && row.username.trim())
           .map(row => row.username.trim())
       };
 
       console.log('📋 Datos de reserva a enviar:', JSON.stringify(reservationData, null, 2));
-      console.log('🕐 Start time:', startDateTime.toISOString());
-      console.log('🕑 End time:', endDateTime.toISOString());
+      console.log('🕐 Start time local:', startDateTime.toString());
+      console.log('🕑 End time local:', endDateTime.toString());
+      console.log('🌐 Start time ISO:', reservationData.start_time);
+      console.log('🌐 End time ISO:', reservationData.end_time);
       console.log('⏱️ Duration:', duration, 'minutes');
       console.log('🏢 Space ID:', selectedSpace.id);
       console.log('📝 Reason:', reason.trim());
@@ -259,7 +267,25 @@ const SpacesScreen = ({ navigation }) => {
 
     } catch (error) {
       console.error('❌ Error creating reservation:', error);
-      showError(`No se pudo crear la reserva: ${error.message}`, 5000);
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      
+      // Manejar diferentes tipos de errores
+      let errorMessage = 'No se pudo crear la reserva';
+      
+      if (error.message.includes('already reserved')) {
+        errorMessage = 'El espacio ya está reservado para ese horario. Por favor selecciona otro horario.';
+      } else if (error.message.includes('not available')) {
+        errorMessage = 'El espacio no está disponible para reservas en este momento.';
+      } else if (error.message.includes('past')) {
+        errorMessage = 'No puedes crear reservas en el pasado.';
+      } else if (error.message.includes('Validation failed')) {
+        errorMessage = 'Datos inválidos. Verifica la información e intenta de nuevo.';
+      } else {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      showError(errorMessage, 5000);
     } finally {
       setCreatingReservation(false);
     }
