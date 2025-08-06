@@ -1122,4 +1122,153 @@ router.get('/:id/alerts', async (req, res) => {
   }
 });
 
+// DELETE /api/spaces/:id - Delete space (admin only)
+router.delete('/:id', 
+  authenticateToken, 
+  requireRole(['admin']),
+  [
+    param('id').isInt({ min: 1 }).withMessage('Space ID must be a positive integer')
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+
+      const spaceId = parseInt(req.params.id);
+
+      if (!supabase) {
+        return res.status(500).json({
+          success: false,
+          error: 'Database connection failed'
+        });
+      }
+
+      // Verificar que el espacio existe
+      const { data: existingSpace, error: checkError } = await supabase
+        .from('spaces')
+        .select('id, name, capacity')
+        .eq('id', spaceId)
+        .single();
+
+      if (checkError || !existingSpace) {
+        return res.status(404).json({
+          success: false,
+          error: 'Space not found'
+        });
+      }
+
+      // Verificar si hay reservas activas para este espacio
+      const { data: activeReservations, error: reservationsError } = await supabase
+        .from('reservations')
+        .select('id')
+        .eq('space_id', spaceId)
+        .in('status', ['confirmed', 'pending'])
+        .gte('end_time', new Date().toISOString());
+
+      if (reservationsError) {
+        console.error('Error checking active reservations:', reservationsError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to check active reservations'
+        });
+      }
+
+      if (activeReservations && activeReservations.length > 0) {
+        return res.status(409).json({
+          success: false,
+          error: 'Cannot delete space with active reservations',
+          message: `This space has ${activeReservations.length} active reservation(s). Cancel or wait for them to expire before deleting.`
+        });
+      }
+
+      // Eliminar registros relacionados en orden (para evitar errores de foreign key)
+      
+      // 1. Eliminar alertas del espacio
+      const { error: alertsError } = await supabase
+        .from('alerts')
+        .delete()
+        .eq('space_id', spaceId);
+
+      if (alertsError) {
+        console.warn('Warning: Failed to delete space alerts:', alertsError);
+      }
+
+      // 2. Eliminar lecturas de dispositivos del espacio
+      const { error: readingsError } = await supabase
+        .from('device_readings')
+        .delete()
+        .eq('space_id', spaceId);
+
+      if (readingsError) {
+        console.warn('Warning: Failed to delete device readings:', readingsError);
+      }
+
+      // 3. Eliminar reservas pasadas/canceladas del espacio
+      const { error: reservationsDeleteError } = await supabase
+        .from('reservations')
+        .delete()
+        .eq('space_id', spaceId);
+
+      if (reservationsDeleteError) {
+        console.warn('Warning: Failed to delete space reservations:', reservationsDeleteError);
+      }
+
+      // 4. Eliminar dispositivos asociados al espacio
+      const { error: devicesError } = await supabase
+        .from('devices')
+        .delete()
+        .eq('space_id', spaceId);
+
+      if (devicesError) {
+        console.warn('Warning: Failed to delete space devices:', devicesError);
+      }
+
+      // 5. Finalmente, eliminar el espacio
+      const { error: deleteError } = await supabase
+        .from('spaces')
+        .delete()
+        .eq('id', spaceId);
+
+      if (deleteError) {
+        console.error('Delete space error:', deleteError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to delete space'
+        });
+      }
+
+      // Publicar actualización por MQTT
+      try {
+        await publishSpaceStatus(spaceId, 'deleted');
+      } catch (mqttError) {
+        console.warn('Warning: Failed to publish space deletion to MQTT:', mqttError);
+      }
+
+      res.json({
+        success: true,
+        message: 'Space deleted successfully',
+        deletedSpace: {
+          id: existingSpace.id,
+          name: existingSpace.name,
+          capacity: existingSpace.capacity
+        }
+      });
+
+    } catch (error) {
+      console.error('Delete space error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to delete space',
+        details: error.message
+      });
+    }
+  }
+);
+
 module.exports = router; 
