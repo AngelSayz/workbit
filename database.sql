@@ -9,9 +9,9 @@ CREATE TABLE public.access_logs (
   access_time timestamp without time zone NOT NULL,
   exit_time timestamp without time zone,
   CONSTRAINT access_logs_pkey PRIMARY KEY (id),
-  CONSTRAINT access_logs_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES public.reservations(id),
   CONSTRAINT access_logs_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id),
-  CONSTRAINT access_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT access_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT access_logs_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES public.reservations(id)
 );
 CREATE TABLE public.codecards (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -26,14 +26,28 @@ CREATE TABLE public.grid_settings (
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT grid_settings_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.report_attachments (
+  id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  report_id integer NOT NULL,
+  file_url text NOT NULL,
+  thumbnail_url text,
+  content_type text,
+  size integer,
+  storage_provider text DEFAULT 'supabase'::text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT report_attachments_pkey PRIMARY KEY (id),
+  CONSTRAINT report_attachments_report_id_fkey FOREIGN KEY (report_id) REFERENCES public.reports(id)
+);
 CREATE TABLE public.reports (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
   user_id integer NOT NULL,
   title character varying NOT NULL,
   description character varying NOT NULL,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  reservation_id integer NOT NULL,
   CONSTRAINT reports_pkey PRIMARY KEY (id),
-  CONSTRAINT reports_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT reports_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT reports_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES public.reservations(id)
 );
 CREATE TABLE public.reservation_participants (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -53,8 +67,8 @@ CREATE TABLE public.reservations (
   owner_id integer NOT NULL,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT reservations_pkey PRIMARY KEY (id),
-  CONSTRAINT reservations_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id),
-  CONSTRAINT reservations_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
+  CONSTRAINT reservations_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
+  CONSTRAINT reservations_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id)
 );
 CREATE TABLE public.roles (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -83,8 +97,8 @@ CREATE TABLE public.tasks (
   assigned_to integer,
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT tasks_pkey PRIMARY KEY (id),
-  CONSTRAINT tasks_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id),
   CONSTRAINT tasks_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(id),
+  CONSTRAINT tasks_space_id_fkey FOREIGN KEY (space_id) REFERENCES public.spaces(id),
   CONSTRAINT tasks_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
   CONSTRAINT tasks_users_id_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );

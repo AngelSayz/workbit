@@ -30,6 +30,8 @@ const chatRoutes = require('./routes/chat');
 const dashboardRoutes = require('./routes/dashboard');
 const taskRoutes = require('./routes/tasks');
 const deviceRoutes = require('./routes/devices');
+const reportRoutes = require('./routes/reports');
+const uploadRoutes = require('./routes/uploads');
 
 const app = express();
 app.set('trust proxy', 1); // Para Render y proxies
@@ -91,6 +93,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/devices', deviceRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 // Legacy route compatibility (from C# backend)
 app.use('/login', authRoutes);
@@ -229,4 +233,4 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-startServer(); 
+startServer();

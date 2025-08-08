@@ -243,6 +243,33 @@ class ApiService {
   async validateUser(username) {
     return this.request(`/api/users/validate/${encodeURIComponent(username)}`);
   }
+
+  // Report endpoints
+  async createReport({ reservation_id, title, description, attachments = [] }) {
+    return this.request('/api/reports', {
+      method: 'POST',
+      body: JSON.stringify({ reservation_id, title, description, attachments }),
+    });
+  }
+
+  async getMyReports() {
+    return this.request('/api/reports/my');
+  }
+
+  async getReportByReservation(reservationId) {
+    return this.request(`/api/reports/by-reservation/${reservationId}`);
+  }
+
+  async uploadReportImage(formData) {
+    // formData must be FormData with 'image' file and optional reservation_id
+    const url = `${API_BASE_URL}/api/uploads/report-image`;
+    const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
+    const response = await fetch(url, { method: 'POST', headers, body: formData });
+    if (!response.ok) {
+      throw new Error('Error subiendo imagen');
+    }
+    return response.json();
+  }
 }
 
-export default new ApiService(); 
+export default new ApiService();

@@ -13,6 +13,7 @@ import HomeScreen from '../screens/HomeScreen';
 import SpacesScreen from '../screens/SpacesScreen';
 import ReservationsScreen from '../screens/ReservationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import MyReportsScreen from '../screens/MyReportsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -177,7 +178,11 @@ const AppNavigator = () => {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {isAuthenticated ? (
-            <Stack.Screen name="Main" component={TabNavigator} />
+            // Show main tabs and allow pushing extra screens like MyReports on top
+            <>
+              <Stack.Screen name="Main" component={TabNavigator} />
+              <Stack.Screen name="MyReports" component={MyReportsScreen} />
+            </>
           ) : (
             <Stack.Screen name="Auth" component={AuthStack} />
           )}
@@ -187,4 +192,4 @@ const AppNavigator = () => {
   );
 };
 
-export default AppNavigator; 
+export default AppNavigator;

@@ -9,9 +9,11 @@ import { useUserProfile } from '../hooks/useUserProfile';
 import Button from '../components/Button';
 import Toast from '../components/Toast';
 import { useToast } from '../hooks/useNotifications';
+import { useNavigation } from '@react-navigation/native';
 
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
+  const navigation = useNavigation();
   const { refreshUserProfile, loading: profileLoading } = useUserProfile();
   const { toast, showSuccess, showError, showInfo, hideToast } = useToast();
   const insets = useSafeAreaInsets();
@@ -321,6 +323,14 @@ const ProfileScreen = () => {
         {/* Support */}
         <MenuSection title="Soporte">
           <ProfileItem 
+            icon="document-text-outline" 
+            title="Mis Reportes" 
+            onPress={() => {
+              // Navigate to reports list
+              try { navigation.navigate('MyReports'); } catch {}
+            }} 
+          />
+          <ProfileItem 
             icon="help-circle-outline" 
             title="Centro de Ayuda" 
             onPress={() => Alert.alert('Centro de Ayuda', 'Para obtener ayuda, contacta al administrador del sistema o revisa la documentación de WorkBit.')} 
@@ -529,4 +539,4 @@ const getStyles = (insets) => StyleSheet.create({
   footerSubtitle: { color: '#D1D5DB', fontSize: 12, textAlign: 'center', marginTop: 4 },
 });
 
-export default ProfileScreen; 
+export default ProfileScreen;

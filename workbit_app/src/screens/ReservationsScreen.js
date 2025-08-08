@@ -9,10 +9,13 @@ import Button from '../components/Button';
 import Toast from '../components/Toast';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ActiveReservationModal from '../components/ActiveReservationModal';
+import ReportModal from '../components/ReportModal';
 import { useToast, useConfirmation } from '../hooks/useNotifications';
+import { useNavigation } from '@react-navigation/native';
 
 const ReservationsScreen = () => {
   const { user } = useAuth();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const styles = getStyles(insets);
   const { showSuccess, showError, showWarning } = useToast();
@@ -24,6 +27,9 @@ const ReservationsScreen = () => {
   const [filter, setFilter] = useState('all');
   const [activeReservation, setActiveReservation] = useState(null);
   const [showActiveModal, setShowActiveModal] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportReservation, setReportReservation] = useState(null);
+  const [reportedSet, setReportedSet] = useState(new Set());
 
   useEffect(() => {
     loadReservations();
@@ -36,16 +42,22 @@ const ReservationsScreen = () => {
       const userReservations = Array.isArray(data) ? data : [];
       
       setReservations(userReservations);
+
+      // Load my reports to know which reservations already have one
+      try {
+        const reportsResp = await ApiService.getMyReports();
+        const reports = reportsResp?.data || [];
+        const setIds = new Set(reports.map(r => r.reservation_id));
+        setReportedSet(setIds);
+      } catch (e) {
+        console.warn('Could not load my reports:', e.message);
+      }
       
       // Find active reservation (confirmed OR pending but in active time range)
       const now = new Date();
       const active = userReservations.find(res => {
         const startTime = new Date(res.StartTime);
         const endTime = new Date(res.EndTime);
-        
-        // Reserva activa si:
-        // 1. Está confirmada Y está en horario, O
-        // 2. Está pendiente PERO ya llegó la hora de inicio (para permitir uso mientras se auto-confirma)
         return (
           (res.Status === 'confirmed' && now >= startTime && now <= endTime) ||
           (res.Status === 'pending' && now >= startTime && now <= endTime)
@@ -187,6 +199,11 @@ const ReservationsScreen = () => {
     return reservation.Status === 'confirmed' && now >= start && now <= end;
   };
 
+  const isPastReservation = (reservation) => {
+    const now = new Date();
+    return new Date(reservation.EndTime) < now;
+  };
+
   const FilterButton = ({ filterType, title, isActive }) => (
     <TouchableOpacity
       style={[
@@ -288,8 +305,72 @@ const ReservationsScreen = () => {
           <Text style={styles.workingOnItText}>Toca para ver más detalles</Text>
         </View>
       )}
+
+      {isPastReservation(reservation) && (
+        <View style={{ marginTop: 12, flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            onPress={() => openReportModal(reservation)}
+            style={{ backgroundColor: '#1f2937', paddingVertical: 10, borderRadius: 8, flex: 1, alignItems: 'center' }}
+            activeOpacity={0.8}
+          >
+            <Text style={{ color: 'white', fontWeight: '600' }}>{reportedSet.has(reservation.id) ? 'Ver Reporte' : 'Generar Reporte'}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </TouchableOpacity>
   );
+
+  const openReportModal = async (reservation) => {
+    try {
+      const resp = await ApiService.getReportByReservation(reservation.id);
+      if (resp?.success && resp.data) {
+        navigation.navigate('MyReports');
+        return;
+      }
+      setReportReservation(reservation);
+      setReportModalVisible(true);
+    } catch (e) {
+      console.error('Error checking report:', e);
+      setReportReservation(reservation);
+      setReportModalVisible(true);
+    }
+  };
+
+  const submitReport = async ({ title, description, images }) => {
+    try {
+      const reservation = reportReservation;
+      const uploaded = [];
+      for (const img of images) {
+        const form = new FormData();
+        form.append('image', {
+          uri: img.uri,
+          name: 'report.jpg',
+          type: 'image/jpeg',
+        });
+        form.append('reservation_id', String(reservation.id));
+        const result = await ApiService.uploadReportImage(form);
+        if (result?.success && result.data) uploaded.push(result.data);
+      }
+      const payload = {
+        reservation_id: reservation.id,
+        title,
+        description,
+        attachments: uploaded,
+      };
+      const resp = await ApiService.createReport(payload);
+      if (resp?.success) {
+        showSuccess('Reporte creado');
+        setReportModalVisible(false);
+        setReportReservation(null);
+        await loadReservations();
+      } else {
+        showError('No se pudo crear el reporte');
+      }
+    } catch (e) {
+      console.error('Create report error:', e);
+      showError(e.message || 'Error al crear el reporte');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -386,6 +467,13 @@ const ReservationsScreen = () => {
         onClose={() => setShowActiveModal(false)}
         reservation={activeReservation}
         onEndSession={handleEndSession}
+      />
+
+      <ReportModal
+        visible={reportModalVisible}
+        reservation={reportReservation}
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={submitReport}
       />
     </SafeAreaView>
   );
@@ -494,4 +582,4 @@ const getStyles = (insets) => StyleSheet.create({
   },
 });
 
-export default ReservationsScreen; 
+export default ReservationsScreen;
