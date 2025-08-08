@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("workbit")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+87ab190b3e331d432829a3a5838e50bd093de281")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8a46998c780fb722cd4d5eabecfd7108d28f5a0c")]
 [assembly: System.Reflection.AssemblyProductAttribute("workbit")]
 [assembly: System.Reflection.AssemblyTitleAttribute("workbit")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
