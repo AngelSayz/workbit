@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMotionUsageDescription": "Se usa para detectar actividad física durante tus reservas.",
+        "NSMicrophoneUsageDescription": "Se usa para medir el nivel de ruido ambiental durante tus reservas."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,8 +25,17 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.angelsayz.workbit_app"
+      "package": "com.angelsayz.workbit_app",
+      "permissions": ["RECORD_AUDIO"]
     },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Permitir que la app use el micrófono para medir el nivel de ruido."
+        }
+      ]
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     },

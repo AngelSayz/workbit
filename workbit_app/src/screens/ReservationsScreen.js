@@ -196,7 +196,8 @@ const ReservationsScreen = () => {
     const now = new Date();
     const start = new Date(reservation.StartTime);
     const end = new Date(reservation.EndTime);
-    return reservation.Status === 'confirmed' && now >= start && now <= end;
+    const inWindow = now >= start && now <= end;
+    return (reservation.Status === 'confirmed' || reservation.Status === 'pending') && inWindow;
   };
 
   const isPastReservation = (reservation) => {
@@ -231,6 +232,11 @@ const ReservationsScreen = () => {
       ]}
       activeOpacity={0.7}
       onPress={async () => {
+        if (isActive) {
+          // Abrir detalles completos en el modal cuando es la reserva activa
+          handleActiveReservationPress();
+          return;
+        }
         const details = [
           `Estado: ${getStatusText(reservation.Status)}`,
           `Espacio: ${reservation.SpaceName || 'No especificado'}`,
@@ -400,7 +406,7 @@ const ReservationsScreen = () => {
             {activeReservation.Reason} • Termina a las {formatTime(activeReservation.EndTime)}
           </Text>
           <Text style={styles.activeAlertSubtext}>
-            Toca para ver condiciones ambientales
+            Toca para ver más detalles
           </Text>
         </TouchableOpacity>
       )}

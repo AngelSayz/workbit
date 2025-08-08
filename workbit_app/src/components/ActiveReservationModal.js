@@ -14,6 +14,8 @@ import {
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import EnvironmentalWidget from './EnvironmentalWidget';
+import SoundLevelMeter from './SoundLevelMeter';
+import ActivityMeter from './ActivityMeter';
 import { useToast } from '../hooks/useNotifications';
 import ApiService from '../services/api';
 
@@ -219,6 +221,12 @@ const ActiveReservationModal = ({
                 error={error}
               />
             </View>
+
+            {/* Real-time Sound Level */}
+            <SoundLevelMeter active={visible} />
+
+            {/* Physical Activity Indicator */}
+            <ActivityMeter active={visible} />
           </ScrollView>
 
           {/* Actions */}
@@ -265,7 +273,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: screenHeight * 0.9,
+    height: screenHeight * 0.9,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
