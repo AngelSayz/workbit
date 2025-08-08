@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, query, param, validationResult } = require('express-validator');
 const { parseISO, isValid, format, isBefore, isAfter } = require('date-fns');
+const { zonedTimeToUtc } = require('date-fns-tz');
 const { supabase } = require('../config/supabase');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { publishReservationUpdate, publishCredentials } = require('../config/mqtt');
@@ -1712,4 +1713,4 @@ setInterval(autoConfirmPendingReservations, 2 * 60 * 1000);
 // Ejecutar una vez al iniciar el servidor
 setTimeout(autoConfirmPendingReservations, 30 * 1000); // Esperar 30 segundos después del inicio
 
-module.exports = router; 
+module.exports = router;
