@@ -25,22 +25,26 @@ const ProfileScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    // Refresh user profile on mount to get latest card info
-    handleRefreshProfile();
+    // Refresh user profile on mount to get latest card info (silently)
+    handleRefreshProfile(true);
   }, []);
 
-  const handleRefreshProfile = async () => {
+  const handleRefreshProfile = async (silent = false) => {
     setRefreshing(true);
     try {
       const result = await refreshUserProfile();
-      if (result.success) {
-        showSuccess('Perfil actualizado correctamente');
-      } else {
-        showError('No se pudo actualizar el perfil');
+      if (!silent) {
+        if (result.success) {
+          showSuccess('Perfil actualizado correctamente');
+        } else {
+          showError('No se pudo actualizar el perfil');
+        }
       }
     } catch (error) {
       console.error('Error refreshing profile:', error);
-      showError('Error al actualizar el perfil');
+      if (!silent) {
+        showError('Error al actualizar el perfil');
+      }
     } finally {
       setRefreshing(false);
     }
