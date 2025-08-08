@@ -13,8 +13,10 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
   const { login, isLoading } = useAuth();
-  const { showToast } = useToast();
+  const { toast, showToast, hideToast } = useToast();
+  const { confirmation } = useConfirmation();
 
   const validateForm = () => {
     const newErrors = {};
@@ -36,24 +38,39 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = async () => {
     if (!validateForm()) return;
     
-    setShowEmailConfirmation(false);
-    const result = await login(email.trim().toLowerCase(), password);
-    
-    if (!result.success) {
-      // Check if error is related to email confirmation
-      if (result.error && (result.error.includes('email') || result.error.includes('confirm'))) {
-        setShowEmailConfirmation(true);
-      }
+    try {
+      setLocalLoading(true);
+      setShowEmailConfirmation(false);
+      setErrors({});
       
-      showToast(
-        result.error || 'Credenciales inválidas. Verifica tu email y contraseña.',
-        'error'
-      );
+      const result = await login(email.trim().toLowerCase(), password);
+      
+      if (!result.success) {
+        // Check if error is related to email confirmation
+        if (result.error && (result.error.includes('email') || result.error.includes('confirm'))) {
+          setShowEmailConfirmation(true);
+        }
+        
+        showToast(
+          result.error || 'Credenciales inválidas. Verifica tu email y contraseña.',
+          'error'
+        );
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      showToast('Error inesperado al iniciar sesión. Intenta nuevamente.', 'error');
+    } finally {
+      setLocalLoading(false);
     }
   };
 
   const handleRegister = () => {
-    navigation.navigate('Register');
+    try {
+      navigation.navigate('Register');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      showToast('Error al navegar. Intenta nuevamente.', 'error');
+    }
   };
 
   return (
@@ -115,8 +132,8 @@ const LoginScreen = ({ navigation }) => {
             <Button
               title="Iniciar Sesión"
               onPress={handleLogin}
-              loading={isLoading}
-              disabled={isLoading}
+              loading={isLoading || localLoading}
+              disabled={isLoading || localLoading}
               style={styles.loginButton}
             />
           </View>
@@ -142,8 +159,25 @@ const LoginScreen = ({ navigation }) => {
         </View>
       </ScrollView>
       
-      <Toast />
-      <ConfirmationModal />
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.duration}
+        onDismiss={hideToast}
+        position="top"
+      />
+      <ConfirmationModal 
+        visible={confirmation.visible}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        type={confirmation.type}
+        loading={confirmation.loading}
+        onConfirm={confirmation.onConfirm}
+        onCancel={confirmation.onCancel}
+      />
     </KeyboardAvoidingView>
   );
 };

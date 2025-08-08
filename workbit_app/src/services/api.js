@@ -22,7 +22,20 @@ class ApiService {
     }
 
     try {
-      const response = await fetch(url, config);
+      console.log(`🔄 API Request: ${config.method || 'GET'} ${url}`);
+      
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 25000)
+      );
+      
+      // Create fetch promise
+      const fetchPromise = fetch(url, config);
+      
+      // Race between fetch and timeout
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      console.log(`✅ API Response: ${response.status} ${response.statusText}`);
       
       if (!response.ok) {
         // Intentar obtener el mensaje de error del backend
@@ -43,9 +56,18 @@ class ApiService {
       }
       
       const data = await response.json();
+      console.log(`📦 API Data received for ${endpoint}`);
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error(`❌ API request failed for ${endpoint}:`, error);
+      
+      // Improve error messages
+      if (error.message === 'Request timeout') {
+        throw new Error('Conexión lenta. Verifica tu internet.');
+      } else if (error.message === 'Network request failed' || error.name === 'TypeError') {
+        throw new Error('Sin conexión a internet.');
+      }
+      
       throw error;
     }
   }

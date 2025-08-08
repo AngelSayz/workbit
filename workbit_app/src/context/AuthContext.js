@@ -42,7 +42,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setIsLoading(true);
-      const response = await ApiService.login(email, password);
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Tiempo de espera agotado')), 30000)
+      );
+      
+      const loginPromise = ApiService.login(email, password);
+      const response = await Promise.race([loginPromise, timeoutPromise]);
       
       // Handle new backend response format
       if (response.token && response.user) {
@@ -77,9 +84,22 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Login error:', error);
+      
+      // Handle specific error types
+      let errorMessage = 'Error al iniciar sesión';
+      if (error.message.includes('Tiempo de espera')) {
+        errorMessage = 'Conexión lenta. Verifica tu internet y reintenta.';
+      } else if (error.message.includes('Network')) {
+        errorMessage = 'Sin conexión a internet. Verifica tu conexión.';
+      } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+        errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       return { 
         success: false, 
-        error: error.message || 'Error al iniciar sesión' 
+        error: errorMessage
       };
     } finally {
       setIsLoading(false);

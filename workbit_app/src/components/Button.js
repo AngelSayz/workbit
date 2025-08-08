@@ -19,9 +19,17 @@ const Button = ({
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
       // Graceful fallback if haptics not available
+      console.log('Haptics not available:', error);
     }
     
-    onPress?.();
+    // Ensure onPress exists before calling
+    if (onPress && typeof onPress === 'function') {
+      try {
+        onPress();
+      } catch (error) {
+        console.error('Button onPress error:', error);
+      }
+    }
   };
 
   const getButtonStyle = () => {
